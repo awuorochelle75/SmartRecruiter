@@ -1,0 +1,9 @@
+#Server files
+server/.venv/
+server/__pycache__/
+server/migrations/versions/
+
+#Client files
+client/node_modules/
+client/build/
+client/.env
