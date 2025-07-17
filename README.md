@@ -41,7 +41,7 @@ python run.py
 
 ### 4. Run Tests
 - Client: `cd client && npm test`
-- Server: `cd server && python -m minitest tests/`
+- Server: `cd server && pytest`
 
 ### 5. CI/CD
 - Push to `main` to trigger GitHub Actions.
