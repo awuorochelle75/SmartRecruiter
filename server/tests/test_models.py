@@ -7,4 +7,4 @@ import tempfile
 
 
 def test_placeholder_models():
-    assert True
+    assert False
