@@ -2,9 +2,13 @@ name: CI/CD
 
 on:
   push:
-    branches: [feature/ci-cd-david]
+    branches:
+      - feature/ci-cd-david
+      - main
   pull_request:
-    branches: [feature/ci-cd-david]
+    branches:
+      - feature/ci-cd-david
+      - main
 
 jobs:
   backend:
@@ -45,7 +49,7 @@ jobs:
       - name: Run Jest tests
         run: CI=true npm test
       - name: Deploy to Vercel
-        if: github.ref == 'refs/heads/ci-cd-david'
+        if: github.ref == 'refs/heads/main'
         run: echo "Deploy to Vercel here..."
 
 
