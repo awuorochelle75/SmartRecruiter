@@ -1,9 +1,59 @@
 #Server files
 server/.venv/
 server/__pycache__/
-server/migrations/versions/
+server/*.pyc
+server/*.pyo
+server/*.pyd
+server/.Python
+server/env/
+server/venv/
+server/ENV/
+server/env.bak/
+server/venv.bak/
+server/.env
+server/.env.*
+server/instance/
+server/.pytest_cache/
+server/.mypy_cache/
+server/.coverage
+server/coverage.*
+server/htmlcov/
+server/.vscode/
+server/.idea/
+server/.ropeproject/
+
 
 #Client files
 client/node_modules/
+client/dist/
 client/build/
 client/.env
+client/.env.local
+client/.env.development.local
+client/.env.test.local
+client/.env.production.local
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/.eslintcache
+
+# Vite/CRA
+client/.vite/
+client/.parcel-cache/
+client/.next/
+client/.cache/
+
+
+# SQLite database files
+server/*.sqlite3
+server/*.db
+
+# Logs
+*.log
+
+# General
+*.swp
+*.swo
+*.bak
+*.tmp
+
