@@ -146,4 +146,13 @@ class Statistics(db.Model):
     highest_score = db.Column(NUMERIC(5, 2))
     last_attempt_at = db.Column(db.DateTime)
 
-    
+
+# Notifications
+class Notifications(db.Model):
+    __tablename__ = 'notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    title = db.Column(db.String(255))
+    message = db.Column(db.Text)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
