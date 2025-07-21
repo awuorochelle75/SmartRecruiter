@@ -11,10 +11,10 @@ function Navbar(){
             <Link to = "/">Home</Link>
             <Link to = "/pricing">Pricing</Link>
             <Link to = "/about">About</Link>
-              <Link to = "/about">Login</Link>
-
-
-
+             
+        </div>
+        <div>
+            <Link to = "/about">Login</Link>
         </div>
      
     </nav>
