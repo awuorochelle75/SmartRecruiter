@@ -183,7 +183,7 @@ class AuditLogs(db.Model):
     action = db.Column(db.String(100))
     target_table = db.Column(db.String(100))
     target_id = db.Column(db.Integer)
-    metadata = db.Column(JSON)
+    log_metadata = db.Column(JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
