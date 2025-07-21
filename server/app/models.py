@@ -49,3 +49,14 @@ class RecruiterProfile(db.Model):
     bio = db.Column(db.Text)
     avatar = db.Column(db.String(255))
 
+# Sessions
+class Sessions(db.Model):
+    __tablename__ = 'sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    sessions = db.Column(db.String(255), unique=True, nullable=False)
+    data = db.Column(db.Text)
+    expiry = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
+
