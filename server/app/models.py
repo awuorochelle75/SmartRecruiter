@@ -75,3 +75,18 @@ class Assessments(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     deadline = db.Column(db.String(50))
+
+
+# AssessmentQuestions
+class AssessmentQuestions(db.Model):
+    __tablename__ = 'assessment_questions'
+    id = db.Column(db.Integer, primary_key=True)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessments.id'), nullable=False)
+    type = db.Column(db.String(50))
+    question = db.Column(db.Text)
+    options = db.Column(db.Text)  # JSON string
+    correct_answer = db.Column(db.Text)
+    points = db.Column(db.Integer)
+    explanation = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
