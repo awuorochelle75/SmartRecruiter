@@ -168,3 +168,13 @@ class AuditLogs(db.Model):
     metadata = db.Column(JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+# IntervieweeAvailability
+class IntervieweeAvailability(db.Model):
+    __tablename__ = 'interviewee_availability'
+    id = db.Column(db.Integer, primary_key=True)
+    interviewee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    status = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
