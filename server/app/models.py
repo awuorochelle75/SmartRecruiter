@@ -100,3 +100,16 @@ class Invitations(db.Model):
     interviewee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     status = db.Column(db.String(20))
     invited_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# AssessmentAttempts
+class AssessmentAttempts(db.Model):
+    __tablename__ = 'assessment_attempts'
+    id = db.Column(db.Integer, primary_key=True)
+    interviewee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessments.id'))
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    status = db.Column(db.String(20))
+
+    submissions = db.relationship('Submissions', backref='attempt', lazy=True)
