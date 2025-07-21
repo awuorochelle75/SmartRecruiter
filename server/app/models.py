@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
-# 1. users
+# # Users table to store basic account credentials and roles
 class Users(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -21,7 +21,8 @@ class Users(db.Model):
         return check_password_hash(self.password_hash, password)
 
 
-# 2. IntervieweeProfile
+
+# Profile table specific to interviewees
 class IntervieweeProfile(db.Model):
     __tablename__= 'interviewee_profiles'
     id = db.Column(db.Integer, primary_key=True)
@@ -40,7 +41,7 @@ class IntervieweeProfile(db.Model):
 
     user = db.relationship('Users', backref=db.backref('interviewee_profile', uselist=False))  
 
-# 3. RecruiterProfile
+# Profile table specific to recruiters
 class RecruiterProfile(db.Model):
     __tablename__ = 'recruiter_profiles'
     id = db.Column(db.Integer, primary_key=True)
@@ -57,7 +58,7 @@ class RecruiterProfile(db.Model):
 
     user = db.relationship('Users', backref=db.backref('recruiter_profile', uselist=False))  
 
-# 4. Sessions
+# Sessions table for tracking client-side session data
 class Sessions(db.Model):
     __tablename__ = 'sessions'
     id = db.Column(db.Integer, primary_key=True)
@@ -66,7 +67,7 @@ class Sessions(db.Model):
     expiry = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# 5. Assessments
+# Assessments created by recruiters
 class Assessments(db.Model):
     __tablename__ = 'assessments'
     id = db.Column(db.Integer, primary_key=True)
@@ -84,9 +85,9 @@ class Assessments(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     deadline = db.Column(db.String(50))
 
-    recruiter = db.relationship('Users', backref='assessments')  
+    recruiter = db.relationship('Users', backref='assessments')  # Relationship to recruiter who created the assessment
 
-# 6. AssessmentQuestions
+# Questions associated with each assessment
 class AssessmentQuestions(db.Model):
     __tablename__ = 'assessment_questions'
     id = db.Column(db.Integer, primary_key=True)
@@ -102,7 +103,7 @@ class AssessmentQuestions(db.Model):
 
     assessment = db.relationship('Assessments', backref='questions')  
 
-# 7. Invitations
+# Invitations sent to interviewees for assessments
 class Invitations(db.Model):
     __tablename__ = 'invitations'
     id = db.Column(db.Integer, primary_key=True)
@@ -114,7 +115,8 @@ class Invitations(db.Model):
     assessment = db.relationship('Assessments', backref='invitations')  
     interviewee = db.relationship('Users', backref='invitations')  
 
-# 8. AssessmentAttempts
+
+# Track attempts made by interviewees on assessments
 class AssessmentAttempts(db.Model):
     __tablename__ = 'assessment_attempts'
     id = db.Column(db.Integer, primary_key=True)
@@ -127,7 +129,7 @@ class AssessmentAttempts(db.Model):
     interviewee = db.relationship('Users', backref='assessment_attempts') 
     assessment = db.relationship('Assessments', backref='attempts') 
 
-# 9. Submissions
+# Store answers submitted by interviewees
 class Submissions(db.Model):
     __tablename__ = 'submissions'
     id = db.Column(db.Integer, primary_key=True)
@@ -139,7 +141,7 @@ class Submissions(db.Model):
 
     attempt = db.relationship('AssessmentAttempts', backref='submissions') 
 
-# 10. Feedback
+# Feedback provided by recruiters on submissions
 class Feedback(db.Model):
     __tablename__ = 'feedback'
     id = db.Column(db.Integer, primary_key=True)
@@ -151,7 +153,7 @@ class Feedback(db.Model):
     submission = db.relationship('Submissions', backref='feedback') 
     recruiter = db.relationship('Users', backref='feedbacks') 
 
-# 11. Statistics
+# Aggregated performance statistics per user and assessment
 class Statistics(db.Model):
     __tablename__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
@@ -165,7 +167,7 @@ class Statistics(db.Model):
     user = db.relationship('Users', backref='statistics')  
     assessment = db.relationship('Assessments', backref='statistics') 
 
-# 12. Notifications
+# Notification messages sent to users
 class Notifications(db.Model):
     __tablename__ = 'notifications'
     id = db.Column(db.Integer, primary_key=True)
@@ -177,7 +179,7 @@ class Notifications(db.Model):
 
     user = db.relationship('Users', backref='notifications')  
 
-# 13. AuditLogs
+# Logs for auditing user actions
 class AuditLogs(db.Model):
     __tablename__ = 'audit_logs'
     id = db.Column(db.Integer, primary_key=True)
@@ -190,7 +192,7 @@ class AuditLogs(db.Model):
 
     user = db.relationship('Users', backref='audit_logs') 
 
-# 14. Settings
+# Configurable settings either globally or per user
 class Settings(db.Model):
     __tablename__ = 'settings'
     id = db.Column(db.Integer, primary_key=True)
@@ -202,7 +204,7 @@ class Settings(db.Model):
 
     user = db.relationship('Users', backref='settings') 
 
-# 15. IntervieweeAvailability
+# Interviewee availability slots for scheduling
 class IntervieweeAvailability(db.Model):
     __tablename__ = 'interviewee_availability'
     id = db.Column(db.Integer, primary_key=True)
@@ -214,7 +216,7 @@ class IntervieweeAvailability(db.Model):
 
     interviewee = db.relationship('Users', backref='availability')  
 
-# 16. IntervieweeInterviewHistory
+# Interviewee availability slots for scheduling
 class IntervieweeInterviewHistory(db.Model):
     __tablename__ = 'interviewee_interview_history'
     id = db.Column(db.Integer, primary_key=True)
