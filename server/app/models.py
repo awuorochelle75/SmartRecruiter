@@ -1,39 +1,23 @@
-# app/models.py
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import JSON, NUMERIC
 from datetime import datetime
 
 db = SQLAlchemy()
 
-# 1. users
+# 1. Users
 class Users(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)  
     password_hash = db.Column(db.String(255), nullable=False)
-    role =  db.Column(db.String(20), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    interviewee_profile = db.relationship('IntervieweeProfile', backref='user', uselist=False)
-    recruiter_profile = db.relationship('RecruiterProfile', backref='user', uselist=False)
-    assessments = db.relationship('Assessments', backref='recruiter', lazy=True)
-    invitations = db.relationship('Invitations', backref='interviewee', lazy=True)
-    assessment_attempts = db.relationship('AssessmentAttempts', backref='interviewee', lazy=True)
-    feedbacks = db.relationship('Feedback', backref='recruiter', lazy=True)
-    statistics = db.relationship('Statistics', backref='user', lazy=True)
-    notifications = db.relationship('Notifications', backref='user', lazy=True)
-    audit_logs = db.relationship('AuditLogs', backref='user', lazy=True)
-    settings = db.relationship('Settings', backref='user', lazy=True)
-    availability = db.relationship('IntervieweeAvailability', backref='interviewee', lazy=True)
-    interview_history = db.relationship('IntervieweeInterviewHistory', backref='interviewee', lazy=True)
-    
-
 
 # 2. IntervieweeProfile
 class IntervieweeProfile(db.Model):
     __tablename__= 'interviewee_profiles'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id') , unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
     phone = db.Column(db.String(20))
@@ -45,6 +29,8 @@ class IntervieweeProfile(db.Model):
     onboarding_completed = db.Column(db.Boolean, default=False)
     avatar = db.Column(db.String(255))
     resume_url = db.Column(db.String(255))
+
+    user = db.relationship('Users', backref=db.backref('interviewee_profile', uselist=False))  
 
 # 3. RecruiterProfile
 class RecruiterProfile(db.Model):
@@ -60,6 +46,8 @@ class RecruiterProfile(db.Model):
     role = db.Column(db.String(100))
     bio = db.Column(db.Text)
     avatar = db.Column(db.String(255))
+
+    user = db.relationship('Users', backref=db.backref('recruiter_profile', uselist=False))  
 
 # 4. Sessions
 class Sessions(db.Model):
@@ -88,12 +76,7 @@ class Assessments(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     deadline = db.Column(db.String(50))
 
-    questions = db.relationship('AssessmentQuestions', backref='assessment', lazy=True)
-    invitations = db.relationship('Invitations', backref='assessment', lazy=True)
-    attempts = db.relationship('AssessmentAttempts', backref='assessment', lazy=True)
-    statistics = db.relationship('Statistics', backref='assessment', lazy=True)
-
-
+    recruiter = db.relationship('Users', backref='assessments')  
 
 # 6. AssessmentQuestions
 class AssessmentQuestions(db.Model):
@@ -102,13 +85,14 @@ class AssessmentQuestions(db.Model):
     assessment_id = db.Column(db.Integer, db.ForeignKey('assessments.id'), nullable=False)
     type = db.Column(db.String(50))
     question = db.Column(db.Text)
-    options = db.Column(db.Text)  # JSON string
+    options = db.Column(db.Text)
     correct_answer = db.Column(db.Text)
     points = db.Column(db.Integer)
     explanation = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    assessment = db.relationship('Assessments', backref='questions')  
 
 # 7. Invitations
 class Invitations(db.Model):
@@ -119,6 +103,8 @@ class Invitations(db.Model):
     status = db.Column(db.String(20))
     invited_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    assessment = db.relationship('Assessments', backref='invitations')  
+    interviewee = db.relationship('Users', backref='invitations')  
 
 # 8. AssessmentAttempts
 class AssessmentAttempts(db.Model):
@@ -130,7 +116,8 @@ class AssessmentAttempts(db.Model):
     end_time = db.Column(db.DateTime)
     status = db.Column(db.String(20))
 
-    submissions = db.relationship('Submissions', backref='attempt', lazy=True)
+    interviewee = db.relationship('Users', backref='assessment_attempts') 
+    assessment = db.relationship('Assessments', backref='attempts') 
 
 # 9. Submissions
 class Submissions(db.Model):
@@ -142,7 +129,7 @@ class Submissions(db.Model):
     score = db.Column(NUMERIC(5, 2))
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    feedback = db.relationship('Feedback', backref='submission', lazy=True)
+    attempt = db.relationship('AssessmentAttempts', backref='submissions') 
 
 # 10. Feedback
 class Feedback(db.Model):
@@ -152,6 +139,9 @@ class Feedback(db.Model):
     recruiter_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    submission = db.relationship('Submissions', backref='feedback') 
+    recruiter = db.relationship('Users', backref='feedbacks') 
 
 # 11. Statistics
 class Statistics(db.Model):
@@ -164,6 +154,8 @@ class Statistics(db.Model):
     highest_score = db.Column(NUMERIC(5, 2))
     last_attempt_at = db.Column(db.DateTime)
 
+    user = db.relationship('Users', backref='statistics')  
+    assessment = db.relationship('Assessments', backref='statistics') 
 
 # 12. Notifications
 class Notifications(db.Model):
@@ -174,6 +166,8 @@ class Notifications(db.Model):
     message = db.Column(db.Text)
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('Users', backref='notifications')  
 
 # 13. AuditLogs
 class AuditLogs(db.Model):
@@ -186,6 +180,8 @@ class AuditLogs(db.Model):
     log_metadata = db.Column(JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('Users', backref='audit_logs') 
+
 # 14. Settings
 class Settings(db.Model):
     __tablename__ = 'settings'
@@ -196,8 +192,9 @@ class Settings(db.Model):
     scope = db.Column(db.String(20))
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('Users', backref='settings') 
 
-# 15.  IntervieweeAvailability
+# 15. IntervieweeAvailability
 class IntervieweeAvailability(db.Model):
     __tablename__ = 'interviewee_availability'
     id = db.Column(db.Integer, primary_key=True)
@@ -206,6 +203,8 @@ class IntervieweeAvailability(db.Model):
     end_time = db.Column(db.DateTime)
     status = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    interviewee = db.relationship('Users', backref='availability')  
 
 # 16. IntervieweeInterviewHistory
 class IntervieweeInterviewHistory(db.Model):
@@ -218,3 +217,5 @@ class IntervieweeInterviewHistory(db.Model):
     status = db.Column(db.String(20))
     score = db.Column(NUMERIC(5, 2))
     feedback = db.Column(db.Text)
+
+    interviewee = db.relationship('Users', backref='interview_history') 
