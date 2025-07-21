@@ -178,3 +178,15 @@ class IntervieweeAvailability(db.Model):
     end_time = db.Column(db.DateTime)
     status = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# IntervieweeInterviewHistory
+class IntervieweeInterviewHistory(db.Model):
+    __tablename__ = 'interviewee_interview_history'
+    id = db.Column(db.Integer, primary_key=True)
+    interviewee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessments.id'))
+    attempt_id = db.Column(db.Integer, db.ForeignKey('assessment_attempts.id'))
+    interview_date = db.Column(db.DateTime)
+    status = db.Column(db.String(20))
+    score = db.Column(NUMERIC(5, 2))
+    feedback = db.Column(db.Text)
