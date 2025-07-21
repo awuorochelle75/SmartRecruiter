@@ -17,7 +17,7 @@ class Users(db.Model):
     
 
 
-# 2. IntervieweeProfile
+# IntervieweeProfile
 class IntervieweeProfile(db.model):
     __tablename__= 'interviewee_profiles'
     id = db.Column(db.Integer, primary_key=True)
@@ -33,4 +33,19 @@ class IntervieweeProfile(db.model):
     onboarding_completed = db.Column(db.Boolean, default=False)
     avatar = db.Column(db.String(255))
     resume_url = db.Column(db.String(255))
+
+# RecruiterProfile
+class RecruiterProfile(db.Model):
+    __tablename__ = 'recruiter_profiles'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
+    phone = db.Column(db.String(30))
+    location = db.Column(db.String(100))
+    company_name = db.Column(db.String(100))
+    company_website = db.Column(db.String(255))
+    role = db.Column(db.String(100))
+    bio = db.Column(db.Text)
+    avatar = db.Column(db.String(255))
 
