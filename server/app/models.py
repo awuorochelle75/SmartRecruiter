@@ -88,6 +88,12 @@ class Assessments(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     deadline = db.Column(db.String(50))
 
+    questions = db.relationship('AssessmentQuestions', backref='assessment', lazy=True)
+    invitations = db.relationship('Invitations', backref='assessment', lazy=True)
+    attempts = db.relationship('AssessmentAttempts', backref='assessment', lazy=True)
+    statistics = db.relationship('Statistics', backref='assessment', lazy=True)
+
+
 
 # AssessmentQuestions
 class AssessmentQuestions(db.Model):
