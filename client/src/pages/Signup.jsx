@@ -20,9 +20,9 @@ function Signup(){
        </Link>
         <h2 className="font-bold text-lg ">Create Your Account </h2>
         <p className="text-sm font-light ">Join thousands of proffesionals using SmartRecruiter</p>
-        <Card className="bg-white border border-zinc-200 shadow-lg rounded-2xl p-10 mb-6">
+        <Card className="bg-white border border-zinc-200 shadow-lg rounded-2xl p-10  w-[50%] mb-6">
          <CardHeader>
-            <CardTitle className = "text-black font-bold text-xl">Sign In </CardTitle>
+            <CardTitle className = "text-black font-bold text-xl">Sign Up </CardTitle>
             <h1>Enter your credentials to access your account</h1>
             <p> I am a...</p>
          </CardHeader>

@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Footer from './pages/Footer';
 import Home from './pages/Home';
 import Signup from './pages/Signup';
+import Login from './pages/Login'
 import { ThemeProvider } from './components/ThemeProvider';
 
 function App() {
@@ -13,7 +14,8 @@ function App() {
     <BrowserRouter>
      <Routes>
       <Route path="/" element={<Home />} />
-       <Route path="/signup" element={<Signup />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/login" element={<Login />} />
 
      </Routes>
    

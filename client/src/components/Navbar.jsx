@@ -21,7 +21,7 @@ function Navbar(){
              
         </div>
         <div className='space-x-10'>
-            <Link to = "/about">Login</Link>
+            <Link to = "/login">Login</Link>
              <Link to = "/signup">SignUp</Link>
         </div>
         <ThemeToggle />
