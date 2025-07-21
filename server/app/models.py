@@ -113,3 +113,17 @@ class AssessmentAttempts(db.Model):
     status = db.Column(db.String(20))
 
     submissions = db.relationship('Submissions', backref='attempt', lazy=True)
+
+# Submissions
+class Submissions(db.Model):
+    __tablename__ = 'submissions'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('assessment_attempts.id'))
+    question_id = db.Column(db.Integer, db.ForeignKey('assessment_questions.id'))
+    answer = db.Column(db.Text)
+    score = db.Column(NUMERIC(5, 2))
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    feedback = db.relationship('Feedback', backref='submission', lazy=True)
+
+    
