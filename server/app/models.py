@@ -156,3 +156,14 @@ class Notifications(db.Model):
     message = db.Column(db.Text)
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# AuditLogs
+class AuditLogs(db.Model):
+    __tablename__ = 'audit_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    action = db.Column(db.String(100))
+    target_table = db.Column(db.String(100))
+    target_id = db.Column(db.Integer)
+    metadata = db.Column(JSON)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
