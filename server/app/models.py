@@ -58,5 +58,20 @@ class Sessions(db.Model):
     expiry = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    
-
+# Assessments
+class Assessments(db.Model):
+    __tablename__ = 'assessments'
+    id = db.Column(db.Integer, primary_key=True)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(255))
+    description = db.Column(db.Text)
+    type = db.Column(db.String(50))
+    difficulty = db.Column(db.String(50))
+    duration = db.Column(db.Integer)
+    passing_score = db.Column(db.Integer)
+    instructions = db.Column(db.Text)
+    tags = db.Column(db.Text)
+    status = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deadline = db.Column(db.String(50))
