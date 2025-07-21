@@ -14,6 +14,18 @@ class Users(db.Model):
     role =  db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    interviewee_profile = db.relationship('IntervieweeProfile', backref='user', uselist=False)
+    recruiter_profile = db.relationship('RecruiterProfile', backref='user', uselist=False)
+    assessments = db.relationship('Assessments', backref='recruiter', lazy=True)
+    invitations = db.relationship('Invitations', backref='interviewee', lazy=True)
+    assessment_attempts = db.relationship('AssessmentAttempts', backref='interviewee', lazy=True)
+    feedbacks = db.relationship('Feedback', backref='recruiter', lazy=True)
+    statistics = db.relationship('Statistics', backref='user', lazy=True)
+    notifications = db.relationship('Notifications', backref='user', lazy=True)
+    audit_logs = db.relationship('AuditLogs', backref='user', lazy=True)
+    settings = db.relationship('Settings', backref='user', lazy=True)
+    availability = db.relationship('IntervieweeAvailability', backref='interviewee', lazy=True)
+    interview_history = db.relationship('IntervieweeInterviewHistory', backref='interviewee', lazy=True)
     
 
 
