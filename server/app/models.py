@@ -134,3 +134,16 @@ class Feedback(db.Model):
     recruiter_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Statistics
+class Statistics(db.Model):
+    __tablename__ = 'statistics'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessments.id'))
+    average_score = db.Column(NUMERIC(5, 2))
+    total_attempts = db.Column(db.Integer)
+    highest_score = db.Column(NUMERIC(5, 2))
+    last_attempt_at = db.Column(db.DateTime)
+
+    
