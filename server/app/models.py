@@ -126,4 +126,11 @@ class Submissions(db.Model):
 
     feedback = db.relationship('Feedback', backref='submission', lazy=True)
 
-    
+# Feedback
+class Feedback(db.Model):
+    __tablename__ = 'feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    submission_id = db.Column(db.Integer, db.ForeignKey('submissions.id'))
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
