@@ -90,3 +90,13 @@ class AssessmentQuestions(db.Model):
     explanation = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# Invitations
+class Invitations(db.Model):
+    __tablename__ = 'invitations'
+    id = db.Column(db.Integer, primary_key=True)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessments.id'))
+    interviewee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    status = db.Column(db.String(20))
+    invited_at = db.Column(db.DateTime, default=datetime.utcnow)
