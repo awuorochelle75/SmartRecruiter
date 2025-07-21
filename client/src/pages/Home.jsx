@@ -1,13 +1,32 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { Link } from 'react-router-dom'
+import Footer from './Footer'
+import Navbar from '../components/Navbar';
+import { Button } from '../components/ui/button'
 
-function Home(){
+export default function Home(){
     return(
-        <>
-        <section className="w-full h-[80vh] bg-gray-100 flex items-center justify-center"> 
+        <div className='min-h-screen bg-background'>
+        <Navbar />
+        <section className="relative py-20 lg:py-32 bg-gray-200"> 
           <div className='text-center'>
-            <h1 className='text-4xl font-bold text-black'>Better Technical Hiring</h1>
-            <p className='text-2xl  text-black'>SmartRecruiter automates technical interviews with intelligent assessments,helping you identify top talent faster and more accurately than ever before. </p>
+            <h1 className='text-4xl lg-text-6xl font-bold text-foreground mb-6'>Better Technical Hiring</h1>
+            <p className='text-xl text-muted-foreground mb-8 max-w-2xl mx-auto'>SmartRecruiter automates technical interviews with intelligent assessments,helping you identify top talent faster and more accurately than ever before. </p>
           </div>
+           <div className='flex flex-col sm:flex-row gap-4 justify-center'>
+            <Button asChild size="lg" className="text-lg px-8 ">
+              <Link to="/signup">
+               <span className='inline-flex items-center '>Get Started</span>
+              </Link>
+            </Button>
+
+            <Button asChild size="lg" variant="outline" className="text-lg px-8 ">
+              <Link to="/signup">
+               <span className='inline-flex items-center '>Sign In</span>
+              </Link>
+            </Button>
+
+           </div>
 
         </section>
         <section className='bg-white-500'>
@@ -58,9 +77,10 @@ function Home(){
            </div>
          
         </section>
-        </>
+        <Footer />
+        </div>
     )
 }
-export default Home;
+
 
   
