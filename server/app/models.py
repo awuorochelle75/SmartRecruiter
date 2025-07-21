@@ -5,7 +5,7 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-# users
+# 1. users
 class Users(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -29,7 +29,7 @@ class Users(db.Model):
     
 
 
-# IntervieweeProfile
+# 2. IntervieweeProfile
 class IntervieweeProfile(db.Model):
     __tablename__= 'interviewee_profiles'
     id = db.Column(db.Integer, primary_key=True)
@@ -46,7 +46,7 @@ class IntervieweeProfile(db.Model):
     avatar = db.Column(db.String(255))
     resume_url = db.Column(db.String(255))
 
-# RecruiterProfile
+# 3. RecruiterProfile
 class RecruiterProfile(db.Model):
     __tablename__ = 'recruiter_profiles'
     id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +61,7 @@ class RecruiterProfile(db.Model):
     bio = db.Column(db.Text)
     avatar = db.Column(db.String(255))
 
-# Sessions
+# 4. Sessions
 class Sessions(db.Model):
     __tablename__ = 'sessions'
     id = db.Column(db.Integer, primary_key=True)
@@ -70,7 +70,7 @@ class Sessions(db.Model):
     expiry = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Assessments
+# 5. Assessments
 class Assessments(db.Model):
     __tablename__ = 'assessments'
     id = db.Column(db.Integer, primary_key=True)
@@ -95,7 +95,7 @@ class Assessments(db.Model):
 
 
 
-# AssessmentQuestions
+# 6. AssessmentQuestions
 class AssessmentQuestions(db.Model):
     __tablename__ = 'assessment_questions'
     id = db.Column(db.Integer, primary_key=True)
@@ -110,7 +110,7 @@ class AssessmentQuestions(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# Invitations
+# 7. Invitations
 class Invitations(db.Model):
     __tablename__ = 'invitations'
     id = db.Column(db.Integer, primary_key=True)
@@ -120,7 +120,7 @@ class Invitations(db.Model):
     invited_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# AssessmentAttempts
+# 8. AssessmentAttempts
 class AssessmentAttempts(db.Model):
     __tablename__ = 'assessment_attempts'
     id = db.Column(db.Integer, primary_key=True)
@@ -132,7 +132,7 @@ class AssessmentAttempts(db.Model):
 
     submissions = db.relationship('Submissions', backref='attempt', lazy=True)
 
-# Submissions
+# 9. Submissions
 class Submissions(db.Model):
     __tablename__ = 'submissions'
     id = db.Column(db.Integer, primary_key=True)
@@ -144,7 +144,7 @@ class Submissions(db.Model):
 
     feedback = db.relationship('Feedback', backref='submission', lazy=True)
 
-# Feedback
+# 10. Feedback
 class Feedback(db.Model):
     __tablename__ = 'feedback'
     id = db.Column(db.Integer, primary_key=True)
@@ -153,7 +153,7 @@ class Feedback(db.Model):
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Statistics
+# 11. Statistics
 class Statistics(db.Model):
     __tablename__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
@@ -165,7 +165,7 @@ class Statistics(db.Model):
     last_attempt_at = db.Column(db.DateTime)
 
 
-# Notifications
+# 12. Notifications
 class Notifications(db.Model):
     __tablename__ = 'notifications'
     id = db.Column(db.Integer, primary_key=True)
@@ -175,7 +175,7 @@ class Notifications(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# AuditLogs
+# 13. AuditLogs
 class AuditLogs(db.Model):
     __tablename__ = 'audit_logs'
     id = db.Column(db.Integer, primary_key=True)
@@ -186,8 +186,18 @@ class AuditLogs(db.Model):
     log_metadata = db.Column(JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# 14. Settings
+class Settings(db.Model):
+    __tablename__ = 'settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    key = db.Column(db.String(100))
+    value = db.Column(db.Text)
+    scope = db.Column(db.String(20))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# IntervieweeAvailability
+
+# 15.  IntervieweeAvailability
 class IntervieweeAvailability(db.Model):
     __tablename__ = 'interviewee_availability'
     id = db.Column(db.Integer, primary_key=True)
@@ -197,7 +207,7 @@ class IntervieweeAvailability(db.Model):
     status = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# IntervieweeInterviewHistory
+# 16. IntervieweeInterviewHistory
 class IntervieweeInterviewHistory(db.Model):
     __tablename__ = 'interviewee_interview_history'
     id = db.Column(db.Integer, primary_key=True)
