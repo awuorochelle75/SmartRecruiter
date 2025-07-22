@@ -104,3 +104,24 @@ def test_assessment_attempt(db):
     db.session.add(attempt)
     db.session.commit()
     assert attempt.id is not None
+
+
+
+def test_submission(db):
+    recruiter = User(email="submission_recruiter@example.com", role="recruiter")
+    recruiter.set_password("password")
+    user = User(email="submission_user@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add_all([recruiter, user])
+    db.session.flush()
+    assessment = Assessment(title="Test", recruiter_id=recruiter.id)
+    db.session.add(assessment)
+    db.session.flush()
+    attempt = AssessmentAttempt(interviewee_id=user.id, assessment_id=assessment.id)
+    question = AssessmentQuestion(assessment_id=assessment.id, question="Q?")
+    db.session.add_all([attempt, question])
+    db.session.flush()
+    submission = Submission(attempt_id=attempt.id, question_id=question.id, answer="A")
+    db.session.add(submission)
+    db.session.commit()
+    assert submission.id is not None
