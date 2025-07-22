@@ -188,3 +188,14 @@ def test_audit_log(db):
     db.session.add(log)
     db.session.commit()
     assert log.id is not None
+
+
+def test_setting(db):
+    user = User(email="setting@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    setting = Setting(user_id=user.id, key="dark_mode", value="true", scope="user")
+    db.session.add(setting)
+    db.session.commit()
+    assert setting.id is not None
