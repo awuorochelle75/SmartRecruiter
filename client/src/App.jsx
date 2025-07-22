@@ -6,7 +6,8 @@ import Signup from './pages/Signup';
 import Login from './pages/Login'
 import { ThemeProvider } from './components/ThemeProvider';
 import Onboarding from './pages/Onboarding';
-import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard'
+import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
+
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route path = "/onboarding" element = {< Onboarding />} />
-      <Route path = "/recruiterdashboard" elemet = {<RecruiterDashboard/>} />
+      <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
 
      </Routes>
    

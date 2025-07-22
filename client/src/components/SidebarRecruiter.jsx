@@ -5,8 +5,8 @@ import { Code2 } from 'lucide-react';
 
 export default function SidebarRecruiter(){
   return (
-    <div className="w-64 h-screen bg-white shadow-lg fixed top-0 left-0 p-6">
-      <div className="flex items-center mb-4">
+    <div className="w-64 h-screen bg-gray-100 shadow-lg fixed top-0 left-0 p-6">
+      <div className="flex items-center  mb-4">
         
          <Link to = "/" className='flex items-center space-x-2 mt-2 '> 
          <Code2 className='h-6  w-6 text-primary  ' />
@@ -16,7 +16,7 @@ export default function SidebarRecruiter(){
 
      <hr className="border-t border-gray-300 mb-4 " /> 
 
-      <ul className="space-y-6 text-gray-700 text-md ">
+      <ul className="space-y-6 text-gray-700 text-md text-sm ">
         <li>
           <Link to="/recruiter/dashboard"  >
             Dashboard
@@ -64,7 +64,9 @@ export default function SidebarRecruiter(){
           </Link>
         </li>
       </ul>
+     
     </div>
+   
   );
 };
 
