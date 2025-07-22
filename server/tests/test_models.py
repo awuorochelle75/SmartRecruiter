@@ -165,3 +165,15 @@ def test_statistic(db):
     db.session.add(stat)
     db.session.commit()
     assert stat.id is not None
+
+
+
+def test_notification(db):
+    user = User(email="notify@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    notif = Notification(user_id=user.id, title="Hello", message="You've got mail")
+    db.session.add(notif)
+    db.session.commit()
+    assert notif.id is not None
