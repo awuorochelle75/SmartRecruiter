@@ -11,3 +11,16 @@ def test_create_user(db, email):
     db.session.commit()
     assert user.id is not None
     assert user.check_password("password")
+
+
+
+def test_create_interviewee_profile(db):
+    user = User(email="interviewee@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    profile = IntervieweeProfile(user_id=user.id, first_name="John", last_name="Doe")
+    db.session.add(profile)
+    db.session.commit()
+    assert profile.id is not None
+    assert user.interviewee_profile.first_name == "John" 
