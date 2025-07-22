@@ -149,3 +149,19 @@ def test_feedback(db):
     db.session.add(feedback)
     db.session.commit()
     assert feedback.id is not None
+
+
+def test_statistic(db):
+    recruiter = User(email="stat_recruiter@example.com", role="recruiter")
+    recruiter.set_password("password")
+    user = User(email="statuser@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add_all([recruiter, user])
+    db.session.flush()
+    assessment = Assessment(title="Test", recruiter_id=recruiter.id)
+    db.session.add(assessment)
+    db.session.flush()
+    stat = Statistic(user_id=user.id, assessment_id=assessment.id, average_score=90, total_attempts=3)
+    db.session.add(stat)
+    db.session.commit()
+    assert stat.id is not None
