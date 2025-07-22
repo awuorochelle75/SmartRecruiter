@@ -215,3 +215,26 @@ def test_availability(db):
     db.session.add(avail)
     db.session.commit()
     assert avail.id is not None
+
+
+def test_interview_history(db):
+    recruiter = User(email="history_recruiter@example.com", role="recruiter")
+    recruiter.set_password("password")
+    user = User(email="history@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add_all([recruiter, user])
+    db.session.flush()
+    assessment = Assessment(title="Test", recruiter_id=recruiter.id)
+    db.session.add(assessment)
+    db.session.flush()
+    attempt = AssessmentAttempt(interviewee_id=user.id, assessment_id=assessment.id)
+    db.session.add(attempt)
+    db.session.flush()
+    history = IntervieweeInterviewHistory(
+        interviewee_id=user.id, 
+        assessment_id=assessment.id, 
+        attempt_id=attempt.id
+    )
+    db.session.add(history)
+    db.session.commit()
+    assert history.id is not None
