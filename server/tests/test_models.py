@@ -24,3 +24,15 @@ def test_create_interviewee_profile(db):
     db.session.commit()
     assert profile.id is not None
     assert user.interviewee_profile.first_name == "John" 
+
+
+def test_create_recruiter_profile(db):
+    user = User(email="recruiter@example.com", role="recruiter")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    profile = RecruiterProfile(user_id=user.id, first_name="Jane", last_name="Smith")
+    db.session.add(profile)
+    db.session.commit()
+    assert profile.id is not None
+    assert user.recruiter_profile.last_name == "Smith"
