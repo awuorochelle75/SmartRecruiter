@@ -5,9 +5,13 @@ on:
     branches:
       - feature/ci-cd-david
       - main
+      - feature/models-isaac
+      - main
   pull_request:
     branches:
       - feature/ci-cd-david
+      - main
+      - feature/models-isaac
       - main
 
 jobs:
