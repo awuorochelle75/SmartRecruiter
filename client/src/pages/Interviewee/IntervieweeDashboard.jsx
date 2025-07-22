@@ -4,6 +4,7 @@ import IntervieweeSidebar from "../../components/IntervieweeSidebar";
 import NavbarDashboard from "../../components/NavbarDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 
 const interviewsData = [
@@ -34,6 +35,33 @@ const interviewsData = [
     dateTime: "28/07/25 at 10:30",
     avatar: "https://github.com/shadcn.png",
     avatarFallback: "JK",
+  },
+];
+
+const recentResultsData = [
+  {
+    id: 1,
+    title: "Node.js Backend Test",
+    company: "Safaricom", 
+    description: "Excellent problem-solving skills",
+    score: 92,
+    timeAgo: "2 days ago",
+  },
+  {
+    id: 2,
+    title: "Python Data Structure",
+    company: "DataFlow", 
+    description: "Good understanding of algorithms", 
+    score: 78,
+    timeAgo: "1 week ago",
+  },
+  {
+    id: 3,
+    title: "Frontend UI Challenge",
+    company: "DesignHub", 
+    description: "Creative and responsive design",
+    score: 88,
+    timeAgo: "3 weeks ago",
   },
 ];
 
@@ -78,7 +106,7 @@ const IntervieweeDashboard = () => {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 ">
             <StatCard  title="Tests Complete" value="8"/>
             <StatCard title="Average Score" value="85"/>
             <StatCard title="Practice Sessions" value="24" />
@@ -86,12 +114,33 @@ const IntervieweeDashboard = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Card className="rounded-lg shadow">
+            <Card className="rounded-lg shadow transition-transform duration-300 hover:scale-105">
               <CardHeader>
                 <CardTitle className="text-gray-900 darkk:text-white">Available Tests</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className=""></p>
+              </CardContent>
+            </Card>
+           <Card className="rounded-lg shadow-sm transition-transform duration-300 hover:scale-105">
+              <CardHeader>
+                <CardTitle className="text-gray-900 dark:text-white">Recent Results</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500 dark:text-gray-400">Your latest assessment performances</p>
+                <div className="space-y-4 mt-4">
+                  {recentResultsData.map((result) => (
+                    <div key={result.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-gray-900 dark:text-white">{result.title}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{result.company}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{result.description}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{result.timeAgo}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-green-600">{result.score}%</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
