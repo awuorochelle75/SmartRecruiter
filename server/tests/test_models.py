@@ -177,3 +177,14 @@ def test_notification(db):
     db.session.add(notif)
     db.session.commit()
     assert notif.id is not None
+
+
+def test_audit_log(db):
+    user = User(email="audit@example.com", role="admin")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    log = AuditLog(user_id=user.id, action="DELETE", target_table="submission", target_id=1, log_metadata={})
+    db.session.add(log)
+    db.session.commit()
+    assert log.id is not None
