@@ -133,14 +133,16 @@ const StatCard = ({ title, value }) => (
 const IntervieweeDashboard = () => {
   return (
     <div className="flex min-h-screen font-sans bg-gray-50">
-      <IntervieweeSidebar />
+      <div className="w-64 fixed top-0 left-0 h-full z-50">
+        <IntervieweeSidebar />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 ml-64 flex flex-col">
         <NavbarDashboard />
 
         {/* Page Content */}
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           <div className="flex  flex-col md:flex-row  md:items-center md:justify-between space-y-2">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
