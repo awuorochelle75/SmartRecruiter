@@ -44,3 +44,15 @@ def test_create_session(db):
     db.session.add(session)
     db.session.commit()
     assert session.id is not None
+
+
+
+def test_create_assessment(db):
+    user = User(email="assessor@example.com", role="recruiter")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    assessment = Assessment(recruiter_id=user.id, title="Test", description="Desc")
+    db.session.add(assessment)
+    db.session.commit()
+    assert assessment.id is not None
