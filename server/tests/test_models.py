@@ -125,3 +125,27 @@ def test_submission(db):
     db.session.add(submission)
     db.session.commit()
     assert submission.id is not None
+
+
+
+def test_feedback(db):
+    recruiter = User(email="feedback_recruiter@example.com", role="recruiter")
+    recruiter.set_password("password")
+    user = User(email="feedback_user@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add_all([recruiter, user])
+    db.session.flush()
+    assessment = Assessment(title="Test", recruiter_id=recruiter.id)
+    db.session.add(assessment)
+    db.session.flush()
+    attempt = AssessmentAttempt(interviewee_id=user.id, assessment_id=assessment.id)
+    question = AssessmentQuestion(assessment_id=assessment.id, question="Q?")
+    db.session.add_all([attempt, question])
+    db.session.flush()
+    submission = Submission(attempt_id=attempt.id, question_id=question.id, answer="A")
+    db.session.add(submission)
+    db.session.flush()
+    feedback = Feedback(submission_id=submission.id, recruiter_id=recruiter.id, comment="Good job")
+    db.session.add(feedback)
+    db.session.commit()
+    assert feedback.id is not None
