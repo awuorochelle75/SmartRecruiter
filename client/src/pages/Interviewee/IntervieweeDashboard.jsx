@@ -3,6 +3,7 @@ import { Search, Bell, User } from "lucide-react";
 import IntervieweeSidebar from "../../components/IntervieweeSidebar"; 
 import NavbarDashboard from "../../components/NavbarDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 
 const interviewsData = [
@@ -59,7 +60,42 @@ const IntervieweeDashboard = () => {
         <NavbarDashboard/>
 
         {/* Page Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 space-y-6">
+          <div className="flex  flex-col md:flex-row  md:items-center md:justify-between space-y-2">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Welcome Back!
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Track your progress and discover new opportunities
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 shadow-md">Start Practice</Button>
+              <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-4 py-2 shadow-sm">
+                Browse Tests
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard  title="Tests Complete" value="8"/>
+            <StatCard title="Average Score" value="85"/>
+            <StatCard title="Practice Sessions" value="24" />
+            <StatCard title="Rank" value="#23" />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="rounded-lg shadow">
+              <CardHeader>
+                <CardTitle className="text-gray-900 darkk:text-white">Available Tests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className=""></p>
+              </CardContent>
+            </Card>
+          </div>
+
         </div>
       </div>
     </div>
