@@ -199,3 +199,19 @@ def test_setting(db):
     db.session.add(setting)
     db.session.commit()
     assert setting.id is not None
+
+
+
+def test_availability(db):
+    user = User(email="available@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add(user)
+    db.session.flush()
+    avail = IntervieweeAvailability(
+        interviewee_id=user.id, 
+        start_time=datetime.utcnow(), 
+        end_time=datetime.utcnow()
+    )
+    db.session.add(avail)
+    db.session.commit()
+    assert avail.id is not None
