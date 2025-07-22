@@ -8,6 +8,8 @@ import { ThemeProvider } from './components/ThemeProvider';
 import IntervieweeDashboard from './pages/Interviewee/IntervieweeDashboard';
 import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import IntervieweeSidebar from './components/IntervieweeSidebar';
+import NavbarDashboard from './components/NavbarDashboard';
+
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
     <BrowserRouter>
      <Routes>
       <Route path="/" element={<Home />} />
+      <Route path='/navbar' element={<NavbarDashboard/>}/>
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route path="/interviewee" element={<IntervieweeDashboard />} />

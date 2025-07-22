@@ -1,28 +1,30 @@
-"use client"
+import React from "react";
+import { Search, Bell, User } from "lucide-react";
 
-import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
-import { useState } from 'react';
-import ThemeToggle  from './ThemeToggle'
-import { Code2 } from 'lucide-react';
+const NavbarDashboard = () => {
+  return (
+    <div className="flex items-center justify-between p-4 border-b bg-white shadow-sm">
+      {/* Search Bar */}
+      <div className="relative flex items-center w-full max-w-md">
+        <Search className="absolute left-3 text-gray-400 dark:text-gray-500 h-5 w-5" />
+        <input
+          type="text"
+          placeholder="Search..."
+          className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+        />
+      </div>
 
-
-function NavbarDashboard(){
- return (
-    <nav className="w-full bg-white-500 text-black px-3 flex justify-between mt-3 ">
-       <Link to = "/" className='flex items-center space-x-2 '> 
-        <Code2 className='h-8  w-8 text-primary' />
-         <span className='text-xl font-bold text-foreground'>SmartRecruiter</span>
-       </Link>
-        <div className = "space-x-10">
-            <Link to = "/">Home</Link>
-            <Link to = "/login">Login</Link>
-        </div>
-        <ThemeToggle />
-     
-    </nav>
+      {/* Right Icons */}
+      <div className="flex items-center space-x-4 ml-4">
+        <button className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-500 rounded-full p-2">
+          <Bell className="h-6 w-6" />
+        </button>
+        <button className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-500 rounded-full p-2">
+          <User className="h-6 w-6" />
+        </button>
+      </div>
+    </div>
   );
-}
-
+};
 
 export default NavbarDashboard;
