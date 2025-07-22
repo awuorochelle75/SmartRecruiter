@@ -67,7 +67,7 @@ function Login(){
 
                
                  <Button asChild size="lg" className="text-lg px-8 mt-2 ">
-                             <Link to="/login">
+                             <Link to="/onboarding">
                               <span className='inline-flex items-center '>Sign In</span>
                              </Link>
                            </Button>

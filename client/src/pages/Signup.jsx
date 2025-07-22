@@ -102,7 +102,7 @@ function Signup(){
 
                
                  <Button asChild size="lg" className="text-lg px-8 mt-2 ">
-                             <Link to="/onboarding">
+                             <Link to="/login">
                               <span className='inline-flex items-center '>Create Account</span>
                              </Link>
                            </Button>
