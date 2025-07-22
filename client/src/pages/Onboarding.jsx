@@ -147,7 +147,7 @@ export default function Onboarding(){
                
                   
                     <Button asChild size="lg" className="text-lg px-8 mt-2 ">
-                                <Link to="/onboarding">
+                                <Link to="/recruiterdashboard">
                                  <span className='inline-flex items-center '>Continue</span>
                                 </Link>
                               </Button>
