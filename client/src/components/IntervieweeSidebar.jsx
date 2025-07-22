@@ -20,9 +20,6 @@ const IntervieweeSidebar = () => {
         <span className="text-blue-600 text-2xl font-bold">&lt;/&gt;</span>
         <span className="text-gray-900 dark:text-white text-lg font-semibold">SmartRecruiter</span>
       </div>
-      <div className="p-4 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-        Recruiter Portal
-      </div>
       <nav className="flex-1 py-4 space-y-2">
         {navItems.map((item) => (
           <a
