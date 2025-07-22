@@ -1,18 +1,32 @@
 import pytest
 from app import create_app
-from app.models import db
+from app.models import db as _db
+import os
+import tempfile
 
-@pytest.fixture(scope="function")
-def test_app():
+@pytest.fixture(scope="session")
+def app():
+    # Create a temporary database
+    db_fd, db_path = tempfile.mkstemp()
+    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+
     app = create_app()
-    app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-    })
+    app.config["TESTING"] = True
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     with app.app_context():
-        db.create_all()
-        yield app  
-        db.session.remove()
-        db.drop_all()
+        _db.create_all()
+        yield app
+        _db.drop_all()
+
+    os.close(db_fd)
+    os.unlink(db_path)
+
+@pytest.fixture(scope="function")
+def client(app):
+    return app.test_client()
+
+@pytest.fixture(scope="function")
+def db(app):
+    return _db
