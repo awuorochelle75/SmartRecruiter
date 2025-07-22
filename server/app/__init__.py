@@ -3,11 +3,13 @@ from .routes import api
 from .config import DevelopmentConfig, ProductionConfig, TestingConfig
 from .utils import init_jwt
 from flask import Flask, jsonify
+from flask_migrate import Migrate
 
 import os
 
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_jwt_extended import JWTManager
+
 
 def create_app():
     app = Flask(__name__)
@@ -22,6 +24,7 @@ def create_app():
     app.config['JWT_HEADER_NAME'] = 'Authorization'
     app.config['JWT_HEADER_TYPE'] = 'Bearer'
     db.init_app(app)
+    migrate = Migrate(app, db)
     jwt = init_jwt(app)
     app.register_blueprint(api, url_prefix='/api')
     

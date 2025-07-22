@@ -4,11 +4,16 @@ on:
   push:
     branches:
       - feature/ci-cd-david
+      - feature/models-isaac
       - main
+      
   pull_request:
     branches:
       - feature/ci-cd-david
+      - feature/models-isaac
       - main
+     
+      
 
 jobs:
   backend:
