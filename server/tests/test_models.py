@@ -87,3 +87,20 @@ def test_create_invitation(db):
     db.session.add(invitation)
     db.session.commit()
     assert invitation.id is not None
+
+
+
+def test_assessment_attempt(db):
+    recruiter = User(email="attempt_recruiter@example.com", role="recruiter")
+    recruiter.set_password("password")
+    user = User(email="attempt@example.com", role="interviewee")
+    user.set_password("password")
+    db.session.add_all([recruiter, user])
+    db.session.flush()
+    assessment = Assessment(title="Test", recruiter_id=recruiter.id)
+    db.session.add(assessment)
+    db.session.flush()
+    attempt = AssessmentAttempt(interviewee_id=user.id, assessment_id=assessment.id)
+    db.session.add(attempt)
+    db.session.commit()
+    assert attempt.id is not None
