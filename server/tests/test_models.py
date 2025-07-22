@@ -36,3 +36,11 @@ def test_create_recruiter_profile(db):
     db.session.commit()
     assert profile.id is not None
     assert user.recruiter_profile.last_name == "Smith"
+
+
+def test_create_session(db):
+    db.session.rollback()  # ensure clean state
+    session = Session(sessions="abc123", data="{}", expiry=datetime.utcnow())
+    db.session.add(session)
+    db.session.commit()
+    assert session.id is not None
