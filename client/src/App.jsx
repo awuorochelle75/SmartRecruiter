@@ -4,7 +4,11 @@ import Footer from './pages/Footer';
 import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login'
+
+
 import { ThemeProvider } from './components/ThemeProvider';
+import IntervieweeDashboard from './pages/Interviewee/IntervieweeDashboard';
+import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 
 function App() {
   return (
@@ -16,6 +20,8 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/interviewee" element={<IntervieweeDashboard />} />
+      <Route path="/recruiter" element={<RecruiterDashboard />} />
 
      </Routes>
    
