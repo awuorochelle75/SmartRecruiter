@@ -1,8 +1,27 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Footer from './pages/Footer';
+import Home from './pages/Home';
+import Signup from './pages/Signup';
+import Login from './pages/Login'
+import { ThemeProvider } from './components/ThemeProvider';
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-blue-600">Smart Recruiter</h1>
-    </div>
+    < ThemeProvider  defaultTheme='system' storageKey="SmartRecruiter-Theme">
+  
+
+    <BrowserRouter>
+     <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/login" element={<Login />} />
+
+     </Routes>
+   
+  
+    </BrowserRouter>
+ </ThemeProvider>
   )
 }
 
