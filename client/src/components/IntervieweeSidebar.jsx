@@ -1,16 +1,16 @@
 import React from 'react';
-import { LayoutDashboard, FileText, Users, MessageSquare, Settings, LogOut } from 'lucide-react'; // Icons
+import { LayoutDashboard, FileText, Users, MessageSquare, Settings, LogOut } from 'lucide-react'; 
 
 
 const IntervieweeSidebar = () => {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard" },
-    { icon: FileText, label: "Create Assessment" },
-    { icon: FileText, label: "Assessments" },
-    { icon: Users, label: "Candidates" },
-    { icon: FileText, label: "Results & Analytics" },
-    { icon: FileText, label: "Interviews", active: true },
-    { icon: MessageSquare, label: "Messages" },
+    { icon: FileText, label: "Available Test" },
+    { icon: FileText, label: "My Result" },
+    { icon: Users, label: "Practice Arena" },
+    { icon: FileText, label: "Scheduled Interviews" },
+    { icon: FileText, label: "Messages", active: true },
+    { icon: MessageSquare, label: "Profile" },
     { icon: Settings, label: "Settings" },
   ];
 
