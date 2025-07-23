@@ -24,12 +24,12 @@ export default function SidebarRecruiter(){
         </li>
 
         <li>
-          <Link to="/recruiter/create-assessment" >
+          <Link to="/create-assessment" >
             Create Assessment
           </Link>
         </li>
         <li>
-          <Link to="/recruiter/assessments" >
+          <Link to="/assessments" >
             Assessment
           </Link>
         </li>

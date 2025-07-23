@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import { ThemeProvider } from './components/ThemeProvider';
 import Onboarding from './pages/Onboarding';
 import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
+import Assessments from './pages/Recruiter/Assessments';
 
 
 function App() {
@@ -21,6 +22,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path = "/onboarding" element = {< Onboarding />} />
       <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
+      <Route path = "/assessments" element = {< Assessments />} />
+
 
      </Routes>
    
