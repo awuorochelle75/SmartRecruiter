@@ -242,12 +242,88 @@ const IntervieweeSettings = () => {
               </div>
             </div>
 
-            {/* Profile Information Section (Availability, Work Type, Salary, Skills) */}
+            {/* Profile Information Section (Availability, Work Type, Salary, Skills) - NOW POPULATED */}
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-6 border border-gray-100 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Information</h3>
               <p className="text-gray-600 dark:text-gray-400">Update your personal information and professional details</p>
-              {/* Placeholder for Profile Info (second section) content */}
-              <p className="text-gray-700 dark:text-gray-300">Second profile information content goes here.</p>
+
+              {/* Availability, Work Type, Salary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Availability */}
+                <div>
+                  <label htmlFor="settings-availability" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Availability
+                  </label>
+                  <Select defaultValue={profileInfoData.availability}>
+                    <SelectTrigger id="settings-availability" className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                      <SelectValue placeholder="Select availability" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                      <SelectItem value="Immediately">Immediately</SelectItem>
+                      <SelectItem value="1-2 weeks">1-2 weeks</SelectItem>
+                      <SelectItem value="1 month">1 month</SelectItem>
+                      <SelectItem value="3 months+">3 months+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Work Type Preference */}
+                <div>
+                  <label htmlFor="settings-workType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Work Type Preference
+                  </label>
+                  <Select defaultValue={profileInfoData.workTypePreference}>
+                    <SelectTrigger id="settings-workType" className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                      <SelectValue placeholder="Select work type" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                      <SelectItem value="Hybrid">Hybrid</SelectItem>
+                      <SelectItem value="Remote">Remote</SelectItem>
+                      <SelectItem value="On-site">On-site</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Salary Expectation */}
+                <div>
+                  <label htmlFor="settings-salary" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Salary Expectation (Ksh)
+                  </label>
+                  <Input
+                    id="settings-salary"
+                    type="text"
+                    defaultValue={profileInfoData.salaryExpectation}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Skills Input and Badges */}
+              <div className="space-y-2">
+                <label htmlFor="settings-skills" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Skills
+                </label>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="settings-skills"
+                    type="text"
+                    placeholder="Add a skill (e.g. React, Javascript, Frontend)"
+                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 shadow-md">
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {profileInfoData.skills.map((skill, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="px-3 py-1 text-sm font-medium rounded-full border-gray-300 text-gray-700 bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700"
+                    >
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Security Section */}
