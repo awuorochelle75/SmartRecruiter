@@ -21,7 +21,7 @@ const IntervieweeSidebar = () => {
     { icon: FileText, label: "Scheduled Interviews", path: "/interviews" },
     { icon: FileText, label: "Messages", path: "/messages" },
     { icon: MessageSquare, label: "Profile", path: "/myProfile" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: Settings, label: "Settings", path: "/mySettings" },
     { icon: Bell, label: "notifications", path: "/notifications" },
   ];
 
