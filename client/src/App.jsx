@@ -8,6 +8,7 @@ import { ThemeProvider } from './components/ThemeProvider';
 import Onboarding from './pages/Onboarding';
 import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import Assessments from './pages/Recruiter/Assessments';
+import Candidates from '/pages/Recruiter/Candidates'
 
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
       <Route path = "/onboarding" element = {< Onboarding />} />
       <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
       <Route path = "/assessments" element = {< Assessments />} />
+      <Route path = "/candidates" element = {< Candidates />} />
 
 
      </Routes>
