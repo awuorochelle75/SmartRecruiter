@@ -1,29 +1,77 @@
 "use client"
 
 import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
 import { useState } from 'react';
 import ThemeToggle  from './ThemeToggle'
-import { Code2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from './ui/dropdown-menu'
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { Bell } from 'lucide-react'
+
 
 
 function NavbarDashboard(){
  return (
     <nav className="w-full bg-white-500 text-black px-3 flex justify-between mt-3 ">
-    <div className=" w-[28rem]">
-  <input
-    type="text"
-    placeholder="Search..."
-    className="w-full border border-gray-300 rounded-md pl-10 pr-4 py-2 text-sm  "
-  />
-</div>
+     <div className=" w-[28rem]">
+       <input
+         type="text"
+         placeholder="Search..."
+         className="w-full border border-gray-300 rounded-md pl-10 pr-4 py-2 text-sm  "
+          />
+      </div>
 
-
-        <div className = "space-x-10">
-            <Link to = "/">Home</Link>
-            <Link to = "/login">Login</Link>
-        </div>
+      <div className = "flex items-center gap-6">
         <ThemeToggle />
+
+  <div className="relative cursor-pointer">
+      <DropdownMenu>
+       <DropdownMenuTrigger asChild>
+        <div className="relative cursor-pointer">
+         <Bell className="h-6 w-6 text-gray-600 hover:text-blue-600 transition-colors" />
+         </div>
+       </DropdownMenuTrigger>
+
+       <DropdownMenuContent align="end" className="w-64">
+       <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+       <DropdownMenuSeparator />
+       
+        <DropdownMenuItem>
+         <Link to="/notifications" className="w-full text-blue-600 text-sm text-center">
+          View All Notifications
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+
+        <DropdownMenu>
+           <DropdownMenuTrigger asChild>
+             <div className="cursor-pointer ">
+               <Avatar>
+                <AvatarImage src="/user.jpg" alt="User profile" />
+                <AvatarFallback className='bg-primary  hover:text-blue-600 transition-colors'>RA</AvatarFallback>
+              </Avatar>
+            </div>
+          </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Rochelle Awuor</DropdownMenuLabel>
+           <DropdownMenuLabel className="text-xs text-gray-500">rochelleawuor@gmail.com</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+             <DropdownMenuItem>
+              <Link to="/profile">Profile</Link>
+             </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link to="/settings">Settings</Link>
+            </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            <DropdownMenuItem>
+            <Link to="/logout">Logout</Link>
+           </DropdownMenuItem>
+          </DropdownMenuContent>
+      </DropdownMenu>
+
+         </div>
      
     </nav>
   );
