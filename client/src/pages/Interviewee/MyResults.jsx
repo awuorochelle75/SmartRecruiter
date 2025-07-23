@@ -75,6 +75,7 @@ const MyResults = () => {
             </div>
           </div>
 
+
           {/* Stat Cards Section: Displays key performance metrics in a responsive grid. */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {myResultsStatsData.map((stat) => (
@@ -83,7 +84,6 @@ const MyResults = () => {
           </div>
           {/* Search and Filter Section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-            {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
@@ -92,7 +92,6 @@ const MyResults = () => {
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
             </div>
-            {/* Filter Dropdowns */}
             <div className="flex space-x-2">
               <select className="px-4 py-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option>All Status</option>
@@ -107,6 +106,8 @@ const MyResults = () => {
               </select>
             </div>
           </div>
+
+
           {/* My Assessment Results Table Section */}
           <div className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow duration-300 rounded-lg p-5 space-y-4 border border-gray-100 dark:border-gray-700">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">My Assessment Results</h3>
@@ -115,7 +116,6 @@ const MyResults = () => {
             {/* Table Structure */}
             <div className="overflow-x-auto"> {/* Ensures horizontal scrolling on small screens if needed */}
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                {/* Table Header */}
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
