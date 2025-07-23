@@ -9,6 +9,7 @@ import Onboarding from './pages/Onboarding';
 import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import Assessments from './pages/Recruiter/Assessments';
 import Candidates from './pages/Recruiter/Candidates'
+import ResultsAnalytics from './pages/Recruiter/ResultsAnalytics'
 
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
       <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
       <Route path = "/assessments" element = {< Assessments />} />
       <Route path = "/candidates" element = {< Candidates />} />
+      <Route path = "/resultsanalytics" element = {< ResultsAnalytics />} />
 
 
      </Routes>
