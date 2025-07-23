@@ -14,12 +14,14 @@ export default function ResultsAnalytics() {
       id: 1,
       avatar: "/avatars/rochelle.jpg",
       name: "Rochelle Awuor ",
-      email: "rochelle@gmail.com",
-      position: "Frontend Developer",
+      country: "Nairobi, Kenya",
+      assessment: "Frontend Developer Assessment",
       skills: "React, JavaScript",
       score: 87,
       status: "shortlisted",
       completedDate: "July 21, 2025",
+      timespent:"45mins"
+      
     },
     // more entries...
   ];
@@ -43,15 +45,15 @@ export default function ResultsAnalytics() {
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold">Candidates</h1>
+              <h1 className="text-xl font-semibold">Results</h1>
               <p className="text-sm mt-2">
-                Manage and evaluate your candidate pipeline.
+                View and analyze assessment results and candidate performance.
               </p>
             </div>
             <div className="flex gap-4">
               <Button asChild size="sm" className="text-sm px-6">
                 <Link to="/createassessment">
-                  <span className="flex items-center">Export Candidates</span>
+                  <span className="flex items-center">Export Results</span>
                 </Link>
               </Button>
             </div>
@@ -61,28 +63,28 @@ export default function ResultsAnalytics() {
           <div className="relative grid grid-cols-1 md:grid-cols-4 gap-8 px-2 md:px-10 mt-10 mb-10">
             <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
-                <CardTitle className="text-accent-700 font-normal text-lg">Total Candidates</CardTitle>
+                <CardTitle className="text-accent-700 font-normal text-lg">Average Score</CardTitle>
               </CardHeader>
               <CardContent className='font-bold'>4</CardContent>
             </Card>
 
             <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
-                <CardTitle className="text-accent-700 font-normal text-lg">Shortlisted</CardTitle>
+                <CardTitle className="text-accent-700 font-normal text-lg">Completion Rate</CardTitle>
               </CardHeader>
               <CardContent className='font-bold'>1</CardContent>
             </Card>
 
             <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
-                <CardTitle className="text-accent-700 font-normal text-lg">Interviewed</CardTitle>
+                <CardTitle className="text-accent-700 font-normal text-lg">Average Time</CardTitle>
               </CardHeader>
-              <CardContent className='font-bold'>1</CardContent>
+              <CardContent className='font-bold'>52 min</CardContent>
             </Card>
 
             <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
-                <CardTitle className="text-accent-700 font-normal text-lg">Average Score</CardTitle>
+                <CardTitle className="text-accent-700 font-normal text-lg">Pass Rate</CardTitle>
               </CardHeader>
               <CardContent className='font-bold'>63%</CardContent>
             </Card>
@@ -97,13 +99,11 @@ export default function ResultsAnalytics() {
             />
             <select className="ml-4 border border-gray-300 rounded-md px-3 py-2 text-sm">
               <option value="">All status</option>
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Completed</option>
+              <option value="active">Shortlisted</option>
+              <option value="draft">Unsuccessful</option>
             </select>
           </div>
 
-          {/* Assessment Results Table */}
           <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow duration-300 rounded-lg border border-gray-100 dark:border-gray-700 mt-6">
             <CardHeader>
               <CardTitle className="text-xl text-gray-900 dark:text-white">My Assessment Results</CardTitle>
@@ -117,7 +117,7 @@ export default function ResultsAnalytics() {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                      {["Candidate", "Position", "Skills", "Score", "Status", "Applied", "Actions"].map((header) => (
+                      {["Candidate", "Assessment","Score", "Status", "Completed","Time Spent","Actions"].map((header) => (
                         <th
                           key={header}
                           scope="col"
@@ -140,30 +140,18 @@ export default function ResultsAnalytics() {
           </Avatar>
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{candidate.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{candidate.email}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{candidate.country}</p>
           </div>
         </div>
       </td>
 
-      {/* Position */}
+      {/* Po */}
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-        {candidate.position}
+        {candidate.assessment}
       </td>
 
       {/* Skills */}
-    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-  <div className="flex flex-row flex-wrap items-center gap-2">
-    {candidate.skills.split(',').map((skill, index) => (
-      <Badge
-        key={index}
-        variant="outline"
-        className="px-2 py-0.5 text-xs rounded-full text-blue-700 border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-      >
-        {skill.trim()}
-      </Badge>
-    ))}
-  </div>
-</td>
+  
 
 
 
@@ -193,6 +181,12 @@ export default function ResultsAnalytics() {
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
         {candidate.completedDate}
       </td>
+
+      {/* Time Spent */}
+<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+  {candidate.timespent}
+</td>
+
 
       {/* Actions */}
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
