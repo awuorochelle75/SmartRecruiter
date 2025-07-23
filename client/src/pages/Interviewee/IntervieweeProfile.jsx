@@ -1,16 +1,15 @@
 import React from "react";
-import { Search, Bell, User } from "lucide-react"; // Icons for NavbarDashboard
-import IntervieweeSidebar from "../../components/IntervieweeSidebar"; // Adjust path if needed
-import NavbarDashboard from "../../components/NavbarDashboard"; // Adjust path if needed
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // For various sections
-import { Button } from "@/components/ui/button"; // For action buttons
-import { Input } from "@/components/ui/input"; // For input fields
-import { Textarea } from "@/components/ui/textarea"; // For textarea (Bio)
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // For profile picture
+import { Search, Bell, User } from "lucide-react";
+import IntervieweeSidebar from "../../components/IntervieweeSidebar";
+import NavbarDashboard from "../../components/NavbarDashboard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
-// NEW CODE ADDED BELOW THIS LINE
-
-// Mock data for the profile information
+// Profile data mock
 const profileData = {
   firstName: "Dorothy",
   lastName: "Chepkoech",
@@ -20,47 +19,33 @@ const profileData = {
   company: "Tech Solutions Inc.",
   position: "Senior Software Developer",
   bio: "Experienced software developer with a passion for building scalable and efficient web applications. Proficient in React, Node.js, and cloud technologies.",
-  avatarUrl: "https://github.com/shadcn.png", // Placeholder avatar
-  role: "Senior Software Engineer", // Displayed under name
-  currentCompany: "Tech Solutions Inc.", // Displayed under role
+  avatarUrl: "https://github.com/shadcn.png",
+  role: "Senior Software Engineer",
+  currentCompany: "Tech Solutions Inc.",
 };
 
-// Mock data for skills (just a placeholder, actual rendering will be an image)
 const skillsData = [
   { id: 1, name: "React" },
   { id: 2, name: "Javascript" },
   { id: 3, name: "Node.js" },
-  { id: 4, name: "HTML" },
-  { id: 5, name: "CSS" },
+  { id: 4, name: "SQL" },
 ];
-
-// Mock data for Recent Achievements (placeholder for now)
-const recentAchievementsData = [
-  "Led successful migration of legacy system to React.",
-  "Developed a new microservice that improved performance by 30%.",
-  "Mentored junior developers on best coding practices.",
-];
-
-// Mock data for Statistics (placeholder for now)
-const statisticsData = "Your performance overview will be displayed here.";
-
-// END NEW CODE ADDED
 
 const IntervieweeProfile = () => {
   return (
-    <div className="flex min-h-screen font-sans bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar: This component provides the left-hand navigation. */}
-      {/* It's imported from '../../components/IntervieweeSidebar'. */}
-      <IntervieweeSidebar />
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+      {/* Fixed Sidebar */}
+      <aside className="fixed top-0 left-0 h-screen w-64 z-30 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-md hidden md:block">
+        <IntervieweeSidebar />
+      </aside>
 
-      {/* Main Content: This flexible container holds the NavbarDashboard and the main page content. */}
-      <div className="flex-1 flex flex-col">
-        {/* NavbarDashboard: This component serves as the top bar of the dashboard. */}
-        {/* It's imported from '../../components/NavbarDashboard'. */}
-        <NavbarDashboard/>
+      {/* Main Content: pushes right to avoid overlap with fixed sidebar */}
+      <div className="flex-1 ml-0 md:ml-64 flex flex-col">
+        {/* Top Navbar */}
+        <NavbarDashboard />
 
-        {/* Page Content: This is the primary area where dashboard-specific content is rendered. */}
-        <div className="flex-1 p-6 space-y-6">
+        {/* Page Content */}
+        <main className="flex-1 p-6 space-y-6">
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
             <div>
@@ -71,48 +56,103 @@ const IntervieweeProfile = () => {
                 Manage your personal information and preferences
               </p>
             </div>
-            <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 rounded-md px-4 py-2 shadow-sm">
+            <Button variant="outline" className="rounded-md px-4 py-2 shadow-sm border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
               Edit Profile
             </Button>
           </div>
 
-          {/* Main Content Area: Two columns for Profile Info and Side Sections */}
+          {/* Two-Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Profile Personal Information */}
+            {/* Main Profile Form */}
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-6 border border-gray-100 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Personal Information</h3>
-              {/* Placeholder for profile details and input fields */}
-              <p className="text-gray-700 dark:text-gray-300">Profile content goes here.</p>
-            </div>
 
-            {/* Right Column: Skills, Recent Achievements, Statistics */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Skills Card */}
-              <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-4 border border-gray-100 dark:border-gray-700">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Skills</h3>
-                <p className="text-gray-600 dark:text-gray-400">Your technical expertise</p>
-                {/* Placeholder for skills image */}
-                <p className="text-gray-700 dark:text-gray-300">Skills content goes here.</p>
+              {/* Avatar & Name */}
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={profileData.avatarUrl} alt="User Avatar" />
+                  <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    {profileData.firstName[0]}{profileData.lastName[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {profileData.firstName} {profileData.lastName}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{profileData.role}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{profileData.currentCompany}</p>
+                </div>
               </div>
 
-              {/* Recent Achievements Card */}
-              <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-4 border border-gray-100 dark:border-gray-700">
+              {/* Form Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
+                  <Input id="firstName" type="text" defaultValue={profileData.firstName} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
+                  <Input id="lastName" type="text" defaultValue={profileData.lastName} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div className="md:col-span-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                  <Input id="email" type="email" defaultValue={profileData.email} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
+                  <Input id="phone" type="tel" defaultValue={profileData.phone} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+                  <Input id="location" type="text" defaultValue={profileData.location} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Company</label>
+                  <Input id="company" type="text" defaultValue={profileData.company} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Position</label>
+                  <Input id="position" type="text" defaultValue={profileData.position} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div className="md:col-span-2">
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+                  <Textarea id="bio" rows={5} defaultValue={profileData.bio} className="mt-1 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Cards (Skills, Achievements, Statistics) */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-100 dark:border-gray-700 space-y-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Skills</h3>
+                <p className="text-gray-600 dark:text-gray-400">Your technical expertise</p>
+                <div className="flex flex-wrap gap-2">
+                  {skillsData.map((skill) => (
+                    <Badge
+                      key={skill.id}
+                      variant="outline"
+                      className="px-3 py-1 text-sm font-medium rounded-full border-gray-300 text-gray-700 bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700"
+                    >
+                      {skill.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Achievements</h3>
                 <p className="text-gray-600 dark:text-gray-400">Your latest accomplishments</p>
-                {/* Placeholder for achievements list */}
                 <p className="text-gray-700 dark:text-gray-300">Achievements content goes here.</p>
               </div>
 
-              {/* Statistics Card */}
-              <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-4 border border-gray-100 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Statistics</h3>
                 <p className="text-gray-600 dark:text-gray-400">Your performance overview</p>
-                {/* Placeholder for statistics content */}
                 <p className="text-gray-700 dark:text-gray-300">Statistics content goes here.</p>
               </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
