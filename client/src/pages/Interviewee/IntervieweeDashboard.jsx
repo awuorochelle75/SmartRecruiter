@@ -25,7 +25,7 @@ const interviewsData = [
   {
     id: 2,
     name: "James Kiplimo",
-    role: "Senior React Developer",
+    role: "Full Stack Developer",
     email: "james.kiplimo@gmail.com",
     duration: "60 minutes",
     interviewer: "John Smith",
@@ -116,7 +116,7 @@ const skillProgressData = [
 ];
 
 const StatCard = ({ title, value }) => (
-  <Card className="rounded-lg shadow-sm">
+  <Card className="rounded-lg shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"> {/* Added dark mode classes */}
     <CardHeader className="pb-2">
       <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
         {title}
@@ -130,20 +130,21 @@ const StatCard = ({ title, value }) => (
   </Card>
 );
 
+
 const IntervieweeDashboard = () => {
   return (
-    <div className="flex min-h-screen font-sans bg-gray-50">
+    <div className="flex min-h-screen font-sans bg-gray-50 dark:bg-gray-900">
       <div className="w-64 fixed top-0 left-0 h-full z-50">
         <IntervieweeSidebar />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col">
+      <div className="flex-1 ml-64 flex flex-col bg-gray-50 dark:bg-gray-900"> {/* Added dark mode bg */}
         <NavbarDashboard />
 
         {/* Page Content */}
         <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-          <div className="flex  flex-col md:flex-row  md:items-center md:justify-between space-y-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                 Welcome Back!
@@ -161,7 +162,7 @@ const IntervieweeDashboard = () => {
               </Button>
               <Button
                 variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-4 py-2 shadow-sm"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-4 py-2 shadow-sm dark:border-blue-500 dark:text-blue-300" /* Added dark mode border/text */
               >
                 Browse Tests
               </Button>
@@ -176,9 +177,9 @@ const IntervieweeDashboard = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Card className="rounded-lg shadow ">
+            <Card className="rounded-lg shadow bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-transform duration-300 hover:scale-105"> {/* Added dark mode classes */}
               <CardHeader>
-                <CardTitle className="text-gray-900 darkk:text-white">
+                <CardTitle className="text-gray-900 dark:text-white">
                   Available Tests
                 </CardTitle>
               </CardHeader>
@@ -190,7 +191,7 @@ const IntervieweeDashboard = () => {
                   {availableTestsData.map((test) => (
                     <div
                       key={test.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between transition-transform duration-300 hover:scale-105"
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between transition-transform duration-300 hover:scale-105 bg-white dark:bg-gray-900" /* Added dark mode bg */
                     >
                       <div>
                         <p className="font-bold text-gray-900 dark:text-white">
@@ -229,7 +230,7 @@ const IntervieweeDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="rounded-lg shadow-sm">
+            <Card className="rounded-lg shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-transform duration-300 hover:scale-105"> {/* Added dark mode classes */}
               <CardHeader>
                 <CardTitle className="text-gray-900 dark:text-white">
                   Recent Results
@@ -243,7 +244,7 @@ const IntervieweeDashboard = () => {
                   {recentResultsData.map((result) => (
                     <div
                       key={result.id}
-                      className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex items-center justify-between transition-transform duration-300 hover:scale-105"
+                      className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex items-center justify-between transition-transform duration-300 hover:scale-105 bg-white dark:bg-gray-900" /* Added dark mode bg */
                     >
                       <div>
                         <p className="font-bold text-gray-900 dark:text-white">
@@ -281,7 +282,7 @@ const IntervieweeDashboard = () => {
               {upcomingInterviewsData.map((interview) => (
                 <Card
                   key={interview.id}
-                  className="rounded-lg shadow-sm transition-transform duration-300 hover:scale-105"
+                  className="rounded-lg shadow-sm transition-transform duration-300 hover:scale-105 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700" /* Added dark mode classes */
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
@@ -304,7 +305,7 @@ const IntervieweeDashboard = () => {
                       </Badge>
                       <Button
                         variant="outline"
-                        className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-3 py-1 text-xs"
+                        className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-3 py-1 text-xs dark:border-blue-500 dark:text-blue-300" /* Added dark mode border/text */
                       >
                         Join Meeting
                       </Button>
