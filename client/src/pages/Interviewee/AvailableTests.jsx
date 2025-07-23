@@ -2,7 +2,8 @@ import React from "react";
 import { Search, Bell, User } from "lucide-react";
 import IntervieweeSidebar from "../../components/IntervieweeSidebar"; 
 import NavbarDashboard from "../../components/NavbarDashboard"; 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";  
 import { Button } from "@/components/ui/button"; 
 import { Badge } from "@/components/ui/badge"; 
 
@@ -84,8 +85,37 @@ const AvailableTests = () => {
           <p className="text-gray-700 dark:text-gray-400">
             Discover and take assessments to showcase your skills
           </p>
-          {/* Placeholder for future content like stat cards, search, filters, and test list */}
-          <p className="text-gray-700">Content for available tests will appear here.</p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {availableTestsStatsData.map((stat) => (
+              <StatCard key={stat.id} title={stat.title} value={stat.value} />
+            ))}
+          </div>
+          {/* Search and Filter Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Search tests by title, company, or skills..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              />
+            </div>
+            {/* Filter Dropdowns  */}
+            <div className="flex space-x-2">
+              <select className="px-4 py-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>All Levels</option>
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+              <select className="px-4 py-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>All Status</option>
+                <option>Available</option>
+                <option>Completed</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </div>

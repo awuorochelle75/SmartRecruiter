@@ -22,7 +22,7 @@ function Login() {
     if (role == "recruiter") {
       navigate("/recruiter");
     } else if (role === "interviewee") {
-      navigate("/interviewee");
+      navigate("/IntervieweeDashboard");
     } else {
       alert("Please select a role");
     }
