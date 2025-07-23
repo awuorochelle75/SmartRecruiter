@@ -61,10 +61,12 @@ const StatCard = ({ title, value }) => (
 const PracticeArena = () => {
   return (
     <div className="flex min-h-screen font-sans bg-gray-50">
-      <IntervieweeSidebar />
+      <aside className="fixed top-0 left-0 h-screen w-64 z-30 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-md">
+        <IntervieweeSidebar />
+      </aside>
 
       
-      <div className="flex-1 flex flex-col">
+      <div className="ml-64 w-full flex flex-col min-h-screen">
         <NavbarDashboard/>
 
         <div className="flex-1 p-6 space-y-6">
