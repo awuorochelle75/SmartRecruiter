@@ -1,5 +1,5 @@
 import SidebarRecruiter from '../../components/SidebarRecruiter'
-import Navbar from '../../components/Navbar';
+import NavbarDashboard from '../../components/NavbarDashboard';
 
 export default function RecruiterDashboard(){
   return(
@@ -10,7 +10,7 @@ export default function RecruiterDashboard(){
 
     <div className="flex-1 flex flex-col">
     <div className="h-16 bg-white shadow">
-      <Navbar />
+      <NavbarDashboard />
     </div>
 
     <div className="flex-1 p-4 bg-gray-50 overflow-auto">

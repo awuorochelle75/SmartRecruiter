@@ -6,14 +6,12 @@ import { Card, CardHeader, CardTitle,  CardContent } from '../components/ui/card
 import { Button } from '../components/ui/button';
 import Navbar from "../components/Navbar";
 import { Code2 } from 'lucide-react';
-import SidebarRecruiter from '../components/SidebarRecruiter'
 import Footer from "./Footer"
 
 export default function Onboarding(){
     return (
      <div>
          <Navbar />
-         <SidebarRecruiter />
           <div className=" flex flex-col items-center  gap-2 px-4 mt-4  bg-gray-200 min-h-screen  ">
            <Link to = "/" className='flex items-center space-x-2 mt-5 '> 
            <Code2 className='h-8  w-8 text-primary ' />
