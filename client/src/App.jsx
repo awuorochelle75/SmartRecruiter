@@ -9,6 +9,7 @@ import IntervieweeDashboard from './pages/Interviewee/IntervieweeDashboard';
 import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import IntervieweeSidebar from './components/IntervieweeSidebar';
 import NavbarDashboard from './components/NavbarDashboard';
+import AvailableTests from './pages/Interviewee/AvailableTests';
 
 
 function App() {
@@ -22,9 +23,11 @@ function App() {
       <Route path='/navbar' element={<NavbarDashboard/>}/>
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/interviewee" element={<IntervieweeDashboard />} />
+      <Route path="/intervieweedashboard" element={<IntervieweeDashboard />} />
       <Route path="/recruiter" element={<RecruiterDashboard />} />
       <Route path="/Sidebar" element={<IntervieweeSidebar />} />
+      <Route path="/availabletest" element={<AvailableTests />} />
+      
 
      </Routes>
    
