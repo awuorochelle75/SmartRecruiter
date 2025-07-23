@@ -18,7 +18,7 @@ export default function SidebarRecruiter(){
 
       <ul className="space-y-8 text-gray-700 text-md text-sm ">
         <li>
-          <Link to="/recruiter/dashboard"  >
+          <Link to="/recruiterdashboard"  >
             Dashboard
           </Link>
         </li>
