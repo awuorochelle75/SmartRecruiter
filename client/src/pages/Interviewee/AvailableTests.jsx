@@ -116,6 +116,48 @@ const AvailableTests = () => {
               </select>
             </div>
           </div>
+          {/* Test Cards Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {availableTestsCardData.map((test) => (
+              <Card key={test.id} className="rounded-lg shadow-sm transition-transform duration-300 hover:scale-105">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{test.title}</h3>
+                    <div className="flex space-x-1">
+                      {test.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="px-2 py-1 text-xs font-semibold rounded-full text-blue-600 border-blue-600 bg-blue-50/20 dark:bg-blue-900/20">
+                          {tag}
+                        </Badge>
+                      ))}
+                      <Badge
+                        variant="outline"
+                        className={`px-2 py-1 text-xs font-semibold rounded-full
+                          ${
+                            test.difficulty === 'Intermediate' ? 'text-yellow-600 border-yellow-600 bg-yellow-50/20 dark:bg-yellow-900/20' :
+                            test.difficulty === 'Beginner' ? 'text-green-600 border-green-600 bg-green-50/20 dark:bg-green-900/20' :
+                            'text-red-600 border-red-600 bg-red-50/20 dark:bg-red-900/20'
+                          }`}
+                      >
+                        {test.difficulty}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{test.company}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{test.description}</p>
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{test.duration}</span>
+                    <span>{test.questions}</span>
+                    <span>Passing: {test.passing}</span>
+                    <span>Attempts: {test.attempts}</span>
+                  </div>
+                  <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 shadow-md">
+                    Start Test
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
         </div>
       </div>
     </div>
