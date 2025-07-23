@@ -14,6 +14,7 @@ import MyResults from './pages/Interviewee/MyResults';
 import PracticeArena from './pages/Interviewee/PracticeArena';
 import ScheduledInterviews from './pages/Interviewee/ScheduledInterviews';
 import IntervieweeProfile from './pages/Interviewee/IntervieweeProfile';
+import IntervieweeNotification from './pages/Interviewee/IntervieweeNotification';
 
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
       <Route path="/practice" element={<PracticeArena/>} /> 
       <Route path="/interviews" element={<ScheduledInterviews/>} /> 
       <Route path="/myProfile" element={<IntervieweeProfile/>} />
+      <Route path="/notifications" element={<IntervieweeNotification/>} />
 
      </Routes>
    

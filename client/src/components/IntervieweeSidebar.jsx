@@ -6,7 +6,8 @@ import {
   Users,
   MessageSquare,
   Settings,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react';
 
 const IntervieweeSidebar = () => {
@@ -21,6 +22,7 @@ const IntervieweeSidebar = () => {
     { icon: FileText, label: "Messages", path: "/messages" },
     { icon: MessageSquare, label: "Profile", path: "/myProfile" },
     { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: Bell, label: "notifications", path: "/notifications" },
   ];
 
   return (
