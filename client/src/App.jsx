@@ -13,6 +13,7 @@ import AvailableTests from './pages/Interviewee/AvailableTests';
 import MyResults from './pages/Interviewee/MyResults';
 import PracticeArena from './pages/Interviewee/PracticeArena';
 import ScheduledInterviews from './pages/Interviewee/ScheduledInterviews';
+import IntervieweeProfile from './pages/Interviewee/IntervieweeProfile';
 
 
 function App() {
@@ -32,8 +33,8 @@ function App() {
       <Route path="/availabletest" element={<AvailableTests />} />
       <Route path="/results" element={<MyResults/>} />
       <Route path="/practice" element={<PracticeArena/>} /> 
-      <Route path="/interviews" element={<ScheduledInterviews/>} />
-      
+      <Route path="/interviews" element={<ScheduledInterviews/>} /> 
+      <Route path="/myProfile" element={<IntervieweeProfile/>} />
 
      </Routes>
    
