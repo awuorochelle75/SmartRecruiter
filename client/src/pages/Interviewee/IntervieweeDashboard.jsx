@@ -176,7 +176,7 @@ const IntervieweeDashboard = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Card className="rounded-lg shadow transition-transform duration-300 hover:scale-105">
+            <Card className="rounded-lg shadow ">
               <CardHeader>
                 <CardTitle className="text-gray-900 darkk:text-white">
                   Available Tests
@@ -190,7 +190,7 @@ const IntervieweeDashboard = () => {
                   {availableTestsData.map((test) => (
                     <div
                       key={test.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between"
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between transition-transform duration-300 hover:scale-105"
                     >
                       <div>
                         <p className="font-bold text-gray-900 dark:text-white">
@@ -229,7 +229,7 @@ const IntervieweeDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="rounded-lg shadow-sm transition-transform duration-300 hover:scale-105">
+            <Card className="rounded-lg shadow-sm">
               <CardHeader>
                 <CardTitle className="text-gray-900 dark:text-white">
                   Recent Results
@@ -243,7 +243,7 @@ const IntervieweeDashboard = () => {
                   {recentResultsData.map((result) => (
                     <div
                       key={result.id}
-                      className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex items-center justify-between"
+                      className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex items-center justify-between transition-transform duration-300 hover:scale-105"
                     >
                       <div>
                         <p className="font-bold text-gray-900 dark:text-white">
