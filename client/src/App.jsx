@@ -10,6 +10,7 @@ import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import IntervieweeSidebar from './components/IntervieweeSidebar';
 import NavbarDashboard from './components/NavbarDashboard';
 import AvailableTests from './pages/Interviewee/AvailableTests';
+import MyResults from './pages/Interviewee/MyResults';
 
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
       <Route path="/recruiter" element={<RecruiterDashboard />} />
       <Route path="/Sidebar" element={<IntervieweeSidebar />} />
       <Route path="/availabletest" element={<AvailableTests />} />
+      <Route path="/results" element={<MyResults/>} />
       
 
      </Routes>
