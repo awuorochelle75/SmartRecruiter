@@ -10,6 +10,7 @@ import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import Assessments from './pages/Recruiter/Assessments';
 import Candidates from './pages/Recruiter/Candidates'
 import ResultsAnalytics from './pages/Recruiter/ResultsAnalytics'
+import Interview from './pages/Recruiter/Interview'
 
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
       <Route path = "/assessments" element = {< Assessments />} />
       <Route path = "/candidates" element = {< Candidates />} />
       <Route path = "/resultsanalytics" element = {< ResultsAnalytics />} />
+      <Route path = "/interview" element = {< Interview />} />
 
 
      </Routes>

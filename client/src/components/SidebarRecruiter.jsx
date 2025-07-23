@@ -23,7 +23,7 @@ export default function SidebarRecruiter() {
     { icon: FileText, label: "Assessment", path: "/assessments" },
     { icon: Users, label: "Candidates", path: "/candidates" },
     { icon: BarChart2, label: "ResultAnalytics", path: "/resultsanalytics" },
-    { icon: CalendarCheck, label: "Interviews", path: "/recruiter/interviews" },
+    { icon: CalendarCheck, label: "Interviews", path: "/interview" },
     { icon: MessageSquare, label: "Messages", path: "/recruiter/messages" },
     { icon: User, label: "Profile", path: "/recruiter/profile" },
     { icon: Settings, label: "Settings", path: "/recruiter/settings" },
@@ -69,7 +69,7 @@ export default function SidebarRecruiter() {
       <div className="mt-6">
       <Separator className="border-t border-gray-300 mb-4 " /> 
         <Link
-          to="/logout"
+          to="/"
           className="flex items-center space-x-3 text-gray-700 hover:text-red-600 text-sm"
         >
           <LogOut className="h-5 w-5" />
