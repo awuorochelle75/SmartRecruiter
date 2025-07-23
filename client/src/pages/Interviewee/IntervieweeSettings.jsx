@@ -1,14 +1,14 @@
 import React from "react";
-import { Search, Bell, User, Upload } from "lucide-react"; // Icons for NavbarDashboard and Upload icon
-import IntervieweeSidebar from "../../components/IntervieweeSidebar"; // Adjust path if needed
-import NavbarDashboard from "../../components/NavbarDashboard"; // Adjust path if needed
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // For various sections
-import { Button } from "@/components/ui/button"; // For action buttons
-import { Input } from "@/components/ui/input"; // For input fields
-import { Textarea } from "@/components/ui/textarea"; // For textarea (Professional Bio)
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // For profile picture
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // For dropdowns
-import { Badge } from "@/components/ui/badge"; // For skill badges
+import { Search, Bell, User, Upload } from "lucide-react";
+import IntervieweeSidebar from "../../components/IntervieweeSidebar";
+import NavbarDashboard from "../../components/NavbarDashboard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data for profile information in settings
 const settingsProfileData = {
@@ -19,7 +19,7 @@ const settingsProfileData = {
   location: "Nairobi, Kenya",
   timezone: "Eastern Time",
   professionalTitle: "Senior React Developer",
-  professionalBio: "Passionate frontend developer with 5+ years of experience building scalable web applications.",
+  professionalBio: "Passionate frontend developer with 5+ years of experience building scalable and efficient web applications.",
   website: "https://dorothy.dev",
   linkedin: "https://linkedin.com/in/dorothy",
   github: "https://github.com/dorothyh",
@@ -31,7 +31,7 @@ const profileInfoData = {
   availability: "Immediately",
   workTypePreference: "Hybrid",
   salaryExpectation: "500,000",
-  skills: ["React", "Javascript", "Node.js", "Frontend"], // Initial skills
+  skills: ["React", "Javascript", "TypeScript", "Node.js", "CSS", "HTML"], // Updated skills as per design
 };
 
 // Mock data for security settings
@@ -43,19 +43,14 @@ const securityData = {
 const IntervieweeSettings = () => {
   return (
     <div className="flex min-h-screen font-sans bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar: This component provides the left-hand navigation. */}
-      {/* It's imported from '../../components/IntervieweeSidebar'. */}
-      <IntervieweeSidebar />
+      <div className="fixed top-0 left-0 h-screen">
+        <IntervieweeSidebar />
+      </div>
 
-      {/* Main Content: This flexible container holds the NavbarDashboard and the main page content. */}
-      <div className="flex-1 flex flex-col">
-        {/* NavbarDashboard: This component serves as the top bar of the dashboard. */}
-        {/* It's imported from '../../components/NavbarDashboard'. */}
+      <div className="flex-1 flex flex-col lg:pl-64">
         <NavbarDashboard/>
 
-        {/* Page Content: This is the primary area where dashboard-specific content is rendered. */}
         <div className="flex-1 p-6 space-y-6">
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -70,16 +65,13 @@ const IntervieweeSettings = () => {
             </Button>
           </div>
 
-          {/* Main Content Area: Profile Information, Profile Information (second section), Security */}
-          <div className="space-y-6"> {/* Use space-y-6 for vertical spacing between main sections */}
-            {/* Profile Information Section (Personal Details) - NOW POPULATED */}
+          <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-6 border border-gray-100 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Information</h3>
               <p className="text-gray-600 dark:text-gray-400">Update your personal information and professional details</p>
 
-              {/* Avatar and Change Photo */}
               <div className="flex items-center space-x-4">
-                <Avatar className="h-24 w-24"> {/* Increased size for settings page */}
+                <Avatar className="h-24 w-24">
                   <AvatarImage src={settingsProfileData.avatarUrl} alt="User Avatar" />
                   <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                     {settingsProfileData.firstName.charAt(0)}{settingsProfileData.lastName.charAt(0)}
@@ -94,9 +86,7 @@ const IntervieweeSettings = () => {
                 </div>
               </div>
 
-              {/* Input Fields Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* First Name */}
                 <div>
                   <label htmlFor="settings-firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     First Name
@@ -108,7 +98,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* Last Name */}
                 <div>
                   <label htmlFor="settings-lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Last Name
@@ -120,7 +109,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* Email */}
                 <div>
                   <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Email
@@ -132,7 +120,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* Phone Number */}
                 <div>
                   <label htmlFor="settings-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Phone Number
@@ -144,7 +131,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* Location */}
                 <div>
                   <label htmlFor="settings-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Location
@@ -156,7 +142,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* Timezone */}
                 <div>
                   <label htmlFor="settings-timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Timezone
@@ -175,8 +160,7 @@ const IntervieweeSettings = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Professional Title */}
-                <div className="md:col-span-2"> {/* Spans full width on medium screens */}
+                <div className="md:col-span-2">
                   <label htmlFor="settings-professionalTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Professional Title
                   </label>
@@ -187,15 +171,14 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* Professional Bio */}
-                <div className="md:col-span-2"> {/* Spans full width on medium screens */}
+                <div className="md:col-span-2">
                   <label htmlFor="settings-professionalBio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Professional Bio
                   </label>
                   <Textarea
                     id="settings-professionalBio"
                     defaultValue={settingsProfileData.professionalBio}
-                    rows={4} // Adjusted rows for a more compact look
+                    rows={4}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
@@ -203,7 +186,6 @@ const IntervieweeSettings = () => {
 
               {/* Social Links */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Website */}
                 <div>
                   <label htmlFor="settings-website" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Website
@@ -215,7 +197,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* LinkedIn */}
                 <div>
                   <label htmlFor="settings-linkedin" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     LinkedIn
@@ -227,7 +208,6 @@ const IntervieweeSettings = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {/* GitHub */}
                 <div>
                   <label htmlFor="settings-github" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Github
@@ -242,14 +222,13 @@ const IntervieweeSettings = () => {
               </div>
             </div>
 
-            {/* Profile Information Section (Availability, Work Type, Salary, Skills) - NOW POPULATED */}
+            {/* Profile Information Section (Availability, Work Type, Salary, Skills) */}
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-6 border border-gray-100 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Information</h3>
               <p className="text-gray-600 dark:text-gray-400">Update your personal information and professional details</p>
 
               {/* Availability, Work Type, Salary */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Availability */}
                 <div>
                   <label htmlFor="settings-availability" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Availability
@@ -266,7 +245,6 @@ const IntervieweeSettings = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Work Type Preference */}
                 <div>
                   <label htmlFor="settings-workType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Work Type Preference
@@ -282,7 +260,6 @@ const IntervieweeSettings = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Salary Expectation */}
                 <div>
                   <label htmlFor="settings-salary" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Salary Expectation (Ksh)
@@ -298,21 +275,11 @@ const IntervieweeSettings = () => {
 
               {/* Skills Input and Badges */}
               <div className="space-y-2">
-                <label htmlFor="settings-skills" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="settings-skills-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Skills
                 </label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    id="settings-skills"
-                    type="text"
-                    placeholder="Add a skill (e.g. React, Javascript, Frontend)"
-                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                  <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 shadow-md">
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2">
+                {/* Badges displayed ABOVE the input field */}
+                <div className="flex flex-wrap gap-2">
                   {profileInfoData.skills.map((skill, index) => (
                     <Badge
                       key={index}
@@ -323,6 +290,18 @@ const IntervieweeSettings = () => {
                     </Badge>
                   ))}
                 </div>
+                {/* Input field and Add button */}
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="settings-skills-input"
+                    type="text"
+                    placeholder="Add a skill (e.g. React, Javascript, Frontend)"
+                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 shadow-md">
+                    Add
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -330,8 +309,47 @@ const IntervieweeSettings = () => {
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 space-y-6 border border-gray-100 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Security</h3>
               <p className="text-gray-600 dark:text-gray-400">Manage your account security settings</p>
-              {/* Placeholder for Security content */}
-              <p className="text-700 dark:text-gray-300">Security content goes here.</p>
+
+              {/* Change Password */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Change Password</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Current Password
+                    </label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      New Password
+                    </label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-4 py-2 shadow-sm">
+                  Update Password
+                </Button>
+              </div>
+
+              {/* Delete Account */}
+              <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Account</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Permanently delete your account and all associated data
+                </p>
+                <Button variant="destructive" className="bg-red-500 hover:bg-red-600 text-white rounded-md px-4 py-2 shadow-sm">
+                  Delete Account
+                </Button>
+              </div>
             </div>
           </div>
         </div>
