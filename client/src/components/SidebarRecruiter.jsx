@@ -34,7 +34,7 @@ export default function SidebarRecruiter(){
           </Link>
         </li>
         <li>
-          <Link to="/recruiter/candidates" >
+          <Link to="/candidates" >
             Candidates
           </Link>
         </li>

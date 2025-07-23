@@ -8,7 +8,7 @@ import { ThemeProvider } from './components/ThemeProvider';
 import Onboarding from './pages/Onboarding';
 import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
 import Assessments from './pages/Recruiter/Assessments';
-import Candidates from '/pages/Recruiter/Candidates'
+import Candidates from './pages/Recruiter/Candidates'
 
 
 function App() {
