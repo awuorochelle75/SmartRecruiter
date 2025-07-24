@@ -30,6 +30,7 @@ import NotFound from './pages/404 Errorpage';
 
 
 
+
 function App() {
   return (
     < ThemeProvider  defaultTheme='system' storageKey="SmartRecruiter-Theme">
@@ -45,13 +46,20 @@ function App() {
       <Route path="/Sidebar" element={<IntervieweeSidebar />} />
       <Route path="/availabletest" element={<AvailableTests />} />
       <Route path="/results" element={<MyResults/>} />
-      <Route path="/practice" element={<PracticeArena/>} />
-      <Route path="/interviews" element={<ScheduledInterviews/>} />
+
+     
+
+      <Route path="/practice" element={<PracticeArena/>} /> 
+      <Route path="/interviews" element={<ScheduledInterviews/>} /> 
       <Route path="/myProfile" element={<IntervieweeProfile/>} />
       <Route path="/notifications" element={<IntervieweeNotification/>} />
       <Route path="/mySettings" element={<IntervieweeSettings/>} />
       <Route path="/messages" element={<MyMessages/>} />
+
      
+
+      
+
 
       <Route path = "/onboarding" element = {< Onboarding />} />
       <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
@@ -63,6 +71,7 @@ function App() {
       <Route path = "/recruiter/profile" element = {< RecruiterProfile />} />
       <Route path = "/recruiter/settings" element = {< Settings />} />
       <Route path="/404" element={<NotFound />} />
+
 
 
 
