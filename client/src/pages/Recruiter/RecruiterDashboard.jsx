@@ -41,7 +41,7 @@ export default function RecruiterDashboard(){
   </div>
 
       <div className="relative grid grid-cols-1 md:grid-cols-4 gap-8 px-4 md:px-10 mt-10 mb-10">
-            <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+            <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
 
                 <CardHeader>
                  <CardTitle className="text-accent-700 font-normal text-lg">Active Assessments</CardTitle>
@@ -50,7 +50,7 @@ export default function RecruiterDashboard(){
                          12
                 </CardContent>
               </Card>
-                <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
 
                 <CardHeader>
                  <CardTitle className="text-accent-700 font-normal text-lg">Total Candidates</CardTitle>
@@ -60,7 +60,7 @@ export default function RecruiterDashboard(){
                 </CardContent>
               </Card>
 
-                <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
 
                 <CardHeader>
                  <CardTitle className="text-accent-700 font-normal text-lg">Completion Rate</CardTitle>
@@ -69,7 +69,7 @@ export default function RecruiterDashboard(){
                   87%
                 </CardContent>
               </Card>
-                <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
 
                 <CardHeader>
                  <CardTitle className="text-accent-700  font-normal text-lg">Average Score</CardTitle>
@@ -83,7 +83,7 @@ export default function RecruiterDashboard(){
 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-10 mb-10">
-           <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+           <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
             <CardHeader>
              <CardTitle className='text-xl'>Recent Candidate Activity</CardTitle>
               <CardDescription>Latest submissions and progress updates</CardDescription>
@@ -150,7 +150,7 @@ export default function RecruiterDashboard(){
 </Card>
 
 
- <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+ <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
   <CardHeader>
     <CardTitle className='text-xl'>Upcoming Interviews</CardTitle>
     <CardDescription>Scheduled interviews for this week</CardDescription>
@@ -177,7 +177,7 @@ export default function RecruiterDashboard(){
 </div>
 
 
-<Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md rounded-2xl">
+<Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md rounded">
   <CardHeader>
     <CardTitle className='text-xl'>Assessment Performance Overview</CardTitle>
     <CardDescription>Performance metrics across all active assessments</CardDescription>
