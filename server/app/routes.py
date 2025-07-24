@@ -589,7 +589,6 @@ def assessment_operations(assessment_id):
     if not assessment:
         return jsonify({'error': 'Assessment not found'}), 404
     
-    
     if request.method == 'GET':
         return jsonify({
             'id': assessment.id,
@@ -617,13 +616,13 @@ def assessment_operations(assessment_id):
                     'starter_code': q.starter_code,
                     'solution': q.solution,
                     'answer': q.answer,
+                    'test_cases': q.test_cases if q.type == 'coding' else None,
                 } for q in assessment.questions
             ]
         }), 200
-        
-        # TODO: Implement the PUT method to update an existing assessment with new data.
     
     elif request.method == 'PUT':
+        # PUT method for updating
         data = request.get_json()
         assessment.title = data.get('title', assessment.title)
         assessment.description = data.get('description', assessment.description)
@@ -635,22 +634,51 @@ def assessment_operations(assessment_id):
         assessment.tags = ','.join(data.get('tags', []))
         assessment.status = data.get('status', assessment.status)
         assessment.deadline = data.get('deadline', assessment.deadline)
-        AssessmentQuestion.query.filter_by(assessment_id=assessment.id).delete()
-        for q in data.get('questions', []):
-            question = AssessmentQuestion(
-                assessment_id=assessment.id,
-                type=q.get('type'),
-                question=q.get('question'),
-                options=pyjson.dumps(q.get('options')) if q.get('options') else None,
-                correct_answer=pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
-                points=q.get('points'),
-                explanation=q.get('explanation'),
-                starter_code=q.get('starter_code'),
-                solution=q.get('solution'),
-                answer=q.get('answer'),
-                test_cases=q.get('test_cases') if q.get('type') == 'coding' else None,
-            )
-            db.session.add(question)
+
+        incoming_questions = data.get('questions', [])
+        incoming_ids = set(q.get('id') for q in incoming_questions if q.get('id'))
+        existing_questions = {q.id: q for q in assessment.questions}
+
+        # 1. Update existing questions and add new ones
+        for q in incoming_questions:
+            if q.get('id') and q.get('id') in existing_questions:
+                # Update existing
+                question = existing_questions[q['id']]
+                question.type = q.get('type', question.type)
+                question.question = q.get('question', question.question)
+                question.options = pyjson.dumps(q.get('options')) if q.get('options') else None
+                question.correct_answer = pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None
+                question.points = q.get('points', question.points)
+                question.explanation = q.get('explanation', question.explanation)
+                question.starter_code = q.get('starter_code', question.starter_code)
+                question.solution = q.get('solution', question.solution)
+                question.answer = q.get('answer', question.answer)
+                question.test_cases = q.get('test_cases') if q.get('type') == 'coding' else None
+            else:
+                # Add new
+                question = AssessmentQuestion(
+                    assessment_id=assessment.id,
+                    type=q.get('type'),
+                    question=q.get('question'),
+                    options=pyjson.dumps(q.get('options')) if q.get('options') else None,
+                    correct_answer=pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
+                    points=q.get('points'),
+                    explanation=q.get('explanation'),
+                    starter_code=q.get('starter_code'),
+                    solution=q.get('solution'),
+                    answer=q.get('answer'),
+                    test_cases=q.get('test_cases') if q.get('type') == 'coding' else None,
+                )
+                db.session.add(question)
+
+        # 2. Delete questions that are not in the incoming list and have no answers
+        for qid, question in existing_questions.items():
+            if qid not in incoming_ids:
+                has_answers = AssessmentAttemptAnswer.query.filter_by(question_id=qid).first()
+                if not has_answers:
+                    db.session.delete(question)
+                # else: skip deletion to preserve submissions
+
         db.session.commit()
         return jsonify({'message': 'Assessment updated', 'assessment_id': assessment.id}), 200
     
