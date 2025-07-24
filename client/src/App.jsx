@@ -16,6 +16,7 @@ import ScheduledInterviews from './pages/Interviewee/ScheduledInterviews';
 import IntervieweeProfile from './pages/Interviewee/IntervieweeProfile';
 import IntervieweeNotification from './pages/Interviewee/IntervieweeNotification';
 import IntervieweeSettings from './pages/Interviewee/IntervieweeSettings';
+import MyMessages from './pages/Interviewee/myMessages';
 
 
 function App() {
@@ -39,7 +40,8 @@ function App() {
       <Route path="/myProfile" element={<IntervieweeProfile/>} />
       <Route path="/notifications" element={<IntervieweeNotification/>} />
       <Route path="/mySettings" element={<IntervieweeSettings/>} />
-
+      <Route path="/messages" element={<MyMessages/>} />
+      
      </Routes>
    
   
