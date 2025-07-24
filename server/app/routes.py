@@ -517,3 +517,53 @@ def upload_avatar():
         db.session.commit()
     return jsonify({'message': 'Avatar updated successfully', 'avatar': filename}), 200
 
+@auth_bp.route('/assessments', methods=['POST', 'OPTIONS'])
+def create_assessment():
+    if request.method == 'OPTIONS':
+        return '', 200
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    try:
+        assessment = Assessment(
+            recruiter_id=user.id,
+            title=data.get('title'),
+            description=data.get('description'),
+            type=data.get('type'),
+            difficulty=data.get('difficulty'),
+            duration=data.get('duration'),
+            passing_score=data.get('passing_score'),
+            instructions=data.get('instructions'),
+            tags=','.join(data.get('tags', [])),
+            status=data.get('status', 'draft'),
+            deadline=data.get('deadline'),
+            is_test=data.get('is_test', False),
+        )
+        db.session.add(assessment)
+        db.session.flush()
+        for q in data.get('questions', []):
+            question = AssessmentQuestion(
+                assessment_id=assessment.id,
+                type=q.get('type'),
+                question=q.get('question'),
+                options=pyjson.dumps(q.get('options')) if q.get('options') else None,
+                correct_answer=pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
+                points=q.get('points'),
+                explanation=q.get('explanation'),
+                starter_code=q.get('starter_code'),
+                solution=q.get('solution'),
+                answer=q.get('answer'),
+                test_cases=q.get('test_cases') if q.get('type') == 'coding' else None,
+            )
+            db.session.add(question)
+        db.session.commit()
+        return jsonify({'message': 'Assessment created', 'assessment_id': assessment.id}), 201
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create assessment', 'details': str(e)}), 400
+
