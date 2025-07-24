@@ -391,3 +391,29 @@ def interviewee_privacy():
         return jsonify({'message': 'Privacy settings updated successfully'}), 200
 
 
+@auth_bp.route('/settings/security', methods=['POST'])
+def interviewee_security():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    # TODO: Implement the security settings route for interviewees to manage password changes and two-factor authentication.
+    if 'current_password' in data and 'new_password' in data:
+        if not user.check_password(data['current_password']):
+            return jsonify({'error': 'Current password is incorrect'}), 400
+        user.set_password(data['new_password'])
+        db.session.commit()
+    if 'enable_2fa' in data:
+        from .models import IntervieweeNotificationSettings
+        settings = IntervieweeNotificationSettings.query.filter_by(user_id=user.id).first()
+        if not settings:
+            settings = IntervieweeNotificationSettings(user_id=user.id)
+            db.session.add(settings)
+        settings.monthly_progress_reports = bool(data['enable_2fa'])
+        db.session.commit()
+    return jsonify({'message': 'Security settings updated successfully'}), 200
+
+
