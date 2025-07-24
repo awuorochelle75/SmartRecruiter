@@ -249,3 +249,103 @@ def profile():
             return jsonify({'message': 'Profile updated successfully'}), 200
         
         
+@auth_bp.route('/settings/notifications', methods=['GET', 'POST'])
+def notifications_settings():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role == 'interviewee':
+        from .models import IntervieweeNotificationSettings
+        if request.method == 'GET':
+            settings = IntervieweeNotificationSettings.query.filter_by(user_id=user.id).first()
+            if not settings:
+                return jsonify({
+                    'email_new_opportunities': True,
+                    'email_interview_invites': True,
+                    'email_assessment_invites': True,
+                    'email_results_updates': True,
+                    'push_new_opportunities': False,
+                    'push_interview_reminders': True,
+                    'push_assessment_reminders': True,
+                    'push_message_notifications': True,
+                    'weekly_job_alerts': True,
+                    'monthly_progress_reports': False,
+                }), 200
+            return jsonify({
+                'email_new_opportunities': settings.email_new_opportunities,
+                'email_interview_invites': settings.email_interview_invites,
+                'email_assessment_invites': settings.email_assessment_invites,
+                'email_results_updates': settings.email_results_updates,
+                'push_new_opportunities': settings.push_new_opportunities,
+                'push_interview_reminders': settings.push_interview_reminders,
+                'push_assessment_reminders': settings.push_assessment_reminders,
+                'push_message_notifications': settings.push_message_notifications,
+                'weekly_job_alerts': settings.weekly_job_alerts,
+                'monthly_progress_reports': settings.monthly_progress_reports,
+            }), 200
+        elif request.method == 'POST':
+            data = request.get_json()
+            settings = IntervieweeNotificationSettings.query.filter_by(user_id=user.id).first()
+            if not settings:
+                settings = IntervieweeNotificationSettings(user_id=user.id)
+                db.session.add(settings)
+            settings.email_new_opportunities = data.get('email_new_opportunities', settings.email_new_opportunities)
+            settings.email_interview_invites = data.get('email_interview_invites', settings.email_interview_invites)
+            settings.email_assessment_invites = data.get('email_assessment_invites', settings.email_assessment_invites)
+            settings.email_results_updates = data.get('email_results_updates', settings.email_results_updates)
+            settings.push_new_opportunities = data.get('push_new_opportunities', settings.push_new_opportunities)
+            settings.push_interview_reminders = data.get('push_interview_reminders', settings.push_interview_reminders)
+            settings.push_assessment_reminders = data.get('push_assessment_reminders', settings.push_assessment_reminders)
+            settings.push_message_notifications = data.get('push_message_notifications', settings.push_message_notifications)
+            settings.weekly_job_alerts = data.get('weekly_job_alerts', settings.weekly_job_alerts)
+            settings.monthly_progress_reports = data.get('monthly_progress_reports', settings.monthly_progress_reports)
+            db.session.commit()
+            return jsonify({'message': 'Notification settings updated successfully'}), 200
+    elif user.role == 'recruiter':
+        from .models import RecruiterNotificationSettings
+        if request.method == 'GET':
+            settings = RecruiterNotificationSettings.query.filter_by(user_id=user.id).first()
+            if not settings:
+                return jsonify({
+                    'email_new_applications': True,
+                    'email_assessment_completed': True,
+                    'email_interview_reminders': True,
+                    'push_new_applications': False,
+                    'push_assessment_completed': True,
+                    'push_interview_reminders': True,
+                    'weekly_reports': True,
+                    'monthly_analytics': False,
+                }), 200
+            return jsonify({
+                'email_new_applications': settings.email_new_applications,
+                'email_assessment_completed': settings.email_assessment_completed,
+                'email_interview_reminders': settings.email_interview_reminders,
+                'push_new_applications': settings.push_new_applications,
+                'push_assessment_completed': settings.push_assessment_completed,
+                'push_interview_reminders': settings.push_interview_reminders,
+                'weekly_reports': settings.weekly_reports,
+                'monthly_analytics': settings.monthly_analytics,
+            }), 200
+        elif request.method == 'POST':
+            data = request.get_json()
+            settings = RecruiterNotificationSettings.query.filter_by(user_id=user.id).first()
+            if not settings:
+                settings = RecruiterNotificationSettings(user_id=user.id)
+                db.session.add(settings)
+            settings.email_new_applications = data.get('email_new_applications', settings.email_new_applications)
+            settings.email_assessment_completed = data.get('email_assessment_completed', settings.email_assessment_completed)
+            settings.email_interview_reminders = data.get('email_interview_reminders', settings.email_interview_reminders)
+            settings.push_new_applications = data.get('push_new_applications', settings.push_new_applications)
+            settings.push_assessment_completed = data.get('push_assessment_completed', settings.push_assessment_completed)
+            settings.push_interview_reminders = data.get('push_interview_reminders', settings.push_interview_reminders)
+            settings.weekly_reports = data.get('weekly_reports', settings.weekly_reports)
+            settings.monthly_analytics = data.get('monthly_analytics', settings.monthly_analytics)
+            db.session.commit()
+            return jsonify({'message': 'Notification settings updated successfully'}), 200
+    else:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+
