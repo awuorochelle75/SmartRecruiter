@@ -142,7 +142,12 @@ export default function Interview() {
           <span className="text-xs text-gray-500 mt-1">July 25, 2025</span>
         </div>
         <div className="mt-auto">
-          <Badge variant="default" className="text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer mt-12">Join Meeting</Badge>
+          <Button
+  variant="default"
+  className="text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer mt-12"
+>
+  Join Meeting
+</Button>
         </div>
       </div>
     </div>
@@ -187,7 +192,12 @@ export default function Interview() {
           <span className="text-xs text-gray-500 mt-1">Jun 30, 2025</span>
         </div>
         <div className="mt-auto">
-          <Badge variant="default" className="text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer mt-12">Join Meeting</Badge>
+         <Button
+  variant="default"
+  className="text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer mt-12"
+>
+  Join Meeting
+</Button>
         </div>
       </div>
     </div>
