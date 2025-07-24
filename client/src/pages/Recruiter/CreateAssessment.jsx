@@ -137,10 +137,10 @@ export default function CreateAssessment(){
         </CardHeader>
 
         <CardContent className="space-y-10">
-          {/* New Question Title */}
+        
           <h2 className="text-md font-semibold text-gray-800">Add New Question</h2>
 
-          {/* Question Type & Points */}
+          
           <div className="flex justify-between gap-6 flex-col md:flex-row">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
