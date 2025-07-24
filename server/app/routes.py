@@ -961,3 +961,26 @@ def submit_attempt(attempt_id):
     return jsonify({'message': 'Attempt submitted', 'score': score, 'passed': passed}), 200
 
 
+@auth_bp.route('/interviewee/assessments/<int:assessment_id>/attempts', methods=['GET'])
+def get_attempts_for_assessment(assessment_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempts = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).order_by(AssessmentAttempt.num_attempt.desc()).all()
+    result = []
+    for a in attempts:
+        result.append({
+            'attempt_id': a.id,
+            'status': a.status,
+            'score': a.score,
+            'passed': a.passed,
+            'started_at': a.started_at,
+            'completed_at': a.completed_at,
+            'num_attempt': a.num_attempt,
+            'time_spent': a.time_spent
+        })
+    return jsonify(result), 200
+
