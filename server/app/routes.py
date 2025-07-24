@@ -574,3 +574,91 @@ def create_assessment():
         db.session.rollback()
         return jsonify({'error': 'Failed to create assessment', 'details': str(e)}), 400
 
+@auth_bp.route('/assessments/<int:assessment_id>', methods=['GET', 'PUT', 'DELETE', 'OPTIONS'], strict_slashes=False)
+def assessment_operations(assessment_id):
+    if request.method == 'OPTIONS':
+        return '', 200
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    assessment = Assessment.query.filter_by(id=assessment_id, recruiter_id=user.id).first()
+    if not assessment:
+        return jsonify({'error': 'Assessment not found'}), 404
+    
+    
+    if request.method == 'GET':
+        return jsonify({
+            'id': assessment.id,
+            'title': assessment.title,
+            'description': assessment.description,
+            'type': assessment.type,
+            'difficulty': assessment.difficulty,
+            'duration': assessment.duration,
+            'passing_score': assessment.passing_score,
+            'instructions': assessment.instructions,
+            'tags': assessment.tags.split(',') if assessment.tags else [],
+            'status': assessment.status,
+            'created_at': assessment.created_at.isoformat() if assessment.created_at else None,
+            'deadline': assessment.deadline if hasattr(assessment, 'deadline') else None,
+            'updated_at': assessment.updated_at.isoformat(),
+            'questions': [
+                {
+                    'id': q.id,
+                    'type': q.type,
+                    'question': q.question,
+                    'options': pyjson.loads(q.options) if q.options else [],
+                    'correct_answer': pyjson.loads(q.correct_answer) if q.correct_answer else None,
+                    'points': q.points,
+                    'explanation': q.explanation,
+                    'starter_code': q.starter_code,
+                    'solution': q.solution,
+                    'answer': q.answer,
+                } for q in assessment.questions
+            ]
+        }), 200
+        
+        # TODO: Implement the PUT method to update an existing assessment with new data.
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        assessment.title = data.get('title', assessment.title)
+        assessment.description = data.get('description', assessment.description)
+        assessment.type = data.get('type', assessment.type)
+        assessment.difficulty = data.get('difficulty', assessment.difficulty)
+        assessment.duration = data.get('duration', assessment.duration)
+        assessment.passing_score = data.get('passingScore', assessment.passing_score)
+        assessment.instructions = data.get('instructions', assessment.instructions)
+        assessment.tags = ','.join(data.get('tags', []))
+        assessment.status = data.get('status', assessment.status)
+        assessment.deadline = data.get('deadline', assessment.deadline)
+        AssessmentQuestion.query.filter_by(assessment_id=assessment.id).delete()
+        for q in data.get('questions', []):
+            question = AssessmentQuestion(
+                assessment_id=assessment.id,
+                type=q.get('type'),
+                question=q.get('question'),
+                options=pyjson.dumps(q.get('options')) if q.get('options') else None,
+                correct_answer=pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
+                points=q.get('points'),
+                explanation=q.get('explanation'),
+                starter_code=q.get('starter_code'),
+                solution=q.get('solution'),
+                answer=q.get('answer'),
+                test_cases=q.get('test_cases') if q.get('type') == 'coding' else None,
+            )
+            db.session.add(question)
+        db.session.commit()
+        return jsonify({'message': 'Assessment updated', 'assessment_id': assessment.id}), 200
+    
+    elif request.method == 'DELETE':
+        # DELETE method
+        AssessmentAttempt.query.filter_by(assessment_id=assessment.id).delete()
+        db.session.delete(assessment)
+        db.session.commit()
+        return jsonify({'message': 'Assessment deleted'}), 200
+    
+    
