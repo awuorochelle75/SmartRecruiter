@@ -335,7 +335,7 @@ const IntervieweeSettings = () => {
                     />
                   </div>
                 </div>
-                <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md px-4 py-2 shadow-sm">
+                <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:text-white dark:bg-blue-600 dark:hover:bg-blue-900/20 rounded-md px-4 py-2 shadow-sm">
                   Update Password
                 </Button>
               </div>
