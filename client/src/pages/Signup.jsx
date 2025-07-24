@@ -92,7 +92,7 @@ function Signup(){
                 </div>
 
                    <div className="flex flex-col mt-2">
-                   <label className="text-sm font-medium text-gray-700">Bio {'{ProfessionalSummary}'} </label>
+                   <label className="text-sm font-medium text-gray-700">Bio {'(Professional Summary)'} </label>
                    <input
                    type="email"
                    placeholder="Tell us about your skills and experience"

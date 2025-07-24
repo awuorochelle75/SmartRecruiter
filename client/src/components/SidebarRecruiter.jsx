@@ -22,7 +22,7 @@ export default function SidebarRecruiter() {
     { icon: FileText, label: "Create Assessment", path: "/createassessment" },
     { icon: FileText, label: "Assessment", path: "/assessments" },
     { icon: Users, label: "Candidates", path: "/candidates" },
-    { icon: BarChart2, label: "ResultAnalytics", path: "/resultsanalytics" },
+    { icon: BarChart2, label: "Result & Analytics", path: "/resultsanalytics" },
     { icon: CalendarCheck, label: "Interviews", path: "/interview" },
     { icon: MessageSquare, label: "Messages", path: "/recruiter/messages" },
     { icon: User, label: "Profile", path: "/recruiter/profile" },

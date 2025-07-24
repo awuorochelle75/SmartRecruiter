@@ -3,7 +3,6 @@ import NavbarDashboard from '../../components/NavbarDashboard';
 import { Button } from '../../components/ui/button'
 import { Link } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge'
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -48,7 +47,7 @@ export default function CreateAssessment(){
       
       </div>
       <div className="px-6 py-8 max-w-6xl mx-auto">
-      <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
+      <Card className="bg-card border border-zinc-200 rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Basic Information</CardTitle>
         </CardHeader>

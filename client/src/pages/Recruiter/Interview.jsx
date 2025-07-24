@@ -46,7 +46,7 @@ export default function Interview() {
                          0
                 </CardContent>
               </Card>
-                <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
 
                 <CardHeader>
                  <CardTitle className="text-accent-700 font-normal text-lg">This Week</CardTitle>
@@ -110,7 +110,7 @@ export default function Interview() {
      <CardDescription> Detailed results for your completed assessments .</CardDescription>
  </CardHeader>
  
-<Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md rounded-2xl mt-6">
+<Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md  mt-6">
   <CardHeader className="flex justify-between items-start">
     
     <div className="flex gap-4 items-start w-full">
