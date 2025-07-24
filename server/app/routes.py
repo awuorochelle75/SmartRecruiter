@@ -112,3 +112,35 @@ def onboarding():
     profile.onboarding_completed = True
     db.session.commit()
     return jsonify({'message': 'Onboarding completed successfully'}), 200
+
+
+@auth_bp.route('/me', methods=['GET'])
+def get_current_user():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    result = {
+        'email': user.email,
+        'role': user.role,
+    }
+    
+    
+    if user.role == 'interviewee':
+        profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
+        if profile:
+            result['first_name'] = profile.first_name
+            result['last_name'] = profile.last_name
+            result['onboarding_completed'] = profile.onboarding_completed
+            result['avatar'] = profile.avatar
+            
+    elif user.role == 'recruiter':
+        profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
+        if profile:
+            result['first_name'] = profile.first_name
+            result['last_name'] = profile.last_name
+            result['company_name'] = profile.company_name
+            result['avatar'] = profile.avatar
+    return jsonify(result), 200
