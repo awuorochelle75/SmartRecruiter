@@ -457,3 +457,27 @@ def upload_company_logo():
     return jsonify({'message': 'Company logo updated successfully', 'company_logo': filename}), 200
 
 
+@auth_bp.route('/settings/security', methods=['POST'])
+def recruiter_security():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    if 'current_password' in data and 'new_password' in data:
+        if not user.check_password(data['current_password']):
+            return jsonify({'error': 'Current password is incorrect'}), 400
+        user.set_password(data['new_password'])
+        db.session.commit()
+    if 'enable_2fa' in data:
+        from .models import RecruiterNotificationSettings
+        settings = RecruiterNotificationSettings.query.filter_by(user_id=user.id).first()
+        if not settings:
+            settings = RecruiterNotificationSettings(user_id=user.id)
+            db.session.add(settings)
+        settings.monthly_analytics = bool(data['enable_2fa'])
+        db.session.commit()
+    return jsonify({'message': 'Security settings updated successfully'}), 200
+
