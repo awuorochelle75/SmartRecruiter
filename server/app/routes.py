@@ -6,7 +6,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
 import uuid
 
+auth_bp = Blueprint('auth', __name__)
 
+@auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     # Validate required fields
