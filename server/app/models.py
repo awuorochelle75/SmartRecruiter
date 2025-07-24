@@ -116,9 +116,9 @@ class IntervieweePrivacySettings(db.Model):
 class Session(db.Model):
     __tablename__ = 'session'
     id = db.Column(db.Integer, primary_key=True)
-    sessions = db.Column(db.String(255), unique=True, nullable=False)
-    data = db.Column(db.Text)
-    expiry = db.Column(db.DateTime)
+    session_id = db.Column(db.String(255), unique=True, nullable=False)
+    data = db.Column(db.Text, nullable=False)
+    expiry = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Assessments created by recruiters
@@ -126,36 +126,38 @@ class Assessment(db.Model):
     __tablename__ = 'assessment'
     id = db.Column(db.Integer, primary_key=True)
     recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    title = db.Column(db.String(255))
+    title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    type = db.Column(db.String(50))
-    difficulty = db.Column(db.String(50))
-    duration = db.Column(db.Integer)
-    passing_score = db.Column(db.Integer)
+    type = db.Column(db.String(50), nullable=False)
+    difficulty = db.Column(db.String(50), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    passing_score = db.Column(db.Integer, nullable=False)
     instructions = db.Column(db.Text)
     tags = db.Column(db.Text)
-    status = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='draft')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deadline = db.Column(db.String(50))
-
-    recruiter = db.relationship('User', backref='assessments')  
+    is_test = db.Column(db.Boolean, default=False, nullable=False)
+    questions = db.relationship('AssessmentQuestion', backref='assessment', cascade='all, delete-orphan')
 
 # Questions associated with each assessment
 class AssessmentQuestion(db.Model):
     __tablename__ = 'assessment_question'
     id = db.Column(db.Integer, primary_key=True)
     assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'), nullable=False)
-    type = db.Column(db.String(50))
-    question = db.Column(db.Text)
+    type = db.Column(db.String(50), nullable=False)
+    question = db.Column(db.Text, nullable=False)
     options = db.Column(db.Text)
     correct_answer = db.Column(db.Text)
-    points = db.Column(db.Integer)
+    points = db.Column(db.Integer, nullable=False)
     explanation = db.Column(db.Text)
+    starter_code = db.Column(db.Text)
+    solution = db.Column(db.Text)
+    answer = db.Column(db.Text)
+    test_cases = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    assessment = db.relationship('Assessment', backref='questions')  
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Invitations sent to interviewees for assessments
 class Invitation(db.Model):
