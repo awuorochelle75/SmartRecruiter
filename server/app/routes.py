@@ -1240,6 +1240,33 @@ const readline = () => {json.dumps(input_val)};
     except Exception as e:
         return jsonify({'output': '', 'error': str(e)}), 200
     
-    
-    
+
+# Todo: Implement the route to retrieve assessment results for recruiters.
+@auth_bp.route('/assessments/<int:assessment_id>/results', methods=['GET'])
+def get_assessment_results(assessment_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment_id).all()
+    results = [] # Initialize results list
+    for a in attempts:
+        interviewee = User.query.get(a.interviewee_id)
+        profile = interviewee.interviewee_profile if interviewee else None
+        results.append({
+            'candidate_id': a.interviewee_id,
+            'candidate_name': f"{profile.first_name} {profile.last_name}" if profile else None,
+            'attempt_id': a.id,
+            'score': a.score,
+            'status': a.status,
+            'passed': a.passed,
+            'started_at': a.started_at,
+            'completed_at': a.completed_at,
+            'time_spent': a.time_spent,
+        })
+    return jsonify(results), 200
+
+
     
