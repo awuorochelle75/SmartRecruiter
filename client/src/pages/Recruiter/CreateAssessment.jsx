@@ -7,6 +7,8 @@ import { Badge } from '../../components/ui/badge'
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus } from 'lucide-react';
 
 
 export default function CreateAssessment(){
@@ -127,6 +129,124 @@ export default function CreateAssessment(){
         </CardContent>
       </Card>
     </div>
+    <div className="px-6 py-8 max-w-6xl mx-auto">
+      <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Questions (0)</CardTitle>
+          <CardDescription>Add questions to evaluate candidate skills</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-10">
+          {/* New Question Title */}
+          <h2 className="text-md font-semibold text-gray-800">Add New Question</h2>
+
+          {/* Question Type & Points */}
+          <div className="flex justify-between gap-6 flex-col md:flex-row">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
+              <Select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="multiple">Multiple Choice</SelectItem>
+                  <SelectItem value="truefalse">True / False</SelectItem>
+                  <SelectItem value="shortanswer">Short Answer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+              <Input type="number" placeholder="e.g. 5" />
+            </div>
+          </div>
+
+          {/* Question Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
+            <Textarea
+              placeholder="Enter your question here..."
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* Answer Options */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
+            <RadioGroup className="space-y-3">
+              {[1, 2, 3, 4].map((index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <RadioGroupItem value={`option${index}`} id={`option${index}`} />
+                  <Input
+                    placeholder={`Option ${index}`}
+                    className="flex-1"
+                  />
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Explanation */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Explanation (optional)</label>
+            <Textarea
+              placeholder="Provide an explanation for the correct answer..."
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* --- REPEATED SECTION x2 --- */}
+          {[1, 2].map((item) => (
+            <div key={item} className="space-y-6 border-t pt-10">
+              <div className="flex justify-between gap-6 flex-col md:flex-row">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
+                  <Select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="multiple">Multiple Choice</SelectItem>
+                      <SelectItem value="truefalse">True / False</SelectItem>
+                      <SelectItem value="shortanswer">Short Answer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+                  <Input type="number" placeholder="e.g. 5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
+                <Textarea
+                  placeholder="Enter your question here..."
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Explanation (optional)</label>
+                <Textarea
+                  placeholder="Provide an explanation for the correct answer..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+          ))}
+
+          {/* Add Question Button */}
+          <div className="pt-6">
+            <Button variant="default" className="flex items-center gap-2 ">
+              <Plus className="w-4 h-4" />
+              Add Question
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+    
       </div>
       </div>
       </div>
