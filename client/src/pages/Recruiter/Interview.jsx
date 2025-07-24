@@ -5,211 +5,186 @@ import { Link } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
-
+import { useState } from 'react';
+import { MoreVertical } from 'lucide-react';
 
 export default function Interview() {
-  return(
-   <div className='flex h-screen'>
-   <div className='w-64' >
-     <SidebarRecruiter />
-    </div>
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    <div className="flex-1 flex flex-col">
-    <div className="h-16 bg-white shadow">
-      <NavbarDashboard />
-    </div>
-     <div className="flex-1 p-4 bg-gray-50 overflow-auto">
-      <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-xl font-semibold">My Results</h1>
-      <p className="text-sm mt-2">
-        View and analyze your assessment results performance.
-      </p>
-    </div>
-    <div className="flex gap-4">
-      <Button asChild size="sm" className="text-sm px-6">
-        <Link to="/createassessment">
-          <span className="flex items-center">Export Results</span>
-        </Link>
-      </Button>
+  return (
+    <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-64">
+        <SidebarRecruiter />
+      </div>
 
-    </div>
-  </div>
+      {/* Mobile Sidebar */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 flex">
+          <div className="w-64 bg-background shadow-md h-full">
+            <SidebarRecruiter />
+          </div>
+          <div className="flex-1 bg-black bg-opacity-30" onClick={() => setSidebarOpen(false)} />
+        </div>
+      )}
 
-      <div className="relative grid grid-cols-1 md:grid-cols-4 gap-8 px-4 md:px-10 mt-10 mb-10">
-            <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Navbar */}
+        <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
+          <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
+            <MoreVertical className="h-6 w-6" />
+          </button>
+          <NavbarDashboard />
+        </div>
 
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-xl font-semibold">My Results</h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                View and analyze your assessment results performance.
+              </p>
+            </div>
+            <Button asChild size="sm" className="text-sm px-6">
+              <Link to="/createassessment">Export Results</Link>
+            </Button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+            {[
+              { label: "Today's Interview", value: '0' },
+              { label: 'This Week', value: '0' },
+              { label: 'Completed', value: '1' },
+              { label: 'Success Rate', value: '85%' },
+            ].map((stat, i) => (
+              <Card
+                key={i}
+                className="bg-card border border-border rounded p-4 transition duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-lg"
+              >
                 <CardHeader>
-                 <CardTitle className="text-accent-700 font-normal text-lg">Today's Interview</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.label}
+                  </CardTitle>
                 </CardHeader>
-                  <CardContent className='font-bold'>
-                         0
-                </CardContent>
+                <CardContent className="text-xl font-bold">{stat.value}</CardContent>
               </Card>
-                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+            ))}
+          </div>
 
-                <CardHeader>
-                 <CardTitle className="text-accent-700 font-normal text-lg">This Week</CardTitle>
-                </CardHeader>
-                  <CardContent className='font-bold'>
-                   0
-                </CardContent>
-              </Card>
-
-                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
-
-                <CardHeader>
-                 <CardTitle className="text-accent-700 font-normal text-lg">Completed</CardTitle>
-                </CardHeader>
-                  <CardContent className='font-bold'>
-                  1
-                </CardContent>
-              </Card>
-                <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
-
-                <CardHeader>
-                 <CardTitle className="text-accent-700  font-normal text-lg">Success Rate</CardTitle>
-                </CardHeader>
-                  <CardContent className='font-bold'>
-                    85%
-                </CardContent>
-              </Card>  
-           </div>
-         
-
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-10 mb-10">
-           <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
-            <CardHeader>
-             <CardTitle className='text-xl'>Today's Schedule</CardTitle>
-            </CardHeader>
-             <CardContent className="text-center text-gray-400 italic py-10">
+          {/* Schedule Sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <Card className="bg-card border border-border rounded transition hover:scale-[1.02] hover:shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Today's Schedule</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center text-muted-foreground italic py-10">
                 No interviews scheduled for this date
-            </CardContent>
+              </CardContent>
+            </Card>
 
-        </Card>
+            <Card className="bg-card border border-border rounded transition hover:scale-[1.02] hover:shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Upcoming Interviews</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">Next scheduled interviews</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center text-muted-foreground italic py-10" />
+            </Card>
+          </div>
 
+          {/* All Interviews */}
+          <Card className="mt-8 bg-card border border-border rounded">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">All Interviews</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
+                Detailed results for your completed assessments.
+              </CardDescription>
+            </CardHeader>
 
- <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
-  <CardHeader>
-    <CardTitle className='text-xl'>Upcoming Interviews</CardTitle>
-    <CardDescription>Next scheduled interviews</CardDescription>
-  </CardHeader>
-  <CardContent className="text-center text-gray-400 italic py-10">
-  
-  </CardContent>
-</Card>
+            {/* Interview Card 1 */}
+            <Card className="mx-0 md:mx-6 mb-6 bg-background border border-border shadow-sm rounded">
+              <CardHeader className="flex justify-between items-start">
+                <div className="flex gap-4 items-start w-full">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src="/profile.jpg" alt="Candidate" />
+                    <AvatarFallback>RA</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-base font-semibold">Rochelle Awuor</span>
+                    <span className="text-sm text-muted-foreground">Frontend Developer</span>
+                    <span className="text-sm text-muted-foreground">rochellea@gmail.com</span>
+                    <div className="mt-4">
+                      <Badge variant="outline" className="text-xs text-blue-700 border-blue-500 bg-blue-50 dark:bg-blue-900/20">Technical Interview</Badge>
+                    </div>
+                    <p className="mt-4 text-xs text-muted-foreground">Notes: focus on React hooks and state management</p>
+                  </div>
 
-</div>
+                  <div className="flex-1 flex justify-center items-center">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium">Duration: 60 mins</span>
+                      <span className="text-sm font-medium">Interviewer: Tom Orland</span>
+                    </div>
+                  </div>
 
-<Card>
- <CardHeader>
-    <CardTitle className='text-xl'>
-       All Interviews
-    </CardTitle>
-     <CardDescription> Detailed results for your completed assessments .</CardDescription>
- </CardHeader>
- 
-<Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md  mt-6">
-  <CardHeader className="flex justify-between items-start">
-    
-    <div className="flex gap-4 items-start w-full">
-      <Avatar className="w-12 h-12">
-        <AvatarImage src="/profile.jpg" alt="Candidate" />
-        <AvatarFallback>RA</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col">
-        <span className="text-base font-semibold text-gray-900">Rochelle Awuor</span>
-        <span className="text-sm text-gray-600 ">Frontend Developer</span>
-        <span className="text-sm text-gray-500">rochellea@gmail.com</span>
-        <div className="mt-4">
-          <Badge variant="outline" className="text-xs text-blue-700 border-blue-500 bg-blue-50 dark:bg-blue-900/20"> Techical Interview</Badge>
-        </div>
-        <p className="mt-4 text-xs text-gray-500">Notes: focus on React hooks and state management</p>
-      </div>
+                  <div className="flex flex-col items-end justify-between h-full gap-4">
+                    <div className="flex flex-col items-end">
+                      <Badge variant="outline" className="text-xs text-green-700 border-green-500 bg-green-100 dark:bg-green-900/20">Scheduled</Badge>
+                      <span className="text-xs text-muted-foreground mt-1">July 25, 2025</span>
+                    </div>
+                    <div className="mt-auto">
+                      <Button className="text-xs bg-primary hover:bg-primary/90 text-white mt-12">
+                        Join Meeting
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
 
-      <div className="flex-1 flex justify-center items-center">
-  <div className="flex flex-col gap-2">
-    <span className="text-sm font-medium text-gray-700 mt-4">Duration: 60 mins</span>
-    <span className="text-sm font-medium text-gray-700 mt-4">Interviewer: Tom Orland</span>
-  </div>
-</div>
+            {/* Interview Card 2 */}
+            <Card className="mx-0 md:mx-6 mb-6 bg-background border border-border shadow-sm rounded">
+              <CardHeader className="flex justify-between items-start">
+                <div className="flex gap-4 items-start w-full">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src="/profile.jpg" alt="Candidate" />
+                    <AvatarFallback>JK</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-base font-semibold">James Kiplimo</span>
+                    <span className="text-sm text-muted-foreground">Senior Software Engineer</span>
+                    <span className="text-sm text-muted-foreground">jkiplimo@gmail.com</span>
+                    <div className="mt-4">
+                      <Badge variant="outline" className="text-xs text-blue-700 border-blue-500 bg-blue-50 dark:bg-blue-900/20">Technical Interview</Badge>
+                    </div>
+                    <p className="mt-4 text-xs text-muted-foreground">Notes: focus on React hooks and state management</p>
+                  </div>
 
-     
-      <div className="flex flex-col items-end justify-between h-full gap-4">
-        <div className="flex flex-col items-end">
-          <Badge variant="outline" className="text-xs text-green-700 border-green-500 bg-green-100">Scheduled</Badge>
-          <span className="text-xs text-gray-500 mt-1">July 25, 2025</span>
-        </div>
-        <div className="mt-auto">
-          <Button
-  variant="default"
-  className="text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer mt-12"
->
-  Join Meeting
-</Button>
-        </div>
-      </div>
-    </div>
-  </CardHeader>
-</Card>
+                  <div className="flex-1 flex justify-center items-center">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium">Duration: 60 mins</span>
+                      <span className="text-sm font-medium">Interviewer: Derrick Ochieng</span>
+                    </div>
+                  </div>
 
-
-<Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md rounded mt-6">
-  <CardHeader className="flex justify-between items-start">
-  
-    <div className="flex gap-4 items-start w-full">
-      <Avatar className="w-12 h-12">
-        <AvatarImage src="/profile.jpg" alt="Candidate" />
-        <AvatarFallback>JK</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col">
-        <span className="text-base font-semibold text-gray-900">James Kiplimo</span>
-        <span className="text-sm text-gray-600 ">Senior Software Engineer</span>
-        <span className="text-sm text-gray-500">jkiplimo@gmail.com</span>
-        <div className="mt-4">
-          <Badge variant="outline" className="text-xs text-blue-700 border-blue-500 bg-blue-50 dark:bg-blue-900/20"> Techical Interview</Badge>
-        </div>
-        <p className="mt-4 text-xs text-gray-500">Notes: focus on React hooks and state management</p>
-      </div>
-
-    
-      <div className="flex-1 flex justify-center items-center">
-  <div className="flex flex-col gap-2">
-    <span className="text-sm font-medium text-gray-700 mt-4">Duration: 60 mins</span>
-    <span className="text-sm font-medium text-gray-700 mt-4">Interviewer: Derrick Ochieng</span>
-  </div>
-</div>
-
-        
-         
-  
-
-    
-      <div className="flex flex-col items-end justify-between h-full gap-4">
-        <div className="flex flex-col items-end">
-          <Badge variant="outline" className="text-xs text-green-700 border-green-500 bg-green-100">Scheduled</Badge>
-          <span className="text-xs text-gray-500 mt-1">Jun 30, 2025</span>
-        </div>
-        <div className="mt-auto">
-         <Button
-  variant="default"
-  className="text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer mt-12"
->
-  Join Meeting
-</Button>
+                  <div className="flex flex-col items-end justify-between h-full gap-4">
+                    <div className="flex flex-col items-end">
+                      <Badge variant="outline" className="text-xs text-green-700 border-green-500 bg-green-100 dark:bg-green-900/20">Scheduled</Badge>
+                      <span className="text-xs text-muted-foreground mt-1">Jun 30, 2025</span>
+                    </div>
+                    <div className="mt-auto">
+                      <Button className="text-xs bg-primary hover:bg-primary/90 text-white mt-12">
+                        Join Meeting
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Card>
         </div>
       </div>
-    </div>
-  </CardHeader>
-</Card>
-
-</Card>
-
-</div>
-
-  </div>
- 
     </div>
   );
 }
