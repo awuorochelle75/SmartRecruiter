@@ -857,3 +857,30 @@ def start_assessment_attempt(assessment_id):
     return jsonify({'attempt_id': attempt.id, 'num_attempt': attempt.num_attempt}), 201
 
 
+@auth_bp.route('/interviewee/assessments/<int:assessment_id>/attempt', methods=['GET'])
+def get_current_attempt(assessment_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempt = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).order_by(AssessmentAttempt.num_attempt.desc()).first()
+    #TODO: Check if the assessment is a test and active
+    if not attempt:
+        return jsonify({'error': 'No attempt found'}), 404
+    answers = {a.question_id: a.answer for a in attempt.answers}
+    return jsonify({
+        'attempt_id': attempt.id,
+        'status': attempt.status,
+        'current_question': attempt.current_question,
+        'score': attempt.score,
+        'passed': attempt.passed,
+        'answers': answers,
+        'started_at': attempt.started_at,
+        'completed_at': attempt.completed_at,
+        'num_attempt': attempt.num_attempt,
+        'time_spent': attempt.time_spent
+    }), 200
+    
+    
