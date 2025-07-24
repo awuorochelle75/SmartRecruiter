@@ -20,7 +20,7 @@ function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (role == "recruiter") {
-      navigate("/recruiter");
+      navigate("/recruiterdashboard");
     } else if (role === "interviewee") {
       navigate("/IntervieweeDashboard");
     } else {
