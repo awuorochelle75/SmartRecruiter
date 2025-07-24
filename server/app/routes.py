@@ -1115,3 +1115,21 @@ def code_evaluation(attempt_answer_id):
         }), 200
 
 
+@auth_bp.route('/analytics/interviewee/summary', methods=['GET'])
+def interviewee_analytics():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempts = AssessmentAttempt.query.filter_by(interviewee_id=user_id).all()
+    total = len(attempts)
+    completed = [a for a in attempts if a.status == 'completed']
+    avg_score = sum([a.score or 0 for a in completed]) / len(completed) if completed else 0
+    pass_rate = sum([1 for a in completed if a.passed]) / len(completed) * 100 if completed else 0
+    return jsonify({
+        'total_attempts': total,
+        'completed_attempts': len(completed),
+        'average_score': avg_score,
+        'pass_rate': pass_rate
+    }), 200
+
