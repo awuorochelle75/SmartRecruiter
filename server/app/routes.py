@@ -781,4 +781,52 @@ def send_invite():
         return jsonify({'message': 'Invitation sent successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+    
+
+@auth_bp.route('/settings/delete-account', methods=['POST'])
+def delete_account():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    try:
+        # Delete related data based on role
+        if user.role == 'interviewee':
+            from .models import IntervieweeProfile, IntervieweeNotificationSettings, IntervieweePrivacySettings
+            profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
+            if profile and profile.avatar:
+                avatar_path = os.path.join(UPLOAD_FOLDER, profile.avatar)
+                if os.path.exists(avatar_path):
+                    os.remove(avatar_path)
+            IntervieweeProfile.query.filter_by(user_id=user.id).delete()
+            IntervieweeNotificationSettings.query.filter_by(user_id=user.id).delete()
+            IntervieweePrivacySettings.query.filter_by(user_id=user.id).delete()
+            # TODO: Delete interviewee's assessment results, messages, etc. if applicable
+        elif user.role == 'recruiter':
+            from .models import RecruiterProfile, RecruiterNotificationSettings, Assessment, AssessmentQuestion
+            profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
+            if profile and profile.avatar:
+                avatar_path = os.path.join(UPLOAD_FOLDER, profile.avatar)
+                if os.path.exists(avatar_path):
+                    os.remove(avatar_path)
+            assessments = Assessment.query.filter_by(recruiter_id=user.id).all()
+            for a in assessments:
+                AssessmentQuestion.query.filter_by(assessment_id=a.id).delete()
+            Assessment.query.filter_by(recruiter_id=user.id).delete()
+            RecruiterProfile.query.filter_by(user_id=user.id).delete()
+            RecruiterNotificationSettings.query.filter_by(user_id=user.id).delete()
+            # TODO: Delete recruiter's messages, invites, etc. if applicable
+        db.session.delete(user)
+        db.session.commit()
+        session.clear()
+        response = jsonify({'message': 'Account deleted successfully'})
+        response.delete_cookie('session')
+        return response, 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete account', 'details': str(e)}), 500
+
 
