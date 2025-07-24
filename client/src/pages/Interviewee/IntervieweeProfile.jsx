@@ -56,7 +56,7 @@ const IntervieweeProfile = () => {
                 Manage your personal information and preferences
               </p>
             </div>
-            <Button variant="outline" className="rounded-md px-4 py-2 shadow-sm border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+            <Button variant="outline" className="rounded-md px-4 py-2 shadow-sm border-gray-300 text-white bg-blue-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
               Edit Profile
             </Button>
           </div>
