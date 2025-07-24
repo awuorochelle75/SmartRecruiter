@@ -984,7 +984,15 @@ def submit_attempt(attempt_id):
     attempt.score = score
     attempt.passed = passed
     attempt.status = 'completed'
-    attempt.completed_at = func.now()
+    from datetime import datetime, timezone
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    attempt.completed_at = now
+    if attempt.started_at:
+        started = attempt.started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        time_spent = int((now - started).total_seconds())
+        attempt.time_spent = max(0, time_spent)
     db.session.commit()
     return jsonify({'message': 'Attempt submitted', 'score': score, 'passed': passed}), 200
 
@@ -1269,7 +1277,6 @@ const readline = () => {json.dumps(input_val)};
         return jsonify({'output': '', 'error': str(e)}), 200
     
 
-# Todo: Implement the route to retrieve assessment results for recruiters.
 @auth_bp.route('/assessments/<int:assessment_id>/results', methods=['GET'])
 def get_assessment_results(assessment_id):
     user_id = session.get('user_id')
@@ -1279,13 +1286,17 @@ def get_assessment_results(assessment_id):
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Unauthorized'}), 403
     attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment_id).all()
-    results = [] # Initialize results list
+    results = []
     for a in attempts:
         interviewee = User.query.get(a.interviewee_id)
         profile = interviewee.interviewee_profile if interviewee else None
+        assessment = Assessment.query.get(a.assessment_id)
         results.append({
             'candidate_id': a.interviewee_id,
             'candidate_name': f"{profile.first_name} {profile.last_name}" if profile else None,
+            'avatar': profile.avatar if profile else None,
+            'email': interviewee.email if interviewee else None,
+            'assessment': assessment.title if assessment else None,
             'attempt_id': a.id,
             'score': a.score,
             'status': a.status,
