@@ -830,3 +830,30 @@ def delete_account():
         return jsonify({'error': 'Failed to delete account', 'details': str(e)}), 500
 
 
+@auth_bp.route('/interviewee/assessments/<int:assessment_id>/start', methods=['POST'])
+def start_assessment_attempt(assessment_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    assessment = Assessment.query.filter_by(id=assessment_id, is_test=True, status='active').first()
+    if not assessment:
+        return jsonify({'error': 'Assessment not found'}), 404
+    prev_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).count()
+    max_attempts = 3
+    if prev_attempts >= max_attempts:
+        return jsonify({'error': 'Max attempts reached'}), 403
+    attempt = AssessmentAttempt(
+        interviewee_id=user.id,
+        assessment_id=assessment_id,
+        num_attempt=prev_attempts + 1,
+        status='in_progress',
+        current_question=0
+    )
+    db.session.add(attempt)
+    db.session.commit()
+    return jsonify({'attempt_id': attempt.id, 'num_attempt': attempt.num_attempt}), 201
+
+
