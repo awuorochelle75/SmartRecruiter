@@ -2,20 +2,9 @@ import SidebarRecruiter from '../../components/SidebarRecruiter';
 import NavbarDashboard from '../../components/NavbarDashboard';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '../../components/ui/dropdown-menu';
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,} from '../../components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 
 const assessments = [
