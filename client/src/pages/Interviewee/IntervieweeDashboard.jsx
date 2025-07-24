@@ -220,7 +220,7 @@ const IntervieweeDashboard = () => {
                         </Badge>
                         <Button
                           variant="outline"
-                          className="border-blue-600 bg-blue-500 text-white hover:bg-blue-700 hover:text-white rounded-xl px-4 py-1 text-xs h-auto min-h-0"
+                          className="border-blue-600 bg-blue-500 text-white hover:bg-blue-700 hover:text-white rounded px-4 py-2 text-xs h-auto min-h-0"
                         >
                           Start Test
                         </Button>
