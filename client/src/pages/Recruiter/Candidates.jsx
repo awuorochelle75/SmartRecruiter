@@ -4,13 +4,7 @@ import NavbarDashboard from '../../components/NavbarDashboard';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent,} from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Eye, MoreVertical } from 'lucide-react';
 import { Progress } from '../../components/ui/progress';
@@ -34,12 +28,12 @@ export default function Candidates() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Desktop Sidebar */}
+    
       <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
-      {/* Mobile Sidebar */}
+     
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
@@ -53,7 +47,7 @@ export default function Candidates() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
+        
         <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
           <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <MoreVertical className="h-6 w-6" />
@@ -61,7 +55,7 @@ export default function Candidates() {
           <NavbarDashboard />
         </div>
 
-        {/* Content */}
+       
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -75,7 +69,7 @@ export default function Candidates() {
             </Button>
           </div>
 
-          {/* Stats Cards */}
+       
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             {[
               { label: 'Total Candidates', value: 4 },
@@ -97,7 +91,7 @@ export default function Candidates() {
             ))}
           </div>
 
-          {/* Filters */}
+        
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4">
             <input
               type="text"
@@ -112,7 +106,7 @@ export default function Candidates() {
             </select>
           </div>
 
-          {/* Assessment Table */}
+          
           <Card className="bg-card border border-border mt-6">
             <CardHeader>
               <CardTitle className="text-lg">My Assessment Results</CardTitle>
@@ -135,7 +129,7 @@ export default function Candidates() {
                 <tbody className="divide-y divide-border">
                   {myAssessmentResultsData.map((candidate) => (
                     <tr key={candidate.id}>
-                      {/* Candidate */}
+                     
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <Avatar>
@@ -149,10 +143,9 @@ export default function Candidates() {
                         </div>
                       </td>
 
-                      {/* Position */}
                       <td className="px-6 py-4 whitespace-nowrap">{candidate.position}</td>
 
-                      {/* Skills */}
+                     
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-wrap gap-2">
                           {candidate.skills.split(',').map((skill, i) => (
@@ -167,7 +160,7 @@ export default function Candidates() {
                         </div>
                       </td>
 
-                      {/* Score */}
+                     
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <span>{candidate.score}%</span>
@@ -179,7 +172,7 @@ export default function Candidates() {
                         </div>
                       </td>
 
-                      {/* Status */}
+                      
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge
                           variant="outline"
@@ -189,10 +182,10 @@ export default function Candidates() {
                         </Badge>
                       </td>
 
-                      {/* Date */}
+                      
                       <td className="px-6 py-4 whitespace-nowrap">{candidate.completedDate}</td>
 
-                      {/* Actions */}
+                      
                       <td className="px-6 py-4 text-right">
                         <Button
                           variant="ghost"

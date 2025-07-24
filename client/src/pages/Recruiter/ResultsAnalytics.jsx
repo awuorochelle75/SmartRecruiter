@@ -29,12 +29,11 @@ export default function ResultsAnalytics() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Desktop Sidebar */}
+      
       <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
-      {/* Mobile Sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-background shadow-md h-full">
@@ -48,7 +47,7 @@ export default function ResultsAnalytics() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
+        
         <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
           <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <MoreVertical className="h-6 w-6" />
@@ -56,9 +55,9 @@ export default function ResultsAnalytics() {
           <NavbarDashboard />
         </div>
 
-        {/* Content */}
+        
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
-          {/* Header */}
+          
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-xl font-semibold">Results</h1>
@@ -71,7 +70,7 @@ export default function ResultsAnalytics() {
             </Button>
           </div>
 
-          {/* Stats */}
+         
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             {[
               { label: 'Average Score', value: '4' },
@@ -93,7 +92,7 @@ export default function ResultsAnalytics() {
             ))}
           </div>
 
-          {/* Filters */}
+      
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4">
             <input
               type="text"
@@ -107,7 +106,7 @@ export default function ResultsAnalytics() {
             </select>
           </div>
 
-          {/* Table */}
+        
           <Card className="bg-card border border-border mt-6">
             <CardHeader>
               <CardTitle className="text-lg">My Assessment Results</CardTitle>
@@ -133,7 +132,7 @@ export default function ResultsAnalytics() {
                 <tbody className="divide-y divide-border">
                   {myAssessmentResultsData.map((candidate) => (
                     <tr key={candidate.id}>
-                      {/* Candidate */}
+                      
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <Avatar>
@@ -147,10 +146,10 @@ export default function ResultsAnalytics() {
                         </div>
                       </td>
 
-                      {/* Assessment */}
+                     
                       <td className="px-6 py-4 whitespace-nowrap">{candidate.assessment}</td>
 
-                      {/* Score */}
+                     
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span>{candidate.score}%</span>
@@ -162,7 +161,6 @@ export default function ResultsAnalytics() {
                         </div>
                       </td>
 
-                      {/* Status */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge
                           variant="outline"
@@ -172,13 +170,13 @@ export default function ResultsAnalytics() {
                         </Badge>
                       </td>
 
-                      {/* Completed */}
+                     
                       <td className="px-6 py-4 whitespace-nowrap">{candidate.completedDate}</td>
 
-                      {/* Time Spent */}
+                      
                       <td className="px-6 py-4 whitespace-nowrap">{candidate.timespent}</td>
 
-                      {/* Actions */}
+                      
                       <td className="px-6 py-4 text-right">
                         <Button
                           variant="ghost"

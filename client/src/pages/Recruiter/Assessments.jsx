@@ -3,20 +3,9 @@ import SidebarRecruiter from '../../components/SidebarRecruiter';
 import NavbarDashboard from '../../components/NavbarDashboard';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '../../components/ui/card';
+import {Card,CardHeader,CardTitle,CardDescription,CardContent,} from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '../../components/ui/dropdown-menu';
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,} from '../../components/ui/dropdown-menu';
 import { MoreHorizontal, MoreVertical } from 'lucide-react';
 
 const assessments = [
@@ -57,12 +46,12 @@ export default function Assessment() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Desktop Sidebar */}
+     
       <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
-      {/* Mobile Sidebar */}
+     
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
@@ -76,7 +65,7 @@ export default function Assessment() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
+        
         <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
           <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <MoreVertical className="h-6 w-6" />
@@ -84,7 +73,7 @@ export default function Assessment() {
           <NavbarDashboard />
         </div>
 
-        {/* Content */}
+        
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -98,7 +87,7 @@ export default function Assessment() {
             </Button>
           </div>
 
-          {/* Filters */}
+         
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4">
             <input
               type="text"
@@ -113,7 +102,7 @@ export default function Assessment() {
             </select>
           </div>
 
-          {/* Assessment Cards */}
+       
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mt-6">
             {assessments.map((item, index) => (
               <Card
@@ -143,7 +132,7 @@ export default function Assessment() {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {/* Custom badge colors preserved as per request */}
+                     
                       <Badge className={`bg-${item.badgeColor}-100 text-${item.badgeColor}-700 text-xs px-2 py-1`}>
                         {item.status}
                       </Badge>

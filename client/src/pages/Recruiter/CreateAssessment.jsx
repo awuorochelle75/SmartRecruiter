@@ -16,12 +16,12 @@ export default function CreateAssessment() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Desktop Sidebar */}
+      
       <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
-      {/* Mobile Sidebar */}
+      
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
@@ -32,7 +32,7 @@ export default function CreateAssessment() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar with Toggle */}
+      
         <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
           <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <MoreVertical className="h-6 w-6" />
@@ -40,9 +40,9 @@ export default function CreateAssessment() {
           <NavbarDashboard />
         </div>
 
-        {/* Content Area */}
+       
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted space-y-10">
-          {/* Header */}
+          
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl md:text-2xl font-bold">Create Assessment</h1>
@@ -60,7 +60,7 @@ export default function CreateAssessment() {
             </div>
           </div>
 
-          {/* Basic Info */}
+          
           <Card className="bg-card border border-border rounded shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Basic Information</CardTitle>
@@ -130,7 +130,7 @@ export default function CreateAssessment() {
             </CardContent>
           </Card>
 
-          {/* Questions */}
+         
           <Card className="bg-card border border-border rounded shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Questions (0)</CardTitle>
@@ -205,7 +205,7 @@ export default function CreateAssessment() {
             </CardContent>
           </Card>
 
-          {/* Summary */}
+          
           <Card className="bg-card border border-border rounded shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Assessment Summary</CardTitle>

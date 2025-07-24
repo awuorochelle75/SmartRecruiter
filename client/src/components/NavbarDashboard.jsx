@@ -17,7 +17,7 @@ import { Bell } from 'lucide-react';
 function NavbarDashboard() {
   return (
     <nav className="w-full px-3 flex justify-between mt-3 bg-background text-foreground">
-      {/* Search */}
+     
       <div className="w-[28rem]">
         <input
           type="text"
@@ -26,11 +26,11 @@ function NavbarDashboard() {
         />
       </div>
 
-      {/* Right side */}
+      
       <div className="flex items-center gap-6">
         <ThemeToggle />
 
-        {/* Notifications */}
+      
         <div className="relative cursor-pointer">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -51,7 +51,7 @@ function NavbarDashboard() {
           </DropdownMenu>
         </div>
 
-        {/* Profile Menu */}
+       
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="cursor-pointer">

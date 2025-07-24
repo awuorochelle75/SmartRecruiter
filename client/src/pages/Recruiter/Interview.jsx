@@ -13,12 +13,12 @@ export default function Interview() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Desktop Sidebar */}
+    
       <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
-      {/* Mobile Sidebar */}
+   
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-background shadow-md h-full">
@@ -29,7 +29,7 @@ export default function Interview() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
+      
         <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
           <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <MoreVertical className="h-6 w-6" />
@@ -37,9 +37,9 @@ export default function Interview() {
           <NavbarDashboard />
         </div>
 
-        {/* Main Content */}
+      
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
-          {/* Header */}
+         
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-xl font-semibold">My Results</h1>
@@ -52,7 +52,7 @@ export default function Interview() {
             </Button>
           </div>
 
-          {/* Stats */}
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             {[
               { label: "Today's Interview", value: '0' },
@@ -74,7 +74,7 @@ export default function Interview() {
             ))}
           </div>
 
-          {/* Schedule Sections */}
+         
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <Card className="bg-card border border-border rounded transition hover:scale-[1.02] hover:shadow-lg">
               <CardHeader>
@@ -94,7 +94,7 @@ export default function Interview() {
             </Card>
           </div>
 
-          {/* All Interviews */}
+          
           <Card className="mt-8 bg-card border border-border rounded">
             <CardHeader>
               <CardTitle className="text-lg font-semibold">All Interviews</CardTitle>
@@ -103,7 +103,7 @@ export default function Interview() {
               </CardDescription>
             </CardHeader>
 
-            {/* Interview Card 1 */}
+         
             <Card className="mx-0 md:mx-6 mb-6 bg-background border border-border shadow-sm rounded">
               <CardHeader className="flex justify-between items-start">
                 <div className="flex gap-4 items-start w-full">
@@ -143,7 +143,7 @@ export default function Interview() {
               </CardHeader>
             </Card>
 
-            {/* Interview Card 2 */}
+            
             <Card className="mx-0 md:mx-6 mb-6 bg-background border border-border shadow-sm rounded">
               <CardHeader className="flex justify-between items-start">
                 <div className="flex gap-4 items-start w-full">

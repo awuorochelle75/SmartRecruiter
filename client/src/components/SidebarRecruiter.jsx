@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  FileText,
-  Users,
-  BarChart2,
-  CalendarCheck,
-  MessageSquare,
-  User,
-  Settings,
-  LogOut,
-  Code2,
-  Menu,
-  X
-} from 'lucide-react';
+import {LayoutDashboard,FileText,Users,BarChart2,CalendarCheck,MessageSquare,User,Settings,LogOut,Code2,Menu,X} from 'lucide-react';
 import { Separator } from '../components/ui/separator';
 
 export default function SidebarRecruiter() {
@@ -34,7 +21,7 @@ export default function SidebarRecruiter() {
 
   return (
     <>
-      {/* Mobile Topbar */}
+     
       <div className="md:hidden flex items-center justify-between p-4 bg-sidebar text-sidebar-foreground shadow">
         <Link to="/" className="flex items-center space-x-2">
           <Code2 className="h-6 w-6 text-primary" />
@@ -45,7 +32,7 @@ export default function SidebarRecruiter() {
         </button>
       </div>
 
-      {/* Sidebar */}
+     
       <div
         className={`
           fixed top-0 left-0 h-screen w-64 bg-sidebar text-sidebar-foreground shadow-lg p-4 flex flex-col justify-between
@@ -55,7 +42,7 @@ export default function SidebarRecruiter() {
         `}
       >
         <div>
-          {/* Logo */}
+          
           <div className="hidden md:flex items-center mb-4">
             <Link to="/" className="flex items-center space-x-2 mt-2">
               <Code2 className="h-6 w-6 text-primary" />
@@ -65,7 +52,7 @@ export default function SidebarRecruiter() {
 
           <Separator className="border-t border-border mb-4" />
 
-          {/* Navigation Links */}
+        
           <ul className="space-y-6 text-sm">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -91,7 +78,7 @@ export default function SidebarRecruiter() {
           </ul>
         </div>
 
-        {/* Logout */}
+        
         <div className="mt-6">
           <Separator className="border-t border-border mb-4" />
           <Link

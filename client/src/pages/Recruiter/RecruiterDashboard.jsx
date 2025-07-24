@@ -1,18 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MoreVertical } from 'lucide-react';
-
 import SidebarRecruiter from '../../components/SidebarRecruiter';
 import NavbarDashboard from '../../components/NavbarDashboard';
-
 import { Button } from '../../components/ui/button';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '../../components/ui/card';
+import {Card,CardHeader,CardTitle,CardDescription,CardContent, } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 
 export default function RecruiterDashboard() {
@@ -20,12 +12,12 @@ export default function RecruiterDashboard() {
 
   return (
     <div className="flex h-screen bg-background text-foreground dark:bg-background dark:text-foreground overflow-hidden relative">
-      {/* Desktop Sidebar */}
+     
       <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
-      {/* Mobile Sidebar (Custom Drawer) */}
+      
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
@@ -38,22 +30,22 @@ export default function RecruiterDashboard() {
         </div>
       )}
 
-      {/* Main Content Area */}
+     
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar with Mobile Toggle */}
+        
         <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
-          {/* Mobile menu toggle */}
+         
           <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <MoreVertical className="h-6 w-6" />
           </button>
 
-          {/* Actual Navbar content */}
+         
           <NavbarDashboard />
         </div>
 
-        {/* Scrollable Content */}
+      
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted dark:bg-muted space-y-10">
-          {/* Header */}
+         
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl md:text-2xl font-bold">Recruiter Dashboard</h1>
@@ -71,7 +63,7 @@ export default function RecruiterDashboard() {
             </div>
           </div>
 
-          {/* Stat Cards */}
+        
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { title: 'Active Assessments', value: '12' },
@@ -88,9 +80,9 @@ export default function RecruiterDashboard() {
             ))}
           </div>
 
-          {/* Activity & Interviews */}
+        
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Recent Candidate Activity */}
+           
             <Card className="transition hover:shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg md:text-xl">Recent Candidate Activity</CardTitle>
@@ -154,7 +146,7 @@ export default function RecruiterDashboard() {
               </CardContent>
             </Card>
 
-            {/* Upcoming Interviews */}
+            
             <Card className="transition hover:shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg md:text-xl">Upcoming Interviews</CardTitle>
@@ -183,7 +175,7 @@ export default function RecruiterDashboard() {
             </Card>
           </div>
 
-          {/* Performance Overview */}
+        
           <Card className="mx-auto w-full transition hover:shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg md:text-xl">Assessment Performance Overview</CardTitle>
