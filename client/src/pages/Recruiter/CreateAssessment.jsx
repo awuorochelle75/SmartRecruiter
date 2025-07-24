@@ -194,7 +194,7 @@ export default function CreateAssessment(){
             />
           </div>
 
-          {/* --- REPEATED SECTION x2 --- */}
+         
           {[1, 2].map((item) => (
             <div key={item} className="space-y-6 border-t pt-10">
               <div className="flex justify-between gap-6 flex-col md:flex-row">
@@ -235,7 +235,6 @@ export default function CreateAssessment(){
             </div>
           ))}
 
-          {/* Add Question Button */}
           <div className="pt-6">
             <Button variant="default" className="flex items-center gap-2 ">
               <Plus className="w-4 h-4" />
