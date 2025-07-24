@@ -67,6 +67,38 @@ class RecruiterProfile(db.Model):
     timezone = db.Column(db.String(50))
     position = db.Column(db.String(100))
     user = db.relationship('User', backref=db.backref('recruiter_profile', uselist=False))
+    
+# New: Notification settings for recruiter
+class RecruiterNotificationSettings(db.Model):
+    __tablename__ = 'recruiter_notification_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    email_new_applications = db.Column(db.Boolean, default=True)
+    email_assessment_completed = db.Column(db.Boolean, default=True)
+    email_interview_reminders = db.Column(db.Boolean, default=True)
+    push_new_applications = db.Column(db.Boolean, default=False)
+    push_assessment_completed = db.Column(db.Boolean, default=True)
+    push_interview_reminders = db.Column(db.Boolean, default=True)
+    weekly_reports = db.Column(db.Boolean, default=True)
+    monthly_analytics = db.Column(db.Boolean, default=False)
+    user = db.relationship('User', backref=db.backref('recruiter_notification_settings', uselist=False))
+
+# New: Notification settings for interviewee
+class IntervieweeNotificationSettings(db.Model):
+    __tablename__ = 'interviewee_notification_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    email_new_opportunities = db.Column(db.Boolean, default=True)
+    email_interview_invites = db.Column(db.Boolean, default=True)
+    email_assessment_invites = db.Column(db.Boolean, default=True)
+    email_results_updates = db.Column(db.Boolean, default=True)
+    push_new_opportunities = db.Column(db.Boolean, default=False)
+    push_interview_reminders = db.Column(db.Boolean, default=True)
+    push_assessment_reminders = db.Column(db.Boolean, default=True)
+    push_message_notifications = db.Column(db.Boolean, default=True)
+    weekly_job_alerts = db.Column(db.Boolean, default=True)
+    monthly_progress_reports = db.Column(db.Boolean, default=False)
+    user = db.relationship('User', backref=db.backref('interviewee_notification_settings', uselist=False))
 
 # Sessions table for tracking client-side session data
 class Session(db.Model):
