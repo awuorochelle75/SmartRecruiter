@@ -178,7 +178,51 @@ class AssessmentAttempt(db.Model):
     interviewee = db.relationship('User', backref=db.backref('assessment_attempts', lazy='dynamic'))
     
     
-    
+class AssessmentAttemptAnswer(db.Model):
+    __tablename__ = 'assessment_attempt_answer'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt.id', ondelete='CASCADE'), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('assessment_question.id'), nullable=False)
+    answer = db.Column(db.Text)
+    is_correct = db.Column(db.Boolean)
+    answered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    question = db.relationship('AssessmentQuestion')
+
+class AssessmentFeedback(db.Model):
+    __tablename__ = 'assessment_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    feedback = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assessment = db.relationship('Assessment', backref=db.backref('feedbacks', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('assessment_feedbacks', lazy='dynamic'))
+
+class CandidateFeedback(db.Model):
+    __tablename__ = 'candidate_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt.id'), nullable=False)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    feedback = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    attempt = db.relationship('AssessmentAttempt', backref=db.backref('candidate_feedbacks', lazy='dynamic'))
+    recruiter = db.relationship('User', backref=db.backref('candidate_feedbacks', lazy='dynamic'))
+
+class CodeEvaluationResult(db.Model):
+    __tablename__ = 'code_evaluation_result'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_answer_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt_answer.id'), nullable=False)
+    test_case_results = db.Column(db.Text)
+    score = db.Column(db.Float)
+    feedback = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    attempt_answer = db.relationship('AssessmentAttemptAnswer', backref=db.backref('code_evaluation_result', uselist=False))
+
+
+
+
     
 
 # Invitations sent to interviewees for assessments
