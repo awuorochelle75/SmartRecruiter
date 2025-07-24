@@ -416,4 +416,37 @@ def interviewee_security():
         db.session.commit()
     return jsonify({'message': 'Security settings updated successfully'}), 200
 
+@auth_bp.route('/profile/company_logo', methods=['POST'])
+def upload_company_logo():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    if 'logo' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['logo']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type'}), 400
+    file.seek(0, os.SEEK_END)
+    if file.tell() > MAX_AVATAR_SIZE:
+        return jsonify({'error': 'File too large (max 2MB)'}), 400
+    file.seek(0)
+    filename = secure_filename(f"company_{user_id}_{uuid.uuid4().hex}_{file.filename}")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
+    if profile and profile.company_logo:
+        old_path = os.path.join(UPLOAD_FOLDER, profile.company_logo)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+    if profile:
+        profile.company_logo = filename
+        db.session.commit()
+    return jsonify({'message': 'Company logo updated successfully', 'company_logo': filename}), 200
+
 
