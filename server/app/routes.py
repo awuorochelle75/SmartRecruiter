@@ -137,6 +137,7 @@ def get_current_user():
     if not user:
         return jsonify({'error': 'User not found'}), 404
     result = {
+        'id': user.id,
         'email': user.email,
         'role': user.role,
     }
