@@ -1,30 +1,30 @@
 import React, { useState } from "react";
-import { Search, Bell, User, Send, Paperclip } from "lucide-react"; // Icons for NavbarDashboard and chat
-import IntervieweeSidebar from "../../components/IntervieweeSidebar"; // Adjust path if needed
-import NavbarDashboard from "../../components/NavbarDashboard"; // Adjust path if needed
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // For message containers
-import { Button } from "@/components/ui/button"; // For send button, etc.
-import { Input } from "@/components/ui/input"; // For message input
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // For user avatars
+import { Search, Bell, User, Send, Paperclip } from "lucide-react"; 
+import IntervieweeSidebar from "../../components/IntervieweeSidebar"; 
+import NavbarDashboard from "../../components/NavbarDashboard"; 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; 
+import { Button } from "@/components/ui/button"; 
+import { Input } from "@/components/ui/input"; 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Mock data for conversations list
 const conversationsData = [
   {
     id: "conv1",
-    name: "John Doe",
+    name: "stephen Kamau",
     lastMessage: "Hey, are you free for a quick call?",
     time: "10:30 AM",
     unreadCount: 2,
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+    avatar: "https://randomuser.me/api/portaits/men/32.jpg",
     avatarFallback: "JD",
   },
   {
     id: "conv2",
-    name: "Jane Smith",
+    name: "Charity Nduku",
     lastMessage: "Thanks for the update!",
     time: "Yesterday",
     unreadCount: 0,
-    avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+    avatar: "https://randomuser.me/api/portrits/women/44.jpg",
     avatarFallback: "JS",
   },
   {
@@ -33,16 +33,16 @@ const conversationsData = [
     lastMessage: "Your interview is confirmed.",
     time: "Mon",
     unreadCount: 1,
-    avatar: "https://placehold.co/40x40/FF7F50/FFFFFF?text=RT",
+    avatar: "https://placehold.c/40x40/FF7F50/FFFFFF?text=RT",
     avatarFallback: "RT",
   },
   {
     id: "conv4",
-    name: "Alice Brown",
+    name: "Brenda Awour",
     lastMessage: "See you then!",
     time: "Last Week",
     unreadCount: 0,
-    avatar: "https://randomuser.me/api/portraits/women/68.jpg",
+    avatar: "https://randomuser.me/api/portaits/women/68.jpg",
     avatarFallback: "AB",
   },
 ];
@@ -50,9 +50,9 @@ const conversationsData = [
 // Mock data for messages within a selected conversation
 const messagesData = {
   conv1: [
-    { id: "msg1", sender: "John Doe", text: "Hi Dorothy, how are you?", time: "10:25 AM", isMe: false },
+    { id: "msg1", sender: "stephen kamau", text: "Hi Dorothy, how are you?", time: "10:25 AM", isMe: false },
     { id: "msg2", sender: "Me", text: "I'm good, thanks! How can I help?", time: "10:26 AM", isMe: true },
-    { id: "msg3", sender: "John Doe", text: "Hey, are you free for a quick call?", time: "10:30 AM", isMe: false },
+    { id: "msg3", sender: "stephen kamau", text: "Hey, are you free for a quick call?", time: "10:30 AM", isMe: false },
   ],
   conv2: [
     { id: "msg4", sender: "Me", text: "Just sent over the documents.", time: "Yesterday", isMe: true },
@@ -82,7 +82,6 @@ const MyMessages = () => {
         <NavbarDashboard />
 
         <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -92,11 +91,10 @@ const MyMessages = () => {
                 Communicate with recruiters and other users.
               </p>
             </div>
-            {/* Action buttons could go here if needed, but not in current design */}
           </div>
 
           {/* Main Messaging Area */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-180px)]"> {/* Adjusted height for full view */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-180px)]"> 
             {/* Left Column: Conversations List */}
             <Card className="lg:col-span-1 bg-white dark:bg-gray-800 shadow-md rounded-lg border border-gray-100 dark:border-gray-700 flex flex-col">
               <CardHeader className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -149,7 +147,7 @@ const MyMessages = () => {
                     </Avatar>
                     <div>
                       <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">{selectedConversation.name}</CardTitle>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Online</p> {/* Placeholder for online status */}
+                      <p className="text-sm text-green-500 dark:text-gray-400">Online</p> {/* Placeholder for online status */}
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 p-4 overflow-y-auto space-y-4">
