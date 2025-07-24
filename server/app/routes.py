@@ -712,3 +712,44 @@ def list_assessments():
             ]
         })
     return jsonify(result), 200
+
+
+@auth_bp.route('/public/test-assessments', methods=['GET'])
+def public_test_assessments():
+    tests = Assessment.query.filter_by(is_test=True, status='active').order_by(Assessment.created_at.desc()).all()
+    result = [] # Initialize result list
+    
+    for a in tests:
+        result.append({
+            'id': a.id,
+            'title': a.title,
+            'description': a.description,
+            'type': a.type,
+            'difficulty': a.difficulty,
+            'duration': a.duration,
+            'passing_score': a.passing_score,
+            'instructions': a.instructions,
+            'tags': a.tags.split(',') if a.tags else [],
+            'status': a.status,
+            'created_at': a.created_at.isoformat() if a.created_at else None,
+            'deadline': a.deadline if hasattr(a, 'deadline') else None,
+            'updated_at': a.updated_at.isoformat(),
+            'is_test': a.is_test,
+            'questions': [
+                {
+                    'id': q.id,
+                    'type': q.type,
+                    'question': q.question,
+                    'options': pyjson.loads(q.options) if q.options else [],
+                    'correct_answer': pyjson.loads(q.correct_answer) if q.correct_answer else None,
+                    'points': q.points,
+                    'explanation': q.explanation,
+                    'starter_code': q.starter_code,
+                    'solution': q.solution,
+                    'answer': q.answer,
+                    'test_cases': q.test_cases,
+                } for q in a.questions
+            ]
+        })
+    return jsonify(result), 200
+
