@@ -1,5 +1,6 @@
 import SidebarRecruiter from '../../components/SidebarRecruiter'
 import NavbarDashboard from '../../components/NavbarDashboard';
+import { useState } from "react";
 import { Button } from '../../components/ui/button'
 import { Link } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
@@ -11,6 +12,9 @@ import { Plus } from 'lucide-react';
 
 
 export default function CreateAssessment(){
+
+  const [questionType, setQuestionType] = useState("multiple");
+  
   return(
    <div className='flex h-screen'>
    <div className='w-64' >
@@ -128,6 +132,7 @@ export default function CreateAssessment(){
         </CardContent>
       </Card>
     </div>
+     
     <div className="px-6 py-8 max-w-6xl mx-auto">
       <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
         <CardHeader>
@@ -136,20 +141,19 @@ export default function CreateAssessment(){
         </CardHeader>
 
         <CardContent className="space-y-10">
-        
           <h2 className="text-md font-semibold text-gray-800">Add New Question</h2>
 
-          
+          {/* Question Type + Points */}
           <div className="flex justify-between gap-6 flex-col md:flex-row">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
-              <Select>
+              <Select value={questionType} onValueChange={setQuestionType}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="multiple">Multiple Choice</SelectItem>
-                  <SelectItem value="truefalse">True / False</SelectItem>
+                  <SelectItem value="codechallenge">Code Challenge</SelectItem>
                   <SelectItem value="shortanswer">Short Answer</SelectItem>
                 </SelectContent>
               </Select>
@@ -160,82 +164,47 @@ export default function CreateAssessment(){
             </div>
           </div>
 
-         
+          {/* Question Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
-            <Textarea
-              placeholder="Enter your question here..."
-              className="min-h-[100px]"
-            />
+            <Textarea placeholder="Enter your question here..." className="min-h-[100px]" />
           </div>
 
-         
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
-            <RadioGroup className="space-y-3">
-              {[1, 2, 3, 4].map((index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <RadioGroupItem value={`option${index}`} id={`option${index}`} />
-                  <Input
-                    placeholder={`Option ${index}`}
-                    className="flex-1"
-                  />
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
+          {/* Conditional Section */}
+          {questionType === "multiple" ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
+              <RadioGroup className="space-y-3">
+                {[1, 2, 3, 4].map((index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <RadioGroupItem value={`option${index}`} id={`option${index}`} />
+                    <Input placeholder={`Option ${index}`} className="flex-1" />
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          ) : questionType === "codechallenge" ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Starter Code</label>
+                <Textarea placeholder="Provide starter code here..." className="min-h-[100px] font-mono" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Output</label>
+                <Textarea placeholder="Provide the expected output..." className="min-h-[80px] font-mono" />
+              </div>
+            </>
+          ) : null}
 
+          {/* Explanation (Optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Explanation (optional)</label>
-            <Textarea
-              placeholder="Provide an explanation for the correct answer..."
-              className="min-h-[100px]"
-            />
+            <Textarea placeholder="Provide an explanation for the correct answer..." className="min-h-[100px]" />
           </div>
 
-         
-          {[1, 2].map((item) => (
-            <div key={item} className="space-y-6 border-t pt-10">
-              <div className="flex justify-between gap-6 flex-col md:flex-row">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
-                  <Select>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="multiple">Multiple Choice</SelectItem>
-                      <SelectItem value="truefalse">True / False</SelectItem>
-                      <SelectItem value="shortanswer">Short Answer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-                  <Input type="number" placeholder="e.g. 5" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
-                <Textarea
-                  placeholder="Enter your question here..."
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Explanation (optional)</label>
-                <Textarea
-                  placeholder="Provide an explanation for the correct answer..."
-                  className="min-h-[100px]"
-                />
-              </div>
-            </div>
-          ))}
-
+          {/* Add Question Button */}
           <div className="pt-6">
-            <Button variant="default" className="flex items-center gap-2 ">
+            <Button variant="default" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Add Question
             </Button>
@@ -243,6 +212,7 @@ export default function CreateAssessment(){
         </CardContent>
       </Card>
     </div>
+
     <div className="px-6 py-8 max-w-6xl mx-auto">
       <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
         <CardHeader>
@@ -272,8 +242,11 @@ export default function CreateAssessment(){
         </CardContent>
       </Card>
     </div>
+     
       </div>
       </div>
       </div>
+      
+
       )
       }
