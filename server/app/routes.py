@@ -91,3 +91,24 @@ def logout():
     response = jsonify({'message': 'Logged out successfully'})
     response.delete_cookie('session')
     return response, 200
+
+
+
+
+@auth_bp.route('/onboarding', methods=['POST'])
+def onboarding():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
+    if not profile:
+        return jsonify({'error': 'Profile not found'}), 404
+    if 'skills' in data:
+        profile.skills = ','.join(data['skills']) if isinstance(data['skills'], list) else data['skills']
+    profile.onboarding_completed = True
+    db.session.commit()
+    return jsonify({'message': 'Onboarding completed successfully'}), 200
