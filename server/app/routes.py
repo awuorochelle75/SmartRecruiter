@@ -481,3 +481,39 @@ def recruiter_security():
         db.session.commit()
     return jsonify({'message': 'Security settings updated successfully'}), 200
 
+@auth_bp.route('/profile/avatar', methods=['POST'])
+def upload_avatar():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if 'avatar' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type'}), 400
+    file.seek(0, os.SEEK_END)
+    if file.tell() > MAX_AVATAR_SIZE:
+        return jsonify({'error': 'File too large (max 2MB)'}), 400
+    file.seek(0)
+    filename = secure_filename(f"{user_id}_{uuid.uuid4().hex}_{file.filename}")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    if user.role == 'interviewee':
+        profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
+    else:
+        profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
+    if profile and profile.avatar:
+        old_path = os.path.join(UPLOAD_FOLDER, profile.avatar)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+    if profile:
+        profile.avatar = filename
+        db.session.commit()
+    return jsonify({'message': 'Avatar updated successfully', 'avatar': filename}), 200
+
