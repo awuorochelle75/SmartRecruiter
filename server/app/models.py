@@ -99,6 +99,18 @@ class IntervieweeNotificationSettings(db.Model):
     weekly_job_alerts = db.Column(db.Boolean, default=True)
     monthly_progress_reports = db.Column(db.Boolean, default=False)
     user = db.relationship('User', backref=db.backref('interviewee_notification_settings', uselist=False))
+    
+# New: Privacy settings for interviewee
+class IntervieweePrivacySettings(db.Model):
+    __tablename__ = 'interviewee_privacy_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    profile_visibility = db.Column(db.String(20), default='public')
+    show_salary_expectation = db.Column(db.Boolean, default=False)
+    show_contact_info = db.Column(db.Boolean, default=True)
+    allow_recruiter_contact = db.Column(db.Boolean, default=True)
+    show_activity_status = db.Column(db.Boolean, default=True)
+    user = db.relationship('User', backref=db.backref('interviewee_privacy_settings', uselist=False))
 
 # Sessions table for tracking client-side session data
 class Session(db.Model):
