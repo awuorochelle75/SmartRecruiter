@@ -5,6 +5,15 @@ import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login'
 import { ThemeProvider } from './components/ThemeProvider';
+import Onboarding from './pages/Onboarding';
+import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
+import Assessments from './pages/Recruiter/Assessments';
+import Candidates from './pages/Recruiter/Candidates'
+import ResultsAnalytics from './pages/Recruiter/ResultsAnalytics'
+import Interview from './pages/Recruiter/Interview'
+import CreateAssessment from './pages/Recruiter/CreateAssessment'
+
+
 
 function App() {
   return (
@@ -16,6 +25,14 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
+      <Route path = "/onboarding" element = {< Onboarding />} />
+      <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
+      <Route path = "/assessments" element = {< Assessments />} />
+      <Route path = "/candidates" element = {< Candidates />} />
+      <Route path = "/resultsanalytics" element = {< ResultsAnalytics />} />
+      <Route path = "/interview" element = {< Interview />} />
+      <Route path = "/createassessment" element = {< CreateAssessment />} />
+
 
      </Routes>
    

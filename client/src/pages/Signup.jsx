@@ -92,7 +92,7 @@ function Signup(){
                 </div>
 
                    <div className="flex flex-col mt-2">
-                   <label className="text-sm font-medium text-gray-700">Bio {'{ProfessionalSummary}'} </label>
+                   <label className="text-sm font-medium text-gray-700">Bio {'(Professional Summary)'} </label>
                    <input
                    type="email"
                    placeholder="Tell us about your skills and experience"
@@ -102,7 +102,7 @@ function Signup(){
 
                
                  <Button asChild size="lg" className="text-lg px-8 mt-2 ">
-                             <Link to="/signup">
+                             <Link to="/login">
                               <span className='inline-flex items-center '>Create Account</span>
                              </Link>
                            </Button>
