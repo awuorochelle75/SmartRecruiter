@@ -51,7 +51,7 @@ export default function CreateAssessment(){
       
       </div>
       <div className="px-6 py-8 max-w-6xl mx-auto">
-      <Card className="bg-card border border-zinc-200 rounded-2xl shadow-sm">
+      <Card className="bg-card border border-zinc-200 rounded shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Basic Information</CardTitle>
         </CardHeader>
@@ -134,7 +134,7 @@ export default function CreateAssessment(){
     </div>
      
     <div className="px-6 py-8 max-w-6xl mx-auto">
-      <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
+      <Card className="bg-white border border-zinc-200 rounded shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Questions (0)</CardTitle>
           <CardDescription>Add questions to evaluate candidate skills</CardDescription>
@@ -213,7 +213,7 @@ export default function CreateAssessment(){
     </div>
 
     <div className="px-6 py-8 max-w-6xl mx-auto">
-      <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
+      <Card className="bg-white border border-zinc-200 rounded shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Assessment Summary</CardTitle>
         </CardHeader>
