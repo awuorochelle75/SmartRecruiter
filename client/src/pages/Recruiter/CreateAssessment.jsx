@@ -143,7 +143,7 @@ export default function CreateAssessment(){
         <CardContent className="space-y-10">
           <h2 className="text-md font-semibold text-gray-800">Add New Question</h2>
 
-          {/* Question Type + Points */}
+          
           <div className="flex justify-between gap-6 flex-col md:flex-row">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
@@ -164,13 +164,13 @@ export default function CreateAssessment(){
             </div>
           </div>
 
-          {/* Question Input */}
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
             <Textarea placeholder="Enter your question here..." className="min-h-[100px]" />
           </div>
 
-          {/* Conditional Section */}
+          
           {questionType === "multiple" ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
@@ -196,13 +196,12 @@ export default function CreateAssessment(){
             </>
           ) : null}
 
-          {/* Explanation (Optional) */}
+         
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Explanation (optional)</label>
             <Textarea placeholder="Provide an explanation for the correct answer..." className="min-h-[100px]" />
           </div>
 
-          {/* Add Question Button */}
           <div className="pt-6">
             <Button variant="default" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
