@@ -884,3 +884,49 @@ def get_current_attempt(assessment_id):
     }), 200
     
     
+@auth_bp.route('/interviewee/attempts/<int:attempt_id>/answer', methods=['POST'])
+def submit_answer(attempt_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempt = AssessmentAttempt.query.get(attempt_id)
+    if not attempt or attempt.interviewee_id != user.id:
+        return jsonify({'error': 'Attempt not found'}), 404
+    if attempt.status != 'in_progress':
+        return jsonify({'error': 'Attempt not in progress'}), 400
+    data = request.get_json()
+    question_id = data.get('question_id')
+    answer = data.get('answer')
+    question = AssessmentQuestion.query.get(question_id)
+    if not question or question.assessment_id != attempt.assessment_id:
+        return jsonify({'error': 'Invalid question'}), 400
+    existing = AssessmentAttemptAnswer.query.filter_by(attempt_id=attempt.id, question_id=question_id).first()
+    is_correct = None
+    
+    if question.type == 'multiple-choice':
+        try:
+            correct = pyjson.loads(question.correct_answer)
+            is_correct = (answer == correct)
+        except Exception:
+            is_correct = None
+    elif question.type == 'short-answer':
+        is_correct = (answer.strip().lower() == (question.answer or '').strip().lower())
+    if existing:
+        existing.answer = answer
+        existing.is_correct = is_correct
+        existing.answered_at = func.now()
+    else:
+        db.session.add(AssessmentAttemptAnswer(
+            attempt_id=attempt.id,
+            question_id=question_id,
+            answer=answer,
+            is_correct=is_correct
+        ))
+    attempt.current_question = data.get('next_question', attempt.current_question)
+    db.session.commit()
+    return jsonify({'message': 'Answer saved', 'is_correct': is_correct}), 200
+
+
