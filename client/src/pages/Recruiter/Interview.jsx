@@ -112,7 +112,7 @@ export default function Interview() {
  
 <Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md rounded-2xl mt-6">
   <CardHeader className="flex justify-between items-start">
-    {/* Left Side */}
+    
     <div className="flex gap-4 items-start w-full">
       <Avatar className="w-12 h-12">
         <AvatarImage src="/profile.jpg" alt="Candidate" />
@@ -128,7 +128,6 @@ export default function Interview() {
         <p className="mt-4 text-xs text-gray-500">Notes: focus on React hooks and state management</p>
       </div>
 
-      {/* Center */}
       <div className="flex-1 flex justify-center items-center">
   <div className="flex flex-col gap-2">
     <span className="text-sm font-medium text-gray-700 mt-4">Duration: 60 mins</span>
@@ -136,7 +135,7 @@ export default function Interview() {
   </div>
 </div>
 
-      {/* Right */}
+     
       <div className="flex flex-col items-end justify-between h-full gap-4">
         <div className="flex flex-col items-end">
           <Badge variant="outline" className="text-xs text-green-700 border-green-500 bg-green-100">Scheduled</Badge>
@@ -153,7 +152,7 @@ export default function Interview() {
 
 <Card className="mx-4 md:mx-10 mb-10 bg-white border border-zinc-200 shadow-md rounded-2xl mt-6">
   <CardHeader className="flex justify-between items-start">
-    {/* Left Side */}
+  
     <div className="flex gap-4 items-start w-full">
       <Avatar className="w-12 h-12">
         <AvatarImage src="/profile.jpg" alt="Candidate" />
@@ -169,7 +168,7 @@ export default function Interview() {
         <p className="mt-4 text-xs text-gray-500">Notes: focus on React hooks and state management</p>
       </div>
 
-      {/* Center */}
+    
       <div className="flex-1 flex justify-center items-center">
   <div className="flex flex-col gap-2">
     <span className="text-sm font-medium text-gray-700 mt-4">Duration: 60 mins</span>
@@ -181,7 +180,7 @@ export default function Interview() {
          
   
 
-      {/* Right */}
+    
       <div className="flex flex-col items-end justify-between h-full gap-4">
         <div className="flex flex-col items-end">
           <Badge variant="outline" className="text-xs text-green-700 border-green-500 bg-green-100">Scheduled</Badge>
