@@ -933,7 +933,7 @@ def submit_answer(attempt_id):
         return jsonify({'error': 'Invalid question'}), 400
     existing = AssessmentAttemptAnswer.query.filter_by(attempt_id=attempt.id, question_id=question_id).first()
     is_correct = None
-    
+    test_case_score = None
     if question.type == 'multiple-choice':
         try:
             correct = pyjson.loads(question.correct_answer)
@@ -942,21 +942,57 @@ def submit_answer(attempt_id):
             is_correct = None
     elif question.type == 'short-answer':
         is_correct = (answer.strip().lower() == (question.answer or '').strip().lower())
+    elif question.type == 'coding':
+        # Evaluate code against test cases
+        try:
+            test_cases = pyjson.loads(question.test_cases) if question.test_cases else []
+        except Exception:
+            test_cases = []
+        code = answer
+        language = 'javascript'
+        passed_count = 0
+        total_count = len(test_cases)
+        if total_count > 0:
+            for tc in test_cases:
+                input_val = tc.get('input', '')
+                expected = tc.get('expectedOutput', '')
+                js_code = f"""
+const readline = () => {json.dumps(input_val)};
+{code}
+"""
+                with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w') as f:
+                    f.write(js_code)
+                    temp_path = f.name
+                try:
+                    proc = subprocess.run(['node', temp_path], capture_output=True, text=True, timeout=5)
+                    output = proc.stdout.strip()
+                    if output == str(expected):
+                        passed_count += 1
+                except subprocess.TimeoutExpired:
+                    pass
+                finally:
+                    os.remove(temp_path)
+            test_case_score = passed_count / total_count if total_count > 0 else 0
+            is_correct = (test_case_score == 1.0)
+        else:
+            test_case_score = 0
+            is_correct = False
     if existing:
         existing.answer = answer
         existing.is_correct = is_correct
+        existing.test_case_score = test_case_score
         existing.answered_at = func.now()
     else:
         db.session.add(AssessmentAttemptAnswer(
             attempt_id=attempt.id,
             question_id=question_id,
             answer=answer,
-            is_correct=is_correct
+            is_correct=is_correct,
+            test_case_score=test_case_score
         ))
     attempt.current_question = data.get('next_question', attempt.current_question)
     db.session.commit()
-    return jsonify({'message': 'Answer saved', 'is_correct': is_correct}), 200
-
+    return jsonify({'message': 'Answer saved', 'is_correct': is_correct, 'test_case_score': test_case_score}), 200
 
 @auth_bp.route('/interviewee/attempts/<int:attempt_id>/submit', methods=['POST'])
 def submit_attempt(attempt_id):
@@ -977,8 +1013,12 @@ def submit_attempt(attempt_id):
     for q in assessment.questions:
         total_points += q.points
         ans = next((a for a in attempt.answers if a.question_id == q.id), None)
-        if ans and ans.is_correct:
-            earned_points += q.points
+        if q.type == 'coding':
+            if ans and ans.test_case_score is not None:
+                earned_points += q.points * ans.test_case_score
+        else:
+            if ans and ans.is_correct:
+                earned_points += q.points
     score = (earned_points / total_points * 100) if total_points > 0 else 0
     passed = score >= assessment.passing_score
     attempt.score = score

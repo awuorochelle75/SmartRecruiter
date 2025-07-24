@@ -185,6 +185,7 @@ class AssessmentAttemptAnswer(db.Model):
     question_id = db.Column(db.Integer, db.ForeignKey('assessment_question.id'), nullable=False)
     answer = db.Column(db.Text)
     is_correct = db.Column(db.Boolean)
+    test_case_score = db.Column(db.Float)
     answered_at = db.Column(db.DateTime, default=datetime.utcnow)
     question = db.relationship('AssessmentQuestion')
 
