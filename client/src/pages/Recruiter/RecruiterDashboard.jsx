@@ -166,9 +166,9 @@ export default function RecruiterDashboard(){
           <p className="font-semibold text-sm">{interview.name}</p>
           <p className="text-xs text-gray-500">{interview.date}</p>
         </div>
-        <Button asChild size="sm" variant="outline" className="text-xs rounded-full bg-primary">
+        <Badge size="sm" variant="outline" className="text-xs rounded-full ">
           <Link to="/signup">{interview.label}</Link>
-        </Button>
+        </Badge>
       </div>
     ))}
   </CardContent>
