@@ -208,4 +208,7 @@ export default function RecruiterDashboard() {
       </div>
     </div>
   );
+
+
 }
+
