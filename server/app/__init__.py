@@ -12,6 +12,118 @@ from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
 
 
+class DatabaseSession(CallbackDict, SessionMixin):
+    def __init__(self, initial=None, sid=None, permanent=False):
+        def on_update(self):
+            self.modified = True
+        CallbackDict.__init__(self, initial or {}, on_update)
+        self.sid = sid
+        self.permanent = permanent
+        self.modified = False
+
+class DatabaseSessionInterface(SessionInterface):
+    def __init__(self, app):
+        self.app = app
+        self.permanent = app.config.get('SESSION_PERMANENT', False)
+        self.cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
+        self.cookie_path = app.config.get('SESSION_COOKIE_PATH', '/')
+        self.cookie_domain = app.config.get('SESSION_COOKIE_DOMAIN', None)
+        self.cookie_secure = app.config.get('SESSION_COOKIE_SECURE', False)
+        self.cookie_httponly = app.config.get('SESSION_COOKIE_HTTPONLY', True)
+        self.cookie_samesite = app.config.get('SESSION_COOKIE_SAMESITE', 'Lax')
+        self.max_age = app.config.get('SESSION_MAX_AGE', timedelta(days=31))
+
+    def open_session(self, app, request):
+        sid = request.cookies.get(self.cookie_name)
+        if not sid:
+            sid = self._generate_sid()
+            return DatabaseSession(sid=sid, permanent=self.permanent)
+        
+        # Find session in database
+        from .models import db
+        session_record = db.session.execute(
+            db.text("SELECT * FROM session WHERE session_id = :sid"),
+            {"sid": sid}
+        ).fetchone()
+        
+        if not session_record:
+            return DatabaseSession(sid=sid, permanent=self.permanent)
+        
+        # Check if session has expired
+        if session_record.expiry < datetime.utcnow():
+            db.session.execute(
+                db.text("DELETE FROM session WHERE session_id = :sid"),
+                {"sid": sid}
+            )
+            db.session.commit()
+            return DatabaseSession(sid=sid, permanent=self.permanent)
+        
+        # Load session data
+        try:
+            data_str = session_record.data
+            if hasattr(data_str, 'tobytes'):
+                data_str = data_str.tobytes().decode('utf-8')
+            elif isinstance(data_str, memoryview):
+                data_str = data_str.tobytes().decode('utf-8')
+            
+            data = json.loads(data_str)
+            return DatabaseSession(initial=data, sid=sid, permanent=self.permanent)
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            db.session.execute(
+                db.text("DELETE FROM session WHERE session_id = :sid"),
+                {"sid": sid}
+            )
+            db.session.commit()
+            return DatabaseSession(sid=sid, permanent=self.permanent)
+
+    def save_session(self, app, session, response):
+        domain = self.cookie_domain
+        if not self.should_set_cookie(app, session):
+            return
+        
+        if session.permanent:
+            expiry = datetime.utcnow() + self.max_age
+        else:
+            expiry = datetime.utcnow() + timedelta(days=1)
+        
+        session_data = json.dumps(dict(session))
+        
+        from .models import db
+        existing = db.session.execute(
+            db.text("SELECT id FROM session WHERE session_id = :sid"),
+            {"sid": session.sid}
+        ).fetchone()
+        
+        if existing:
+            db.session.execute(
+                db.text("UPDATE session SET data = :data, expiry = :expiry WHERE session_id = :sid"),
+                {"data": session_data, "expiry": expiry, "sid": session.sid}
+            )
+        else:
+            db.session.execute(
+                db.text("INSERT INTO session (session_id, data, expiry) VALUES (:sid, :data, :expiry)"),
+                {"sid": session.sid, "data": session_data, "expiry": expiry}
+            )
+        
+        db.session.commit()
+        
+        # Set cookie
+        response.set_cookie(
+            self.cookie_name,
+            session.sid,
+            max_age=self.max_age.total_seconds() if session.permanent else None,
+            expires=expiry if session.permanent else None,
+            path=self.cookie_path,
+            domain=domain,
+            secure=self.cookie_secure,
+            httponly=self.cookie_httponly,
+            samesite=self.cookie_samesite
+        )
+
+    def _generate_sid(self):
+        return str(uuid.uuid4())
+
+
 def create_app():
     app = Flask(__name__)
     app.secret_key = 'dev-secret-key'
