@@ -58,28 +58,28 @@ export default function Candidates() {
 
           
           <div className="relative grid grid-cols-1 md:grid-cols-4 gap-8 px-2 md:px-10 mt-10 mb-10">
-            <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+            <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
                 <CardTitle className="text-accent-700 font-normal text-lg">Total Candidates</CardTitle>
               </CardHeader>
               <CardContent className='font-bold'>4</CardContent>
             </Card>
 
-            <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+            <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
                 <CardTitle className="text-accent-700 font-normal text-lg">Shortlisted</CardTitle>
               </CardHeader>
               <CardContent className='font-bold'>1</CardContent>
             </Card>
 
-            <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+            <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
                 <CardTitle className="text-accent-700 font-normal text-lg">Interviewed</CardTitle>
               </CardHeader>
               <CardContent className='font-bold'>1</CardContent>
             </Card>
 
-            <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
+            <Card className="bg-white border border-zinc-300 rounded p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
                 <CardTitle className="text-accent-700 font-normal text-lg">Average Score</CardTitle>
               </CardHeader>
@@ -103,7 +103,7 @@ export default function Candidates() {
           </div>
 
          
-          <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow duration-300 rounded-lg border border-gray-100 dark:border-gray-700 mt-6">
+          <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow duration-300 rounded border border-gray-100 dark:border-gray-700 mt-6">
             <CardHeader>
               <CardTitle className="text-xl text-gray-900 dark:text-white">My Assessment Results</CardTitle>
               <CardDescription className="text-gray-500 text-sm dark:text-gray-400">
