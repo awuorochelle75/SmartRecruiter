@@ -23,26 +23,26 @@ export default function ResultsAnalytics() {
       timespent:"45mins"
       
     },
-    // more entries...
+    
   ];
 
   return (
     <div className="flex min-h-screen overflow-hidden">
-      {/* Sidebar */}
+ 
       <div className="w-64 fixed h-full z-50">
         <SidebarRecruiter />
       </div>
 
-      {/* Main Content */}
+     
       <div className="flex-1 flex flex-col ml-64">
-        {/* Navbar */}
+     
         <div className="h-16 bg-white shadow z-10">
           <NavbarDashboard />
         </div>
 
-        {/* Scrollable Dashboard Content */}
+        
         <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-          {/* Page Header */}
+         
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold">Results</h1>
@@ -59,7 +59,7 @@ export default function ResultsAnalytics() {
             </div>
           </div>
 
-          {/* Summary Cards */}
+         
           <div className="relative grid grid-cols-1 md:grid-cols-4 gap-8 px-2 md:px-10 mt-10 mb-10">
             <Card className="bg-white border border-zinc-300 rounded-2xl p-4 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-105 hover:shadow-2xl hover:z-[999] relative">
               <CardHeader>
@@ -90,7 +90,7 @@ export default function ResultsAnalytics() {
             </Card>
           </div>
 
-          {/* Search & Filter */}
+        
           <div className="flex items-center justify-between mt-4">
             <input
               type="text"
@@ -131,7 +131,7 @@ export default function ResultsAnalytics() {
                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
   {myAssessmentResultsData.map((candidate) => (
     <tr key={candidate.id}>
-      {/* Candidate */}
+      
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center space-x-3">
           <Avatar>
@@ -145,17 +145,17 @@ export default function ResultsAnalytics() {
         </div>
       </td>
 
-      {/* Po */}
+      
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
         {candidate.assessment}
       </td>
 
-      {/* Skills */}
+   
   
 
 
 
-      {/* Score */}
+    
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-900 dark:text-white">{candidate.score}%</span>
@@ -167,7 +167,7 @@ export default function ResultsAnalytics() {
         </div>
       </td>
 
-      {/* Status */}
+     
       <td className="px-6 py-4 whitespace-nowrap">
         <Badge
           variant="outline"
@@ -177,18 +177,18 @@ export default function ResultsAnalytics() {
         </Badge>
       </td>
 
-      {/* Applied */}
+     
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
         {candidate.completedDate}
       </td>
 
-      {/* Time Spent */}
+     
 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
   {candidate.timespent}
 </td>
 
 
-      {/* Actions */}
+     
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <Button
           variant="ghost"
