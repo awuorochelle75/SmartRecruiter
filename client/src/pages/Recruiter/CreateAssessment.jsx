@@ -246,7 +246,35 @@ export default function CreateAssessment(){
         </CardContent>
       </Card>
     </div>
-    
+    <div className="px-6 py-8 max-w-6xl mx-auto">
+      <Card className="bg-white border border-zinc-200 rounded-2xl shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Assessment Summary</CardTitle>
+        </CardHeader>
+
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 pt-2">
+          <div className="text-center">
+            <p className="text-sm text-gray-500">Questions</p>
+            <p className="text-xl font-semibold text-gray-800">3</p>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-500">Duration</p>
+            <p className="text-xl font-semibold text-gray-800">60 mins</p>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-500">Passing Score</p>
+            <p className="text-xl font-semibold text-gray-800">70%</p>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-500">Total Points</p>
+            <p className="text-xl font-semibold text-gray-800">15</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
       </div>
       </div>
       </div>
