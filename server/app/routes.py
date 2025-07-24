@@ -1081,3 +1081,37 @@ def candidate_feedback(attempt_id):
         ]), 200
 
 
+@auth_bp.route('/code-eval/<int:attempt_answer_id>', methods=['GET', 'POST'])
+def code_evaluation(attempt_answer_id):
+    # user_id = session.get('user_id')
+    # user = User.query.get(session.get('user_id'))
+    # if not user or user.role not in ['interviewee', 'recruiter']:
+    #     return jsonify({'error': 'Unauthorized'}), 403
+    if request.method == 'POST':
+        data = request.get_json()
+        test_case_results = data.get('test_case_results')
+        score = data.get('score')
+        feedback = data.get('feedback')
+        cer = CodeEvaluationResult(
+            attempt_answer_id=attempt_answer_id,
+            test_case_results=pyjson.dumps(test_case_results) if test_case_results else None,
+            score=score,
+            feedback=feedback
+        )
+        db.session.add(cer)
+        db.session.commit()
+        return jsonify({'message': 'Code evaluation saved'}), 201
+    else:
+        
+        cer = CodeEvaluationResult.query.filter_by(attempt_answer_id=attempt_answer_id).first()
+        if not cer:
+            return jsonify({'error': 'Not found'}), 404
+        return jsonify({
+            'id': cer.id,
+            'test_case_results': pyjson.loads(cer.test_case_results) if cer.test_case_results else [],
+            'score': cer.score,
+            'feedback': cer.feedback,
+            'created_at': cer.created_at
+        }), 200
+
+
