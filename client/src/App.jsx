@@ -11,6 +11,8 @@ import Assessments from './pages/Recruiter/Assessments';
 import Candidates from './pages/Recruiter/Candidates'
 import ResultsAnalytics from './pages/Recruiter/ResultsAnalytics'
 import Interview from './pages/Recruiter/Interview'
+import CreateAssessment from './pages/Recruiter/CreateAssessment'
+
 
 
 function App() {
@@ -29,6 +31,7 @@ function App() {
       <Route path = "/candidates" element = {< Candidates />} />
       <Route path = "/resultsanalytics" element = {< ResultsAnalytics />} />
       <Route path = "/interview" element = {< Interview />} />
+      <Route path = "/createassessment" element = {< CreateAssessment />} />
 
 
      </Routes>

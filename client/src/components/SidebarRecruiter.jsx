@@ -19,7 +19,7 @@ export default function SidebarRecruiter() {
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/recruiterdashboard" },
-    { icon: FileText, label: "Create Assessment", path: "/create-assessment" },
+    { icon: FileText, label: "Create Assessment", path: "/createassessment" },
     { icon: FileText, label: "Assessment", path: "/assessments" },
     { icon: Users, label: "Candidates", path: "/candidates" },
     { icon: BarChart2, label: "ResultAnalytics", path: "/resultsanalytics" },
