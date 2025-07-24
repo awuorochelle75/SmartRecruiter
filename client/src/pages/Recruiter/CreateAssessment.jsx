@@ -161,7 +161,7 @@ export default function CreateAssessment(){
             </div>
           </div>
 
-          {/* Question Title */}
+         
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
             <Textarea
@@ -170,7 +170,7 @@ export default function CreateAssessment(){
             />
           </div>
 
-          {/* Answer Options */}
+         
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
             <RadioGroup className="space-y-3">
@@ -186,7 +186,6 @@ export default function CreateAssessment(){
             </RadioGroup>
           </div>
 
-          {/* Explanation */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Explanation (optional)</label>
             <Textarea
