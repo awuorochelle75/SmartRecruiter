@@ -662,3 +662,53 @@ def assessment_operations(assessment_id):
         return jsonify({'message': 'Assessment deleted'}), 200
     
     
+@auth_bp.route('/assessments', methods=['GET', 'OPTIONS'])
+def list_assessments():
+    if request.method == 'OPTIONS':
+        return '', 200
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    is_test = request.args.get('is_test')
+    query = Assessment.query.filter_by(recruiter_id=user.id)
+    if is_test is not None:
+        query = query.filter_by(is_test=(is_test.lower() == 'true'))
+    assessments = query.order_by(Assessment.created_at.desc()).all()
+    result = []
+    for a in assessments:
+        result.append({
+            'id': a.id,
+            'title': a.title,
+            'description': a.description,
+            'type': a.type,
+            'difficulty': a.difficulty,
+            'duration': a.duration,
+            'passing_score': a.passing_score,
+            'instructions': a.instructions,
+            'tags': a.tags.split(',') if a.tags else [],
+            'status': a.status,
+            'created_at': a.created_at.isoformat() if a.created_at else None,
+            'deadline': a.deadline if hasattr(a, 'deadline') else None,
+            'updated_at': a.updated_at.isoformat(),
+            'is_test': a.is_test,
+            'questions': [
+                {
+                    'id': q.id,
+                    'type': q.type,
+                    'question': q.question,
+                    'options': pyjson.loads(q.options) if q.options else [],
+                    'correct_answer': pyjson.loads(q.correct_answer) if q.correct_answer else None,
+                    'points': q.points,
+                    'explanation': q.explanation,
+                    'starter_code': q.starter_code,
+                    'solution': q.solution,
+                    'answer': q.answer,
+                    'test_cases': q.test_cases,
+                } for q in a.questions
+            ]
+        })
+    return jsonify(result), 200
