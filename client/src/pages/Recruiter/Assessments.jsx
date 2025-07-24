@@ -55,7 +55,7 @@ export default function Assessment(){
 </div>
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-10 mb-10">
-       <Card className="bg-white border border-zinc-300 rounded-xl p-3 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-[1.02] hover:shadow-lg hover:z-[999] relative max-w-md w-full mt-4">
+       <Card className="bg-white border border-zinc-300 rounded p-3 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-[1.02] hover:shadow-lg hover:z-[999] relative max-w-md w-full mt-4">
   <CardHeader className="pb-2">
     <div className="flex items-center justify-between">
       <CardTitle className="text-base font-semibold">Frontend Developer Assessment</CardTitle>
@@ -88,7 +88,7 @@ export default function Assessment(){
 </Card>
 
 
- <Card className="bg-white border border-zinc-300 rounded-xl p-3 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-[1.02] hover:shadow-lg hover:z-[999] relative max-w-md w-full mt-4">
+ <Card className="bg-white border border-zinc-300 rounded p-3 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-[1.02] hover:shadow-lg hover:z-[999] relative max-w-md w-full mt-4">
   <CardHeader className="pb-2">
     <div className="flex items-center justify-between">
       <CardTitle className="text-base font-semibold">Backend Engineer Test</CardTitle>
@@ -120,7 +120,7 @@ export default function Assessment(){
   </CardContent>
 </Card>
 
- <Card className="bg-white border border-zinc-300 rounded-xl p-3 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-[1.02] hover:shadow-lg hover:z-[999] relative max-w-md w-full mt-4">
+ <Card className="bg-white border border-zinc-300 rounded p-3 whitespace-nowrap transition duration-300 ease-in-out transform-gpu hover:scale-[1.02] hover:shadow-lg hover:z-[999] relative max-w-md w-full mt-4">
   <CardHeader className="pb-2">
     <div className="flex items-center justify-between">
       <CardTitle className="text-base font-semibold">Full Stack Challenge</CardTitle>
