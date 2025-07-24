@@ -158,6 +158,28 @@ class AssessmentQuestion(db.Model):
     test_cases = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+# Track attempts made by interviewees on assessments
+class AssessmentAttempt(db.Model):
+    __tablename__ = 'assessment_attempt'
+    id = db.Column(db.Integer, primary_key=True)
+    interviewee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'), nullable=False)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='in_progress')
+    current_question = db.Column(db.Integer, default=0)
+    score = db.Column(db.Float)
+    passed = db.Column(db.Boolean)
+    num_attempt = db.Column(db.Integer, nullable=False, default=1)
+    time_spent = db.Column(db.Integer)
+    answers = db.relationship('AssessmentAttemptAnswer', backref='attempt', cascade='all, delete-orphan')
+    assessment = db.relationship('Assessment', backref=db.backref('attempts', cascade='all, delete-orphan', lazy='dynamic'))
+    interviewee = db.relationship('User', backref=db.backref('assessment_attempts', lazy='dynamic'))
+    
+    
+    
+    
 
 # Invitations sent to interviewees for assessments
 class Invitation(db.Model):
@@ -170,19 +192,6 @@ class Invitation(db.Model):
 
     assessment = db.relationship('Assessment', backref='invitations')  
     interviewee = db.relationship('User', backref='invitations')  
-
-# Track attempts made by interviewees on assessments
-class AssessmentAttempt(db.Model):
-    __tablename__ = 'assessment_attempt'
-    id = db.Column(db.Integer, primary_key=True)
-    interviewee_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'))
-    start_time = db.Column(db.DateTime)
-    end_time = db.Column(db.DateTime)
-    status = db.Column(db.String(20))
-
-    interviewee = db.relationship('User', backref='assessment_attempts') 
-    assessment = db.relationship('Assessment', backref='attempts') 
 
 # Store answers submitted by interviewees
 class Submission(db.Model):
