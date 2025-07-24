@@ -1014,3 +1014,36 @@ def get_attempts_summary():
     return jsonify(result), 200
 
 
+#TODO: Implement the route to retrieve feedback for assessment attempts by interviewees.
+@auth_bp.route('/feedback/assessment/<int:assessment_id>', methods=['POST', 'GET'])
+def assessment_feedback(assessment_id):
+    user_id = session.get('user_id')
+    if request.method == 'POST':
+        data = request.get_json()
+        feedback = data.get('feedback')
+        rating = data.get('rating')
+        if not feedback:
+            return jsonify({'error': 'Feedback required'}), 400
+        af = AssessmentFeedback(
+            assessment_id=assessment_id,
+            user_id=user_id,
+            feedback=feedback,
+            rating=rating
+        )
+        db.session.add(af)
+        db.session.commit()
+        return jsonify({'message': 'Feedback submitted'}), 201
+    else:
+        feedbacks = AssessmentFeedback.query.filter_by(assessment_id=assessment_id).all()
+        return jsonify([
+            {
+                'id': f.id,
+                'user_id': f.user_id,
+                'feedback': f.feedback,
+                'rating': f.rating,
+                'created_at': f.created_at
+            } for f in feedbacks
+        ]), 200
+
+
+
