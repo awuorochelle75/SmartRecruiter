@@ -1133,3 +1133,113 @@ def interviewee_analytics():
         'pass_rate': pass_rate
     }), 200
 
+
+@auth_bp.route('/analytics/recruiter/assessment/<int:assessment_id>', methods=['GET'])
+def recruiter_assessment_analytics(assessment_id):
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    # assessment = Assessment.query.get(assessment_id)
+    # if not assessment or assessment.recruiter_id != user.id:
+    #     return jsonify({'error': 'Assessment not found'}), 404
+    attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment_id).all()
+    total = len(attempts)
+    completed = [a for a in attempts if a.status == 'completed']
+    avg_score = sum([a.score or 0 for a in completed]) / len(completed) if completed else 0
+    pass_rate = sum([1 for a in completed if a.passed]) / len(completed) * 100 if completed else 0
+    feedbacks = AssessmentFeedback.query.filter_by(assessment_id=assessment_id).all()
+    avg_rating = sum([f.rating or 0 for f in feedbacks]) / len(feedbacks) if feedbacks else 0
+    return jsonify({
+        'total_attempts': total,
+        'completed_attempts': len(completed),
+        'average_score': avg_score,
+        'pass_rate': pass_rate,
+        'feedback_count': len(feedbacks),
+        'average_feedback_rating': avg_rating
+    }), 200
+    
+    
+# TODO: Implement the code evaluation route for running code snippets and test cases.
+@auth_bp.route('/run-code', methods=['POST'])
+def run_code():
+    try:
+        data = request.get_json()
+        code = data.get('code', '')
+        language = data.get('language', 'javascript')
+        test_cases = data.get('test_cases', [])
+        results = []
+        if language == 'javascript':
+            if not test_cases:
+                input_val = data.get('input', '')
+                js_code = f"""
+const readline = () => {json.dumps(input_val)};
+{code}
+"""
+                with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w') as f:
+                    f.write(js_code)
+                    temp_path = f.name
+                try:
+                    proc = subprocess.run(['node', temp_path], capture_output=True, text=True, timeout=5)
+                    output = proc.stdout.strip()
+                    error = proc.stderr.strip()
+                    if error:
+                        return jsonify({'output': '', 'error': error}), 200
+                    return jsonify({'output': output, 'error': ''}), 200
+                except subprocess.TimeoutExpired:
+                    return jsonify({'output': '', 'error': 'Error: Code execution timed out (possible infinite loop)'}), 200
+                finally:
+                    os.remove(temp_path)
+            else:
+                timeout_occurred = False
+                timeout_error_result = None
+                for tc in test_cases:
+                    input_val = tc.get('input', '')
+                    expected = tc.get('expectedOutput', '')
+                    js_code = f"""
+const readline = () => {json.dumps(input_val)};
+{code}
+"""
+                    with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w') as f:
+                        f.write(js_code)
+                        temp_path = f.name
+                    try:
+                        proc = subprocess.run(['node', temp_path], capture_output=True, text=True, timeout=5)
+                        output = proc.stdout.strip()
+                        error = proc.stderr.strip()
+                        passed = (output == str(expected))
+                        results.append({
+                            'input': input_val,
+                            'expected': expected,
+                            'output': output,
+                            'error': error,
+                            'passed': passed,
+                            'raw_stdout': proc.stdout,
+                            'raw_stderr': proc.stderr,
+                        })
+                    except subprocess.TimeoutExpired:
+                        timeout_occurred = True
+                        timeout_error_result = {
+                            'input': input_val,
+                            'expected': expected,
+                            'output': '',
+                            'error': 'Error: Code execution timed out (possible infinite loop)',
+                            'passed': False,
+                            'raw_stdout': '',
+                            'raw_stderr': '',
+                        }
+                        break
+                    finally:
+                        os.remove(temp_path)
+                if timeout_occurred:
+                    return jsonify({'test_case_results': [], 'timeout': True, 'output': timeout_error_result['error']}), 200
+                if all(r['error'] and not r['output'] for r in results):
+                    return jsonify({'test_case_results': results, 'timeout': False}), 200
+                return jsonify({'test_case_results': results, 'timeout': False}), 200
+        return jsonify({'output': '', 'error': 'Unsupported language'}), 400
+    except Exception as e:
+        return jsonify({'output': '', 'error': str(e)}), 200
+    
+    
+    
+    
