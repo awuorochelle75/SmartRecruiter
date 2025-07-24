@@ -349,3 +349,45 @@ def notifications_settings():
         return jsonify({'error': 'Unauthorized'}), 403
 
 
+@auth_bp.route('/settings/privacy', methods=['GET', 'POST'])
+def interviewee_privacy():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    from .models import IntervieweePrivacySettings
+    # TODO: Implement the privacy settings route for interviewees to manage profile visibility and contact preferences.
+    if request.method == 'GET':
+        settings = IntervieweePrivacySettings.query.filter_by(user_id=user.id).first()
+        if not settings:
+            return jsonify({
+                'profile_visibility': 'public',
+                'show_salary_expectation': False,
+                'show_contact_info': True,
+                'allow_recruiter_contact': True,
+                'show_activity_status': True,
+            }), 200
+        return jsonify({
+            'profile_visibility': settings.profile_visibility,
+            'show_salary_expectation': settings.show_salary_expectation,
+            'show_contact_info': settings.show_contact_info,
+            'allow_recruiter_contact': settings.allow_recruiter_contact,
+            'show_activity_status': settings.show_activity_status,
+        }), 200
+    elif request.method == 'POST':
+        data = request.get_json()
+        settings = IntervieweePrivacySettings.query.filter_by(user_id=user.id).first()
+        if not settings:
+            settings = IntervieweePrivacySettings(user_id=user.id)
+            db.session.add(settings)
+        settings.profile_visibility = data.get('profile_visibility', settings.profile_visibility)
+        settings.show_salary_expectation = data.get('show_salary_expectation', settings.show_salary_expectation)
+        settings.show_contact_info = data.get('show_contact_info', settings.show_contact_info)
+        settings.allow_recruiter_contact = data.get('allow_recruiter_contact', settings.allow_recruiter_contact)
+        settings.show_activity_status = data.get('show_activity_status', settings.show_activity_status)
+        db.session.commit()
+        return jsonify({'message': 'Privacy settings updated successfully'}), 200
+
+
