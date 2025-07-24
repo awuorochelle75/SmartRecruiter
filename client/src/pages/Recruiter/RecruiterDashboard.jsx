@@ -1,7 +1,11 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { MoreVertical } from 'lucide-react';
+
 import SidebarRecruiter from '../../components/SidebarRecruiter';
 import NavbarDashboard from '../../components/NavbarDashboard';
+
 import { Button } from '../../components/ui/button';
-import { Link } from 'react-router-dom';
 import {
   Card,
   CardHeader,
@@ -12,31 +16,52 @@ import {
 import { Badge } from '../../components/ui/badge';
 
 export default function RecruiterDashboard() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="flex h-screen bg-background text-foreground dark:bg-background dark:text-foreground">
-      {/* Sidebar */}
-      <div className="w-64 hidden md:block">
+    <div className="flex h-screen bg-background text-foreground dark:bg-background dark:text-foreground overflow-hidden relative">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-64">
         <SidebarRecruiter />
       </div>
 
+      {/* Mobile Sidebar (Custom Drawer) */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 flex">
+          <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
+            <SidebarRecruiter />
+          </div>
+          <div
+            className="flex-1 bg-black bg-opacity-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        </div>
+      )}
+
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Navbar */}
-        <div className="h-16 bg-background border-b border-border shadow-sm">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Navbar with Mobile Toggle */}
+        <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
+          {/* Mobile menu toggle */}
+          <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
+            <MoreVertical className="h-6 w-6" />
+          </button>
+
+          {/* Actual Navbar content */}
           <NavbarDashboard />
         </div>
 
-        {/* Dashboard Body */}
-        <div className="flex-1 p-4 md:p-6 overflow-y-auto bg-muted dark:bg-muted space-y-10">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted dark:bg-muted space-y-10">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Recruiter Dashboard</h1>
+              <h1 className="text-xl md:text-2xl font-bold">Recruiter Dashboard</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Manage your assessments and track candidate performance.
               </p>
             </div>
-            <div className="flex gap-2 mt-4 md:mt-0">
+            <div className="flex flex-wrap gap-2">
               <Button asChild size="sm">
                 <Link to="/createassessment">Create assessment</Link>
               </Button>
@@ -47,7 +72,7 @@ export default function RecruiterDashboard() {
           </div>
 
           {/* Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { title: 'Active Assessments', value: '12' },
               { title: 'Total Candidates', value: '248' },
@@ -56,9 +81,9 @@ export default function RecruiterDashboard() {
             ].map((stat, i) => (
               <Card key={i} className="hover:shadow-lg transition">
                 <CardHeader>
-                  <CardTitle className="text-primary text-md font-medium">{stat.title}</CardTitle>
+                  <CardTitle className="text-primary text-sm font-medium">{stat.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="text-3xl font-bold">{stat.value}</CardContent>
+                <CardContent className="text-2xl font-bold">{stat.value}</CardContent>
               </Card>
             ))}
           </div>
@@ -68,7 +93,7 @@ export default function RecruiterDashboard() {
             {/* Recent Candidate Activity */}
             <Card className="transition hover:shadow-lg">
               <CardHeader>
-                <CardTitle className="text-xl">Recent Candidate Activity</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Recent Candidate Activity</CardTitle>
                 <CardDescription>Latest submissions and progress updates</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -100,7 +125,7 @@ export default function RecruiterDashboard() {
                 ].map((candidate, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between bg-muted px-4 py-2 rounded-md"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted px-4 py-2 rounded-md gap-2"
                   >
                     <div>
                       <p className="font-medium text-sm">{candidate.name}</p>
@@ -113,7 +138,7 @@ export default function RecruiterDashboard() {
                           candidate.status === "Completed"
                             ? "bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-100"
                             : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-100"
-                        }`}
+                        } text-xs`}
                       >
                         {candidate.status}
                       </Badge>
@@ -132,7 +157,7 @@ export default function RecruiterDashboard() {
             {/* Upcoming Interviews */}
             <Card className="transition hover:shadow-lg">
               <CardHeader>
-                <CardTitle className="text-xl">Upcoming Interviews</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Upcoming Interviews</CardTitle>
                 <CardDescription>Scheduled interviews for this week</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -141,12 +166,15 @@ export default function RecruiterDashboard() {
                   { name: 'David Amedi', date: 'Tomorrow, 10AM', label: 'System Design' },
                   { name: 'James Kimani', date: 'Saturday, 9AM', label: 'Code Review' },
                 ].map((interview, i) => (
-                  <div key={i} className="flex items-center justify-between bg-muted px-4 py-2 rounded-md">
+                  <div
+                    key={i}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted px-4 py-2 rounded-md gap-2"
+                  >
                     <div>
                       <p className="font-medium text-sm">{interview.name}</p>
                       <p className="text-xs text-muted-foreground">{interview.date}</p>
                     </div>
-                    <Badge size="sm" variant="outline" className="text-xs rounded-full">
+                    <Badge variant="outline" className="text-xs rounded-full px-2 py-0.5 whitespace-nowrap">
                       <Link to="/signup">{interview.label}</Link>
                     </Badge>
                   </div>
@@ -156,14 +184,14 @@ export default function RecruiterDashboard() {
           </div>
 
           {/* Performance Overview */}
-          <Card className="mx-auto max-w-6xl transition hover:shadow-lg">
+          <Card className="mx-auto w-full transition hover:shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl">Assessment Performance Overview</CardTitle>
+              <CardTitle className="text-lg md:text-xl">Assessment Performance Overview</CardTitle>
               <CardDescription>
                 Performance metrics across all active assessments
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {[
                 { title: 'Frontend Assessments', value: '85%' },
                 { title: 'Backend Assessments', value: '88%' },

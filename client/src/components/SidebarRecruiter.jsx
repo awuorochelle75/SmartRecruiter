@@ -11,7 +11,8 @@ import {
   Settings,
   LogOut,
   Code2,
-  Menu
+  Menu,
+  X
 } from 'lucide-react';
 import { Separator } from '../components/ui/separator';
 
@@ -33,14 +34,14 @@ export default function SidebarRecruiter() {
 
   return (
     <>
-      {/* Mobile toggle button */}
+      {/* Mobile Topbar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-sidebar text-sidebar-foreground shadow">
         <Link to="/" className="flex items-center space-x-2">
-          <Code2 className="h-6 w-6 text-sidebar-primary" />
+          <Code2 className="h-6 w-6 text-primary" />
           <span className="text-sm font-bold">SmartRecruiter</span>
         </Link>
-        <button onClick={() => setIsOpen(!isOpen)} className="text-sidebar-foreground focus:outline-none">
-          <Menu className="h-6 w-6" />
+        <button onClick={() => setIsOpen(!isOpen)} className="text-foreground focus:outline-none">
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
@@ -48,7 +49,7 @@ export default function SidebarRecruiter() {
       <div
         className={`
           fixed top-0 left-0 h-screen w-64 bg-sidebar text-sidebar-foreground shadow-lg p-4 flex flex-col justify-between
-          transform transition-transform duration-300 ease-in-out
+          transform transition-transform duration-300 ease-in-out z-50
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 md:static md:flex
         `}
@@ -57,14 +58,14 @@ export default function SidebarRecruiter() {
           {/* Logo */}
           <div className="hidden md:flex items-center mb-4">
             <Link to="/" className="flex items-center space-x-2 mt-2">
-              <Code2 className="h-6 w-6 text-sidebar-primary" />
+              <Code2 className="h-6 w-6 text-primary" />
               <span className="text-sm font-bold">SmartRecruiter</span>
             </Link>
           </div>
 
-          <hr className="border-t border-sidebar-border mb-4" />
+          <Separator className="border-t border-border mb-4" />
 
-          {/* Nav Items */}
+          {/* Navigation Links */}
           <ul className="space-y-6 text-sm">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -72,12 +73,14 @@ export default function SidebarRecruiter() {
                 <li key={item.label}>
                   <Link
                     to={item.path}
-                    className={`flex items-center space-x-3 px-4 py-1 rounded-md transition-colors ${
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                        : "hover:bg-muted text-sidebar-foreground"
-                    }`}
-                    onClick={() => setIsOpen(false)} // Close sidebar on click (for mobile)
+                    className={`
+                      flex items-center space-x-3 px-4 py-1 rounded-md transition-all
+                      ${isActive
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "hover:bg-muted text-muted-foreground dark:hover:bg-muted"
+                      }
+                    `}
+                    onClick={() => setIsOpen(false)}
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.label}</span>
@@ -90,10 +93,10 @@ export default function SidebarRecruiter() {
 
         {/* Logout */}
         <div className="mt-6">
-          <Separator className="border-t border-sidebar-border mb-4" />
+          <Separator className="border-t border-border mb-4" />
           <Link
             to="/"
-            className="flex items-center space-x-3 text-sm text-destructive hover:text-destructive"
+            className="flex items-center space-x-3 text-muted-foreground hover:text-destructive text-sm"
             onClick={() => setIsOpen(false)}
           >
             <LogOut className="h-5 w-5" />
