@@ -753,3 +753,32 @@ def public_test_assessments():
         })
     return jsonify(result), 200
 
+
+@auth_bp.route('/send-invite', methods=['POST'])
+def send_invite():
+    data = request.get_json()
+    recipients = data.get('email')
+    subject = data.get('subject', 'You are invited to an assessment')
+    message = data.get('message')
+    assessment_title = data.get('assessment_title')
+
+    if not recipients or not message or not assessment_title:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    if isinstance(recipients, str):
+        recipients = [recipients]
+
+    body = f"{message}\n\nAssessment: {assessment_title}"
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = current_app.config['GMAIL_USER']
+    msg['To'] = ", ".join(recipients)
+
+    try:
+        with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
+            server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
+            server.sendmail(current_app.config['GMAIL_USER'], recipients, msg.as_string())
+        return jsonify({'message': 'Invitation sent successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
