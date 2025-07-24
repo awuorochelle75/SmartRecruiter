@@ -8,6 +8,13 @@ import uuid
 
 auth_bp = Blueprint('auth', __name__)
 
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'avatars')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
