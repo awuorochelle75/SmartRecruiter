@@ -1047,3 +1047,37 @@ def assessment_feedback(assessment_id):
 
 
 
+@auth_bp.route('/feedback/candidate/<int:attempt_id>', methods=['POST', 'GET'])
+def candidate_feedback(attempt_id):
+    user_id = session.get('user_id')
+    if request.method == 'POST':
+        user = User.query.get(user_id)
+        if not user or user.role != 'recruiter':
+            return jsonify({'error': 'Unauthorized'}), 403
+        data = request.get_json()
+        feedback = data.get('feedback')
+        rating = data.get('rating')
+        if not feedback:
+            return jsonify({'error': 'Feedback required'}), 400
+        cf = CandidateFeedback(
+            attempt_id=attempt_id,
+            recruiter_id=user_id,
+            feedback=feedback,
+            rating=rating
+        )
+        db.session.add(cf)
+        db.session.commit()
+        return jsonify({'message': 'Feedback submitted'}), 201
+    else:  # GET
+        feedbacks = CandidateFeedback.query.filter_by(attempt_id=attempt_id).all()
+        return jsonify([
+            {
+                'id': f.id,
+                'recruiter_id': f.recruiter_id,
+                'feedback': f.feedback,
+                'rating': f.rating,
+                'created_at': f.created_at
+            } for f in feedbacks
+        ]), 200
+
+
