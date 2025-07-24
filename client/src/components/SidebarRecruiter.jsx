@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,12 +10,14 @@ import {
   User,
   Settings,
   LogOut,
-  Code2
+  Code2,
+  Menu
 } from 'lucide-react';
-import { Separator } from '../components/ui/separator'
+import { Separator } from '../components/ui/separator';
 
 export default function SidebarRecruiter() {
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/recruiterdashboard" },
@@ -30,52 +32,75 @@ export default function SidebarRecruiter() {
   ];
 
   return (
-    <div className="w-64 h-screen bg-gray-100 shadow-lg fixed top-0 left-0 p-4 flex flex-col justify-between">
-      <div>
-        
-        <div className="flex items-center mb-4">
-          <Link to="/" className="flex items-center space-x-2 mt-2">
-            <Code2 className="h-6 w-6 text-primary" />
-            <span className="text-sm font-bold text-foreground">SmartRecruiter</span>
-          </Link>
+    <>
+      {/* Mobile toggle button */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-sidebar text-sidebar-foreground shadow">
+        <Link to="/" className="flex items-center space-x-2">
+          <Code2 className="h-6 w-6 text-sidebar-primary" />
+          <span className="text-sm font-bold">SmartRecruiter</span>
+        </Link>
+        <button onClick={() => setIsOpen(!isOpen)} className="text-sidebar-foreground focus:outline-none">
+          <Menu className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* Sidebar */}
+      <div
+        className={`
+          fixed top-0 left-0 h-screen w-64 bg-sidebar text-sidebar-foreground shadow-lg p-4 flex flex-col justify-between
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0 md:static md:flex
+        `}
+      >
+        <div>
+          {/* Logo */}
+          <div className="hidden md:flex items-center mb-4">
+            <Link to="/" className="flex items-center space-x-2 mt-2">
+              <Code2 className="h-6 w-6 text-sidebar-primary" />
+              <span className="text-sm font-bold">SmartRecruiter</span>
+            </Link>
+          </div>
+
+          <hr className="border-t border-sidebar-border mb-4" />
+
+          {/* Nav Items */}
+          <ul className="space-y-6 text-sm">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <li key={item.label}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center space-x-3 px-4 py-1 rounded-md transition-colors ${
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                        : "hover:bg-muted text-sidebar-foreground"
+                    }`}
+                    onClick={() => setIsOpen(false)} // Close sidebar on click (for mobile)
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        <hr className="border-t border-gray-300 mb-4" />
-
-       
-        <ul className="space-y-6 text-gray-700 text-sm">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <li key={item.label}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center space-x-3 px-4 py-1 ${
-                    isActive
-                      ?  "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold"
-                      :  "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {/* Logout */}
+        <div className="mt-6">
+          <Separator className="border-t border-sidebar-border mb-4" />
+          <Link
+            to="/"
+            className="flex items-center space-x-3 text-sm text-destructive hover:text-destructive"
+            onClick={() => setIsOpen(false)}
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </Link>
+        </div>
       </div>
-
-      
-      <div className="mt-6">
-      <Separator className="border-t border-gray-300 mb-4 " /> 
-        <Link
-          to="/"
-          className="flex items-center space-x-3 text-gray-700 hover:text-red-600 text-sm"
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Logout</span>
-        </Link>
-      </div>
-    </div>
+    </>
   );
 }
