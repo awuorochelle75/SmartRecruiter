@@ -7,16 +7,17 @@ db = SQLAlchemy()
 
 # User table to store basic account credentials and roles
 class User(db.Model):
-    __tablename__ = "user"
+    __tablename__ = 'user'
+    
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-
+    
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
@@ -24,10 +25,10 @@ class User(db.Model):
 class IntervieweeProfile(db.Model):
     __tablename__ = 'interviewee_profile'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
-    first_name = db.Column(db.String(50))
-    last_name = db.Column(db.String(50))
-    phone = db.Column(db.String(20))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(30))
     location = db.Column(db.String(100))
     position = db.Column(db.String(100))
     company = db.Column(db.String(100))
@@ -35,26 +36,37 @@ class IntervieweeProfile(db.Model):
     skills = db.Column(db.Text)
     onboarding_completed = db.Column(db.Boolean, default=False)
     avatar = db.Column(db.String(255))
-    resume_url = db.Column(db.String(255))
-
-    user = db.relationship('User', backref=db.backref('interviewee_profile', uselist=False))  
+    title = db.Column(db.String(100))
+    website = db.Column(db.String(255))
+    linkedin = db.Column(db.String(255))
+    github = db.Column(db.String(255))
+    timezone = db.Column(db.String(50))
+    availability = db.Column(db.String(50))
+    salary_expectation = db.Column(db.String(50))
+    work_type = db.Column(db.String(50))
+    user = db.relationship('User', backref=db.backref('interviewee_profile', uselist=False))
 
 # Profile table specific to recruiters
 class RecruiterProfile(db.Model):
     __tablename__ = 'recruiter_profile'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
-    first_name = db.Column(db.String(50))
-    last_name = db.Column(db.String(50))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
     phone = db.Column(db.String(30))
     location = db.Column(db.String(100))
-    company_name = db.Column(db.String(100))
+    company_name = db.Column(db.String(100), nullable=False)
     company_website = db.Column(db.String(255))
     role = db.Column(db.String(100))
     bio = db.Column(db.Text)
     avatar = db.Column(db.String(255))
-
-    user = db.relationship('User', backref=db.backref('recruiter_profile', uselist=False))  
+    industry = db.Column(db.String(100))
+    company_size = db.Column(db.String(50))
+    company_description = db.Column(db.Text)
+    company_logo = db.Column(db.String(255))
+    timezone = db.Column(db.String(50))
+    position = db.Column(db.String(100))
+    user = db.relationship('User', backref=db.backref('recruiter_profile', uselist=False))
 
 # Sessions table for tracking client-side session data
 class Session(db.Model):
