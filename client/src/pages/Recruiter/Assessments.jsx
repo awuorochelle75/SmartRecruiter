@@ -53,7 +53,7 @@ export default function Assessment() {
         </div>
 
         <div className="flex-1 p-4 bg-gray-50 overflow-auto">
-          {/* Header */}
+          
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-xl font-semibold">Assessments</h1>
@@ -64,7 +64,7 @@ export default function Assessment() {
             </Button>
           </div>
 
-          {/* Search + Filter */}
+         
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 gap-4">
             <input
               type="text"
@@ -79,7 +79,7 @@ export default function Assessment() {
             </select>
           </div>
 
-          {/* Assessment Cards */}
+        
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mt-6">
             {assessments.map((item, index) => (
               <Card
@@ -97,7 +97,7 @@ export default function Assessment() {
 
                     <div className="flex flex-col items-end gap-1">
                     <div className="flex flex-col items-end gap-1">
-  {/* Dropdown Menu on top */}
+ 
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
       <Button variant="ghost" className="h-6 w-6 p-0">
@@ -111,7 +111,6 @@ export default function Assessment() {
     </DropdownMenuContent>
   </DropdownMenu>
 
-  {/* Badge below the three-dot menu */}
   <Badge
     className={`bg-${item.badgeColor}-100 text-${item.badgeColor}-700 text-xs px-2 py-1`}
   >
