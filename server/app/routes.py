@@ -5,6 +5,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
 import uuid
+import json as pyjson
+import smtplib
+from email.mime.text import MIMEText
+from sqlalchemy import func
+import subprocess
+import tempfile
+import json
 
 auth_bp = Blueprint('auth', __name__)
 
