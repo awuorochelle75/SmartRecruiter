@@ -930,3 +930,34 @@ def submit_answer(attempt_id):
     return jsonify({'message': 'Answer saved', 'is_correct': is_correct}), 200
 
 
+@auth_bp.route('/interviewee/attempts/<int:attempt_id>/submit', methods=['POST'])
+def submit_attempt(attempt_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempt = AssessmentAttempt.query.get(attempt_id)
+    if not attempt or attempt.interviewee_id != user.id:
+        return jsonify({'error': 'Attempt not found'}), 404
+    if attempt.status != 'in_progress':
+        return jsonify({'error': 'Attempt not in progress'}), 400
+    assessment = Assessment.query.get(attempt.assessment_id)
+    total_points = 0
+    earned_points = 0
+    for q in assessment.questions:
+        total_points += q.points
+        ans = next((a for a in attempt.answers if a.question_id == q.id), None)
+        if ans and ans.is_correct:
+            earned_points += q.points
+    score = (earned_points / total_points * 100) if total_points > 0 else 0
+    passed = score >= assessment.passing_score
+    attempt.score = score
+    attempt.passed = passed
+    attempt.status = 'completed'
+    attempt.completed_at = func.now()
+    db.session.commit()
+    return jsonify({'message': 'Attempt submitted', 'score': score, 'passed': passed}), 200
+
+
