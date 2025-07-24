@@ -984,3 +984,33 @@ def get_attempts_for_assessment(assessment_id):
         })
     return jsonify(result), 200
 
+
+
+
+@auth_bp.route('/interviewee/attempts/summary', methods=['GET'])
+def get_attempts_summary():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    attempts = AssessmentAttempt.query.filter_by(interviewee_id=user.id).order_by(AssessmentAttempt.started_at.desc()).all()
+    result = []
+    for a in attempts:
+        assessment = Assessment.query.get(a.assessment_id)
+        result.append({
+            'assessment_id': a.assessment_id,
+            'assessment_title': assessment.title if assessment else None,
+            'attempt_id': a.id,
+            'status': a.status,
+            'score': a.score,
+            'passed': a.passed,
+            'started_at': a.started_at,
+            'completed_at': a.completed_at,
+            'num_attempt': a.num_attempt,
+            'time_spent': a.time_spent
+        })
+    return jsonify(result), 200
+
+
