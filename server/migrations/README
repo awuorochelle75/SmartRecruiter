@@ -1,1 +1,82 @@
 Single-database configuration for Flask.
+
+# Migration Best Practices (SmartRecruiter)
+
+- **Always use `flask db` commands** for migrations:
+  - `flask db migrate -m "Your message"` to create a migration
+  - `flask db upgrade` to apply migrations
+  - `flask db downgrade` to revert
+- **Never delete migration files** in `migrations/versions/` unless you are resetting the entire database and migration history.
+- **Review auto-generated migration scripts** before applying, especially for destructive changes (like `drop_table`).
+- **Do not use the Alembic CLI directly** (e.g., `alembic upgrade`), always use Flask-Migrate (`flask db ...`).
+- **If you need to reset everything:**
+  1. Drop all tables in the database (including `alembic_version`)
+  2. Delete all migration files in `migrations/versions/`
+  3. Run `flask db init` (if needed)
+  4. Run `flask db migrate -m "Initial migration"`
+  5. Run `flask db upgrade`
+- **Keep this README up to date** with any process changes.
+
+**Centralized migration management ensures safe, reliable, and auditable database changes for all developers.**
+
+---
+
+# PostgreSQL Database Setup & Usage
+
+## 1. Create Database and User
+
+Connect as the `postgres` superuser:
+```sh
+sudo -u postgres psql
+```
+
+Create the database and user (used in this project):
+```sql
+CREATE DATABASE smartrecruiter;
+CREATE USER smartuser WITH PASSWORD 'smartpassword';
+GRANT ALL PRIVILEGES ON DATABASE smartrecruiter TO smartuser;
+```
+
+## 2. Connect to the Database
+
+From your shell:
+```sh
+psql -U smartuser -d smartrecruiter -h localhost
+```
+
+## 3. Check Tables
+
+Inside the `psql` prompt:
+```sql
+\dt
+```
+
+## 4. Inspect Table Data
+
+To see all users:
+```sql
+SELECT * FROM "user";
+```
+To see all sessions:
+```sql
+SELECT * FROM session;
+```
+
+## 5. Change User Password (if needed)
+```sql
+ALTER USER smartuser WITH PASSWORD 'newpassword';
+```
+
+## 6. Reset Alembic Version (if migrations break)
+```sql
+UPDATE alembic_version SET version_num = '<revision_id>';
+```
+
+---
+
+**Database credentials used in this project:**
+- DB: `smartrecruiter`
+- User: `smartuser`
+- Password: `smartpassword`
+
+**Always use these credentials in your Flask config and when connecting via psql.**
