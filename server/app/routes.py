@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -1404,5 +1404,151 @@ def category_ops(cat_id):
         db.session.delete(cat)
         db.session.commit()
         return jsonify({'message': 'Category deleted'}), 200
+
+
+@auth_bp.route('/practice-problems', methods=['GET', 'POST'])
+def practice_problems():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    if request.method == 'GET':
+        category_id = request.args.get('category_id')
+        query = PracticeProblem.query.filter_by(recruiter_id=user.id)
+        if category_id:
+            query = query.filter_by(category_id=category_id)
+        problems = query.order_by(PracticeProblem.created_at.desc()).all()
+        return jsonify([practice_problem_to_dict(p) for p in problems]), 200
+    elif request.method == 'POST':
+        data = request.get_json()
+        problem = PracticeProblem(
+            recruiter_id=user.id,
+            category_id=data.get('category_id'),
+            title=data['title'],
+            description=data.get('description'),
+            difficulty=data['difficulty'],
+            estimated_time=data.get('estimated_time'),
+            points=data.get('points', 0),
+            is_public=data.get('is_public', True),
+            tags=','.join(data.get('tags', [])),
+            problem_type=data.get('problem_type', 'multiple-choice'),
+            options=json.dumps(data.get('options', [])),
+            correct_answer=data.get('correct_answer'),
+            explanation=data.get('explanation'),
+            allowed_languages=json.dumps(data.get('allowed_languages', [])),
+            time_limit=data.get('time_limit'),
+            memory_limit=data.get('memory_limit'),
+            starter_code=data.get('starter_code'),
+            solution=data.get('solution'),
+            visible_test_cases=json.dumps(data.get('visible_test_cases', [])),
+            hidden_test_cases=json.dumps(data.get('hidden_test_cases', [])),
+            answer_template=data.get('answer_template'),
+            keywords=json.dumps(data.get('keywords', [])),
+            max_char_limit=data.get('max_char_limit'),
+            hints=json.dumps(data.get('hints', [])),
+            learning_resources=json.dumps(data.get('learning_resources', [])),
+            study_sections=json.dumps(data.get('study_sections', [])),
+            max_attempts=data.get('max_attempts', 1),
+        )
+        db.session.add(problem)
+        db.session.commit()
+        return jsonify({'message': 'Practice problem created', 'id': problem.id}), 201
+
+@auth_bp.route('/practice-problems/<int:problem_id>', methods=['GET', 'PUT', 'DELETE'])
+def practice_problem_detail(problem_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    problem = PracticeProblem.query.get(problem_id)
+    if not problem:
+        return jsonify({'error': 'Practice problem not found'}), 404
+    if request.method == 'GET':
+        return jsonify(practice_problem_to_dict(problem)), 200
+    if user.role != 'recruiter' or problem.recruiter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if request.method == 'PUT':
+        data = request.get_json()
+        problem.title = data.get('title', problem.title)
+        problem.description = data.get('description', problem.description)
+        problem.difficulty = data.get('difficulty', problem.difficulty)
+        problem.estimated_time = data.get('estimated_time', problem.estimated_time)
+        problem.points = data.get('points', problem.points)
+        problem.is_public = data.get('is_public', problem.is_public)
+        problem.tags = ','.join(data.get('tags', []))
+        problem.problem_type = data.get('problem_type', problem.problem_type)
+        problem.options = json.dumps(data.get('options', json.loads(problem.options or '[]')))
+        problem.correct_answer = data.get('correct_answer', problem.correct_answer)
+        problem.explanation = data.get('explanation', problem.explanation)
+        problem.allowed_languages = json.dumps(data.get('allowed_languages', json.loads(problem.allowed_languages or '[]')))
+        problem.time_limit = data.get('time_limit', problem.time_limit)
+        problem.memory_limit = data.get('memory_limit', problem.memory_limit)
+        problem.starter_code = data.get('starter_code', problem.starter_code)
+        problem.solution = data.get('solution', problem.solution)
+        problem.visible_test_cases = json.dumps(data.get('visible_test_cases', json.loads(problem.visible_test_cases or '[]')))
+        problem.hidden_test_cases = json.dumps(data.get('hidden_test_cases', json.loads(problem.hidden_test_cases or '[]')))
+        problem.answer_template = data.get('answer_template', problem.answer_template)
+        problem.keywords = json.dumps(data.get('keywords', json.loads(problem.keywords or '[]')))
+        problem.max_char_limit = data.get('max_char_limit', problem.max_char_limit)
+        problem.hints = json.dumps(data.get('hints', json.loads(problem.hints or '[]')))
+        problem.learning_resources = json.dumps(data.get('learning_resources', json.loads(problem.learning_resources or '[]')))
+        problem.study_sections = json.dumps(data.get('study_sections', json.loads(problem.study_sections or '[]')))
+        problem.max_attempts = data.get('max_attempts', problem.max_attempts)
+        problem.category_id = data.get('category_id', problem.category_id)
+        db.session.commit()
+        return jsonify({'message': 'Practice problem updated'}), 200
+    elif request.method == 'DELETE':
+        db.session.delete(problem)
+        db.session.commit()
+        return jsonify({'message': 'Practice problem deleted'}), 200
+
+
+@auth_bp.route('/public/practice-problems', methods=['GET'])
+def public_practice_problems():
+    category_id = request.args.get('category_id')
+    query = PracticeProblem.query
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+    problems = query.order_by(PracticeProblem.created_at.desc()).all()
+    return jsonify([practice_problem_to_dict(p) for p in problems]), 200
+
+
+def practice_problem_to_dict(problem):
+    return {
+        'id': problem.id,
+        'title': problem.title,
+        'description': problem.description,
+        'difficulty': problem.difficulty,
+        'estimated_time': problem.estimated_time,
+        'points': problem.points,
+        'is_public': problem.is_public,
+        'tags': problem.tags.split(',') if problem.tags else [],
+        'problem_type': problem.problem_type,
+        'options': json.loads(problem.options or '[]'),
+        'correct_answer': problem.correct_answer,
+        'explanation': problem.explanation,
+        'allowed_languages': json.loads(problem.allowed_languages or '[]'),
+        'time_limit': problem.time_limit,
+        'memory_limit': problem.memory_limit,
+        'starter_code': problem.starter_code,
+        'solution': problem.solution,
+        'visible_test_cases': json.loads(problem.visible_test_cases or '[]'),
+        'hidden_test_cases': json.loads(problem.hidden_test_cases or '[]'),
+        'answer_template': problem.answer_template,
+        'keywords': json.loads(problem.keywords or '[]'),
+        'max_char_limit': problem.max_char_limit,
+        'hints': json.loads(problem.hints or '[]'),
+        'learning_resources': json.loads(problem.learning_resources or '[]'),
+        'study_sections': json.loads(problem.study_sections or '[]'),
+        'max_attempts': problem.max_attempts,
+        'category_id': problem.category_id,
+        'category': problem.category.name if problem.category else None,
+        'recruiter_id': problem.recruiter_id,
+        'created_at': problem.created_at.isoformat() if problem.created_at else None,
+        'updated_at': problem.updated_at.isoformat() if problem.updated_at else None,
+    }
+
 
 
