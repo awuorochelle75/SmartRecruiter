@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
-import { useState } from 'react';
-import ThemeToggle from './ThemeToggle';
-import { Code2, Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom'
+import { Button } from './ui/button'
+import { useState } from 'react'
+import ThemeToggle from './ThemeToggle'
+import { Code2, Menu, X } from 'lucide-react'
 
 function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
