@@ -9,7 +9,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      {/* Hero Section */}
+     
       <section className="relative py-20 lg:py-32 bg-muted">
         <div className="text-center px-4">
           <h1 className="text-4xl lg:text-6xl font-bold mb-6">
@@ -36,7 +36,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="bg-background text-foreground">
         <div className="flex flex-col items-center justify-center mt-10 px-4 text-center">
           <h1 className="text-4xl font-bold">Why Choose SmartRecruiter?</h1>
