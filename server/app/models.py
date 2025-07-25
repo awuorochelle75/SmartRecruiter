@@ -120,12 +120,23 @@ class Session(db.Model):
     data = db.Column(db.Text, nullable=False)
     expiry = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+class Category(db.Model):
+    __tablename__ = 'category'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    recruiter = db.relationship('User', backref=db.backref('categories', lazy='dynamic'))
+    assessments = db.relationship('Assessment', backref='category', lazy='dynamic')
 
 # Assessments created by recruiters
 class Assessment(db.Model):
     __tablename__ = 'assessment'
     id = db.Column(db.Integer, primary_key=True)
     recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     type = db.Column(db.String(50), nullable=False)
