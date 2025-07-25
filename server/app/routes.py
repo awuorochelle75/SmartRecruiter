@@ -1355,3 +1355,54 @@ def get_assessment_results(assessment_id):
 
 
     
+
+@auth_bp.route('/categories', methods=['GET', 'POST'])
+def categories():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if request.method == 'GET':
+        cats = Category.query.filter((Category.recruiter_id == None) | (Category.recruiter_id == user_id)).order_by(Category.name).all()
+        return jsonify([
+            {
+                'id': c.id,
+                'name': c.name,
+                'description': c.description,
+                'created_at': c.created_at.isoformat(),
+                'recruiter_id': c.recruiter_id
+            } for c in cats
+        ]), 200
+    elif request.method == 'POST':
+        data = request.get_json()
+        name = data.get('name')
+        description = data.get('description')
+        if not name:
+            return jsonify({'error': 'Name required'}), 400
+        # Prevent duplicate names for same recruiter
+        exists = Category.query.filter_by(name=name, recruiter_id=user_id).first()
+        if exists:
+            return jsonify({'error': 'Category with this name already exists'}), 409
+        cat = Category(name=name, description=description, recruiter_id=user_id)
+        db.session.add(cat)
+        db.session.commit()
+        return jsonify({'id': cat.id, 'name': cat.name, 'description': cat.description, 'created_at': cat.created_at.isoformat(), 'recruiter_id': cat.recruiter_id}), 201
+
+@auth_bp.route('/categories/<int:cat_id>', methods=['PUT', 'DELETE'])
+def category_ops(cat_id):
+    user_id = session.get('user_id')
+    cat = Category.query.get(cat_id)
+    if not cat or (cat.recruiter_id and cat.recruiter_id != user_id):
+        return jsonify({'error': 'Category not found'}), 404
+    if request.method == 'PUT':
+        data = request.get_json()
+        cat.name = data.get('name', cat.name)
+        cat.description = data.get('description', cat.description)
+        db.session.commit()
+        return jsonify({'id': cat.id, 'name': cat.name, 'description': cat.description, 'created_at': cat.created_at.isoformat(), 'recruiter_id': cat.recruiter_id}), 200
+    elif request.method == 'DELETE':
+        for a in cat.assessments:
+            a.category_id = None
+        db.session.delete(cat)
+        db.session.commit()
+        return jsonify({'message': 'Category deleted'}), 200
+
+
