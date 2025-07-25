@@ -12,13 +12,13 @@ function Navbar() {
   return (
     <nav className="w-full bg-background text-foreground shadow-md p-5 flex justify-between items-center relative">
       
-      {/* Logo */}
+     
       <Link to="/" className="flex items-center space-x-2">
         <Code2 className="h-8 w-8 text-primary" />
         <span className="text-xl font-bold">SmartRecruiter</span>
       </Link>
 
-      {/* Desktop Nav Links */}
+      
       <div className="hidden md:flex space-x-6 text-sm font-medium">
         <Link to="/" className="hover:text-primary transition">Home</Link>
         <Link to="/pricing" className="hover:text-primary transition">Pricing</Link>
