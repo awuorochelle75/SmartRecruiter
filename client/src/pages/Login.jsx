@@ -1,13 +1,6 @@
-import React from "react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "../components/ui/card";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {Card,CardHeader,CardTitle,CardContent,} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import NavbarDashboard from "../components/NavbarDashboard";
 import { Code2 } from "lucide-react";
@@ -19,7 +12,7 @@ function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (role == "recruiter") {
+    if (role === "recruiter") {
       navigate("/recruiterdashboard");
     } else if (role === "interviewee") {
       navigate("/IntervieweeDashboard");
@@ -29,35 +22,36 @@ function Login() {
   };
 
   return (
-    <div>
+    <div className="bg-muted min-h-screen text-foreground">
       <NavbarDashboard />
-      <div className=" flex flex-col items-center  gap-2 px-4 mt-4  bg-gray-200 min-h-screen  ">
-        <Link to="/" className="flex items-center space-x-2 mt-5 ">
-          <Code2 className="h-8  w-8 text-primary " />
-          <span className="text-xl font-bold text-foreground ">
-            SmartRecruiter
-          </span>
+
+      <div className="flex flex-col items-center gap-2 px-4 mt-4">
+        <Link to="/" className="flex items-center space-x-2 mt-5">
+          <Code2 className="h-8 w-8 text-primary" />
+          <span className="text-xl font-bold">SmartRecruiter</span>
         </Link>
-        <h2 className="font-bold text-lg ">Welcome Back </h2>
-        <p className="text-sm font-light ">
-          {" "}
+
+        <h2 className="font-bold text-lg">Welcome Back</h2>
+        <p className="text-sm text-muted-foreground font-light text-center">
           Sign in to your account to continue
         </p>
-        <Card className="bg-white border border-zinc-200 shadow-lg rounded-2xl p-10 w-[50%] mb-10">
+
+        <Card className="bg-card border border-border shadow-lg rounded-2xl p-6 w-full max-w-2xl mb-6">
           <CardHeader>
-            <CardTitle className="text-black font-bold text-xl">
-              Sign In{" "}
-            </CardTitle>
-            <h1>Enter your credentials to access your account</h1>
-            <p> I am a...</p>
+            <CardTitle className="text-xl font-bold">Sign In</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Enter your credentials to access your account
+            </p>
+            <p className="text-sm mt-2 font-medium">I am a...</p>
           </CardHeader>
 
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+             
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="border border-gray-300 rounded-md px-4 py-2 text-sm w-full"
+                className="border border-border bg-background rounded-md px-4 py-2 text-sm w-full"
               >
                 <option value="" disabled>
                   Select role
@@ -66,30 +60,28 @@ function Login() {
                 <option value="interviewee">Interviewee</option>
               </select>
 
+              
               <div className="flex flex-col mt-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
+                <label className="text-sm font-medium">Email Address</label>
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="border border-gray-300 rounded-md px-3 py-2 mt-1 text-sm"
+                  className="border border-border bg-background rounded-md px-4 py-2 text-sm mt-1"
                 />
               </div>
 
+              
               <div className="flex flex-col mt-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Password
-                </label>
+                <label className="text-sm font-medium">Password</label>
                 <input
                   type="password"
                   placeholder="Enter your password"
-                  className="border border-gray-300 rounded-md px-3 py-2 mt-1 text-sm"
+                  className="border border-border bg-background rounded-md px-4 py-2 text-sm mt-1"
                 />
               </div>
 
+             
               <Link to="/resetpassword" className="text-primary text-sm">
-                {" "}
                 Forgot your password?
               </Link>
 
@@ -97,18 +89,21 @@ function Login() {
                 <span className="inline-flex items-center">Sign In</span>
               </Button>
 
-              <h1 className=" flex justify-center ">
-                Don't have an account?
-                <Link to="/signup" className="text-primary ">
+              
+              <p className="flex justify-center text-sm mt-2">
+                Don't have an account?{" "}
+                <Link to="/signup" className="text-primary ml-1">
                   Sign Up here
                 </Link>
-              </h1>
+              </p>
             </form>
           </CardContent>
         </Card>
       </div>
+
       <Footer />
     </div>
   );
 }
+
 export default Login;
