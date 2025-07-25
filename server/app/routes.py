@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -550,6 +550,7 @@ def create_assessment():
             status=data.get('status', 'draft'),
             deadline=data.get('deadline'),
             is_test=data.get('is_test', False),
+            category_id=data.get('category_id')
         )
         db.session.add(assessment)
         db.session.flush()
@@ -619,7 +620,8 @@ def assessment_operations(assessment_id):
                     'answer': q.answer,
                     'test_cases': q.test_cases if q.type == 'coding' else None,
                 } for q in assessment.questions
-            ]
+            ],
+            'category_id': assessment.category_id
         }), 200
     
     elif request.method == 'PUT':
@@ -635,6 +637,7 @@ def assessment_operations(assessment_id):
         assessment.tags = ','.join(data.get('tags', []))
         assessment.status = data.get('status', assessment.status)
         assessment.deadline = data.get('deadline', assessment.deadline)
+        assessment.category_id = data.get('category_id', assessment.category_id)
 
         incoming_questions = data.get('questions', [])
         incoming_ids = set(q.get('id') for q in incoming_questions if q.get('id'))
@@ -738,7 +741,8 @@ def list_assessments():
                     'answer': q.answer,
                     'test_cases': q.test_cases,
                 } for q in a.questions
-            ]
+            ],
+            'category_id': a.category_id
         })
     return jsonify(result), 200
 
@@ -778,7 +782,8 @@ def public_test_assessments():
                     'answer': q.answer,
                     'test_cases': q.test_cases,
                 } for q in a.questions
-            ]
+            ],
+            'category_id': a.category_id
         })
     return jsonify(result), 200
 
