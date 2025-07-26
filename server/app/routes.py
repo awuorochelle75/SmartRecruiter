@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -2172,25 +2172,506 @@ def get_available_candidates():
     if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
     user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    # Only recruiters can access this endpoint
-    if user.role != 'recruiter':
+    if not user or user.role != 'recruiter':
         return jsonify({'error': 'Unauthorized'}), 403
-    # Get all interviewees
+    
     interviewees = User.query.filter_by(role='interviewee').all()
     candidates = []
+    
     for interviewee in interviewees:
-        profile = interviewee.interviewee_profile
+        profile = IntervieweeProfile.query.filter_by(user_id=interviewee.id).first()
         if profile:
             candidates.append({
                 'id': interviewee.id,
                 'email': interviewee.email,
                 'first_name': profile.first_name,
                 'last_name': profile.last_name,
-                'avatar': profile.avatar,
-                'created_at': interviewee.created_at.isoformat() if interviewee.created_at else None,
+                'position': profile.position,
+                'company': profile.company,
+                'skills': profile.skills,
+                'avatar': profile.avatar
             })
+    
     return jsonify({'candidates': candidates}), 200
+
+
+@auth_bp.route('/interviews', methods=['GET'])
+def get_interviews():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    if user.role == 'recruiter':
+        interviews = Interview.query.filter_by(recruiter_id=user.id).order_by(Interview.scheduled_at.desc()).all()
+    else:
+        interviews = Interview.query.filter_by(interviewee_id=user.id).order_by(Interview.scheduled_at.desc()).all()
+    
+    result = []
+    for interview in interviews:
+        recruiter_profile = RecruiterProfile.query.filter_by(user_id=interview.recruiter_id).first()
+        interviewee_profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
+        
+        result.append({
+            'id': interview.id,
+            'position': interview.position,
+            'type': interview.type,
+            'scheduled_at': interview.scheduled_at.isoformat(),
+            'duration': interview.duration,
+            'status': interview.status,
+            'meeting_link': interview.meeting_link,
+            'location': interview.location,
+            'notes': interview.notes,
+            'feedback': interview.feedback,
+            'rating': interview.rating,
+            'created_at': interview.created_at.isoformat(),
+            'recruiter': {
+                'id': interview.recruiter_id,
+                'name': f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown",
+                'company': recruiter_profile.company_name if recruiter_profile else "Unknown"
+            },
+            'interviewee': {
+                'id': interview.interviewee_id,
+                'name': f"{interviewee_profile.first_name} {interviewee_profile.last_name}" if interviewee_profile else "Unknown",
+                'position': interviewee_profile.position if interviewee_profile else "Unknown"
+            },
+            'assessment': {
+                'id': interview.assessment_id,
+                'title': interview.assessment.title if interview.assessment else None
+            } if interview.assessment_id else None
+        })
+    
+    return jsonify({'interviews': result}), 200
+
+@auth_bp.route('/interviews', methods=['POST'])
+def schedule_interview():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can schedule interviews'}), 403
+    
+    data = request.get_json()
+    required_fields = ['interviewee_id', 'position', 'type', 'scheduled_at', 'duration']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+    
+    interviewee = User.query.filter_by(id=data['interviewee_id'], role='interviewee').first()
+    if not interviewee:
+        return jsonify({'error': 'Interviewee not found'}), 404
+    
+    try:
+        scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
+    except ValueError:
+        return jsonify({'error': 'Invalid date format for scheduled_at'}), 400
+    
+    recruiter_profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
+    recruiter_name = f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown"
+    recruiter_company = recruiter_profile.company_name if recruiter_profile else "Unknown"
+    
+    assessment_id = data.get('assessment_id')
+    if assessment_id == "" or assessment_id is None:
+        assessment_id = None
+    else:
+        try:
+            assessment_id = int(assessment_id)
+        except (ValueError, TypeError):
+            assessment_id = None
+    
+    interview = Interview(
+        recruiter_id=user.id,
+        interviewee_id=data['interviewee_id'],
+        assessment_id=assessment_id,
+        position=data['position'],
+        type=data['type'],
+        scheduled_at=scheduled_at,
+        duration=data['duration'],
+        meeting_link=data.get('meeting_link'),
+        location=data.get('location'),
+        notes=data.get('notes')
+    )
+    
+    db.session.add(interview)
+    
+    notification = Notification(
+        user_id=data['interviewee_id'],
+        type='interview',
+        content=f'You have been invited for a {data["type"]} interview for {data["position"]} position',
+        data=json.dumps({'interview_id': interview.id, 'type': 'invitation'})
+    )
+    db.session.add(notification)
+    
+    db.session.commit()
+    
+    try:
+        from .models import IntervieweeNotificationSettings
+        settings = IntervieweeNotificationSettings.query.filter_by(user_id=data['interviewee_id']).first()
+        
+        should_send_email = True
+        if settings:
+            should_send_email = settings.email_interview_invites
+        
+        if should_send_email:
+            formatted_date = scheduled_at.strftime("%B %d, %Y")
+            formatted_time = scheduled_at.strftime("%I:%M %p")
+            
+            subject = f"Interview Invitation - {data['position']} Position"
+            
+            # Build email body
+            body = f"""
+Dear {interviewee.first_name} {interviewee.last_name},
+
+You have been invited for an interview!
+
+Interview Details:
+- Position: {data['position']}
+- Type: {data['type'].replace('_', ' ').title()}
+- Date: {formatted_date}
+- Time: {formatted_time}
+- Duration: {data['duration']} minutes
+- Location: {data.get('location', 'Video Call')}
+- Company: {recruiter_company}
+- Interviewer: {recruiter_name}
+
+"""
+            
+            if data.get('meeting_link'):
+                body += f"Meeting Link: {data['meeting_link']}\n\n"
+            
+            if data.get('notes'):
+                body += f"Notes: {data['notes']}\n\n"
+            
+            body += f"""
+Please log in to your SmartRecruiter dashboard to view full interview details and prepare for your interview.
+
+Best regards,
+{recruiter_name}
+{recruiter_company}
+"""
+            
+            # Send email
+            msg = MIMEText(body)
+            msg['Subject'] = subject
+            msg['From'] = current_app.config['GMAIL_USER']
+            msg['To'] = interviewee.email
+            
+            with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
+                server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
+                server.sendmail(current_app.config['GMAIL_USER'], [interviewee.email], msg.as_string())
+                
+    except Exception as e:
+        print(f"Failed to send interview email: {str(e)}")
+    
+    return jsonify({
+        'message': 'Interview scheduled successfully',
+        'interview_id': interview.id
+    }), 201
+
+@auth_bp.route('/interviews/<int:interview_id>', methods=['GET'])
+def get_interview(interview_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({'error': 'Interview not found'}), 404
+    
+    if user.role == 'recruiter' and interview.recruiter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    elif user.role == 'interviewee' and interview.interviewee_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    recruiter_profile = RecruiterProfile.query.filter_by(user_id=interview.recruiter_id).first()
+    interviewee_profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
+    
+    result = {
+        'id': interview.id,
+        'position': interview.position,
+        'type': interview.type,
+        'scheduled_at': interview.scheduled_at.isoformat(),
+        'duration': interview.duration,
+        'status': interview.status,
+        'meeting_link': interview.meeting_link,
+        'location': interview.location,
+        'notes': interview.notes,
+        'feedback': interview.feedback,
+        'rating': interview.rating,
+        'created_at': interview.created_at.isoformat(),
+        'recruiter': {
+            'id': interview.recruiter_id,
+            'name': f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown",
+            'company': recruiter_profile.company_name if recruiter_profile else "Unknown",
+            'email': interview.recruiter.email
+        },
+        'interviewee': {
+            'id': interview.interviewee_id,
+            'name': f"{interviewee_profile.first_name} {interviewee_profile.last_name}" if interviewee_profile else "Unknown",
+            'position': interviewee_profile.position if interviewee_profile else "Unknown",
+            'email': interview.interviewee.email
+        },
+        'assessment': {
+            'id': interview.assessment_id,
+            'title': interview.assessment.title if interview.assessment else None
+        } if interview.assessment_id else None
+    }
+    
+    return jsonify(result), 200
+
+@auth_bp.route('/interviews/<int:interview_id>', methods=['PUT'])
+def update_interview(interview_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({'error': 'Interview not found'}), 404
+    
+    if user.role == 'recruiter' and interview.recruiter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    elif user.role == 'interviewee' and interview.interviewee_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    
+    # Update fields
+    if 'status' in data:
+        interview.status = data['status']
+    if 'position' in data:
+        interview.position = data['position']
+    if 'type' in data:
+        interview.type = data['type']
+    if 'duration' in data:
+        interview.duration = data['duration']
+    if 'meeting_link' in data:
+        interview.meeting_link = data['meeting_link']
+    if 'location' in data:
+        interview.location = data['location']
+    if 'notes' in data:
+        interview.notes = data['notes']
+    if 'feedback' in data:
+        interview.feedback = data['feedback']
+    if 'rating' in data:
+        interview.rating = data['rating']
+    if 'assessment_id' in data:
+        assessment_id = data['assessment_id']
+        if assessment_id == "" or assessment_id is None:
+            interview.assessment_id = None
+        else:
+            try:
+                interview.assessment_id = int(assessment_id)
+            except (ValueError, TypeError):
+                interview.assessment_id = None
+    if 'scheduled_at' in data:
+        try:
+            interview.scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid date format for scheduled_at'}), 400
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Interview updated successfully'}), 200
+
+@auth_bp.route('/interviews/<int:interview_id>', methods=['DELETE'])
+def cancel_interview(interview_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({'error': 'Interview not found'}), 404
+    
+    if user.role == 'recruiter' and interview.recruiter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    elif user.role == 'interviewee' and interview.interviewee_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    interview.status = 'cancelled'
+    db.session.commit()
+    
+    return jsonify({'message': 'Interview cancelled successfully'}), 200
+
+@auth_bp.route('/candidates', methods=['GET'])
+def get_candidates():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can view candidates'}), 403
+    
+    interviewees = User.query.filter_by(role='interviewee').all()
+    candidates = []
+    
+    for interviewee in interviewees:
+        profile = IntervieweeProfile.query.filter_by(user_id=interviewee.id).first()
+        if profile:
+            # Get assessment attempts for this interviewee
+            attempts = AssessmentAttempt.query.filter_by(interviewee_id=interviewee.id).all()
+            completed_assessments = [a for a in attempts if a.status == 'completed']
+            
+            # Get test assessment attempts
+            test_attempts = AssessmentAttempt.query.filter_by(
+                interviewee_id=interviewee.id
+            ).join(Assessment).filter(Assessment.is_test == True).all()
+            completed_test_assessments = [a for a in test_attempts if a.status == 'completed']
+            
+            # Get interviews for this candidate
+            interviews = Interview.query.filter_by(interviewee_id=interviewee.id).all()
+            completed_interviews = [i for i in interviews if i.status == 'completed']
+            
+            # Calculate average scores
+            assessment_avg = round(sum([a.score for a in completed_assessments if a.score]) / len(completed_assessments), 1) if completed_assessments else 0
+            test_avg = round(sum([a.score for a in completed_test_assessments if a.score]) / len(completed_test_assessments), 1) if completed_test_assessments else 0
+            
+            status = 'applied'
+            if completed_interviews:
+                status = 'interviewed'
+            elif completed_assessments or completed_test_assessments:
+                status = 'in-review'
+            if assessment_avg >= 80 or test_avg >= 80:
+                status = 'shortlisted'
+            
+            last_activity = interviewee.created_at
+            if attempts:
+                last_attempt = max(attempts, key=lambda x: x.started_at)
+                if last_attempt.started_at > last_activity:
+                    last_activity = last_attempt.started_at
+            if interviews:
+                last_interview = max(interviews, key=lambda x: x.created_at)
+                if last_interview.created_at > last_activity:
+                    last_activity = last_interview.created_at
+            
+            practice_attempts = PracticeProblemAttempt.query.filter_by(user_id=interviewee.id).all()
+            completed_practice = [p for p in practice_attempts if p.passed]
+            practice_avg = round(sum([p.score for p in completed_practice if p.score]) / len(completed_practice), 1) if completed_practice else 0
+            
+            candidate_data = {
+                'id': interviewee.id,
+                'email': interviewee.email,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'full_name': f"{profile.first_name} {profile.last_name}",
+                'position': profile.position,
+                'company': profile.company,
+                'location': profile.location,
+                'phone': profile.phone,
+                'skills': profile.skills.split(',') if profile.skills else [],
+                'avatar': profile.avatar,
+                'bio': profile.bio,
+                'linkedin_url': profile.linkedin,
+                'github_url': profile.github,
+                'portfolio_url': profile.website,
+                'created_at': interviewee.created_at.isoformat(),
+                'last_activity': last_activity.isoformat(),
+                'status': status,
+                'assessments': {
+                    'completed': len(completed_assessments),
+                    'total': len(attempts),
+                    'average_score': round(assessment_avg, 1),
+                    'details': [
+                        {
+                            'id': a.id,
+                            'assessment_title': a.assessment.title,
+                            'score': a.score,
+                            'status': a.status,
+                            'completed_at': a.completed_at.isoformat() if a.completed_at else None
+                        } for a in attempts
+                    ]
+                },
+                'test_assessments': {
+                    'completed': len(completed_test_assessments),
+                    'total': len(test_attempts),
+                    'average_score': round(test_avg, 1),
+                    'details': [
+                        {
+                            'id': a.id,
+                            'assessment_title': a.assessment.title,
+                            'score': a.score,
+                            'status': a.status,
+                            'completed_at': a.completed_at.isoformat() if a.completed_at else None
+                        } for a in test_attempts
+                    ]
+                },
+                'interviews': {
+                    'total': len(interviews),
+                    'completed': len(completed_interviews),
+                    'scheduled': len([i for i in interviews if i.status == 'scheduled']),
+                    'cancelled': len([i for i in interviews if i.status == 'cancelled']),
+                    'details': [
+                        {
+                            'id': i.id,
+                            'position': i.position,
+                            'type': i.type,
+                            'status': i.status,
+                            'scheduled_at': i.scheduled_at.isoformat(),
+                            'rating': i.rating,
+                            'feedback': i.feedback
+                        } for i in interviews
+                    ]
+                },
+                'practice_problems': {
+                    'completed': len(completed_practice),
+                    'total': len(practice_attempts),
+                    'average_score': round(practice_avg, 1)
+                },
+                'overall_score': round((assessment_avg + test_avg + practice_avg) / 3, 0) if (assessment_avg + test_avg + practice_avg) > 0 else 0,
+                'rating': sum([i.rating for i in completed_interviews if i.rating]) / len(completed_interviews) if completed_interviews else 0
+            }
+            candidates.append(candidate_data)
+    
+    return jsonify({'candidates': candidates}), 200
+
+@auth_bp.route('/interviews/candidates', methods=['GET'])
+def get_interview_candidates():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can view candidates'}), 403
+    
+    interviewees = User.query.filter_by(role='interviewee').all()
+    candidates = []
+    
+    for interviewee in interviewees:
+        profile = IntervieweeProfile.query.filter_by(user_id=interviewee.id).first()
+        if profile:
+            attempts = AssessmentAttempt.query.filter_by(interviewee_id=interviewee.id).all()
+            completed_assessments = [a for a in attempts if a.status == 'completed']
+            
+            candidate_data = {
+                'id': interviewee.id,
+                'email': interviewee.email,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'position': profile.position,
+                'company': profile.company,
+                'skills': profile.skills,
+                'avatar': profile.avatar,
+                'completed_assessments': len(completed_assessments),
+                'total_assessments': len(attempts),
+                'average_score': sum([a.score for a in completed_assessments if a.score]) / len(completed_assessments) if completed_assessments else 0
+            }
+            candidates.append(candidate_data)
+    
+    return jsonify({'candidates': candidates}), 200
+
+
 
 
