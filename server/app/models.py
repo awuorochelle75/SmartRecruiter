@@ -79,6 +79,7 @@ class RecruiterNotificationSettings(db.Model):
     push_new_applications = db.Column(db.Boolean, default=False)
     push_assessment_completed = db.Column(db.Boolean, default=True)
     push_interview_reminders = db.Column(db.Boolean, default=True)
+    push_message_notifications = db.Column(db.Boolean, default=True)
     weekly_reports = db.Column(db.Boolean, default=True)
     monthly_analytics = db.Column(db.Boolean, default=False)
     user = db.relationship('User', backref=db.backref('recruiter_notification_settings', uselist=False))
@@ -290,3 +291,26 @@ class PracticeProblemAttempt(db.Model):
     # Relationships
     user = db.relationship('User', backref=db.backref('practice_problem_attempts', lazy='dynamic'))
     problem = db.relationship('PracticeProblem', backref=db.backref('attempts', lazy='dynamic'))
+    
+class Message(db.Model):
+    __tablename__ = 'message'
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
+    conversation_id = db.Column(db.String(64), nullable=False)  # e.g., "recruiterId-intervieweeId"
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+
+class Notification(db.Model):
+    __tablename__ = 'notification'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type = db.Column(db.String(50), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    data = db.Column(db.Text)
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    user = db.relationship('User', backref=db.backref('notifications', lazy='dynamic'))
