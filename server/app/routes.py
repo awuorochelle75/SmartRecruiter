@@ -563,8 +563,8 @@ def create_assessment():
                 assessment_id=assessment.id,
                 type=q.get('type'),
                 question=q.get('question'),
-                options=pyjson.dumps(q.get('options')) if q.get('options') else None,
-                correct_answer=pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
+                options=json.dumps(q.get('options')) if q.get('options') else None,
+                correct_answer=json.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
                 points=q.get('points'),
                 explanation=q.get('explanation'),
                 starter_code=q.get('starter_code'),
@@ -615,8 +615,8 @@ def assessment_operations(assessment_id):
                     'id': q.id,
                     'type': q.type,
                     'question': q.question,
-                    'options': pyjson.loads(q.options) if q.options else [],
-                    'correct_answer': pyjson.loads(q.correct_answer) if q.correct_answer else None,
+                    'options': json.loads(q.options) if q.options else [],
+                    'correct_answer': json.loads(q.correct_answer) if q.correct_answer else None,
                     'points': q.points,
                     'explanation': q.explanation,
                     'starter_code': q.starter_code,
@@ -654,8 +654,8 @@ def assessment_operations(assessment_id):
                 question = existing_questions[q['id']]
                 question.type = q.get('type', question.type)
                 question.question = q.get('question', question.question)
-                question.options = pyjson.dumps(q.get('options')) if q.get('options') else None
-                question.correct_answer = pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None
+                question.options = json.dumps(q.get('options')) if q.get('options') else None
+                question.correct_answer = json.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None
                 question.points = q.get('points', question.points)
                 question.explanation = q.get('explanation', question.explanation)
                 question.starter_code = q.get('starter_code', question.starter_code)
@@ -668,8 +668,8 @@ def assessment_operations(assessment_id):
                     assessment_id=assessment.id,
                     type=q.get('type'),
                     question=q.get('question'),
-                    options=pyjson.dumps(q.get('options')) if q.get('options') else None,
-                    correct_answer=pyjson.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
+                    options=json.dumps(q.get('options')) if q.get('options') else None,
+                    correct_answer=json.dumps(q.get('correctAnswer')) if q.get('correctAnswer') is not None else None,
                     points=q.get('points'),
                     explanation=q.get('explanation'),
                     starter_code=q.get('starter_code'),
@@ -736,8 +736,8 @@ def list_assessments():
                     'id': q.id,
                     'type': q.type,
                     'question': q.question,
-                    'options': pyjson.loads(q.options) if q.options else [],
-                    'correct_answer': pyjson.loads(q.correct_answer) if q.correct_answer else None,
+                    'options': json.loads(q.options) if q.options else [],
+                    'correct_answer': json.loads(q.correct_answer) if q.correct_answer else None,
                     'points': q.points,
                     'explanation': q.explanation,
                     'starter_code': q.starter_code,
@@ -777,8 +777,8 @@ def public_test_assessments():
                     'id': q.id,
                     'type': q.type,
                     'question': q.question,
-                    'options': pyjson.loads(q.options) if q.options else [],
-                    'correct_answer': pyjson.loads(q.correct_answer) if q.correct_answer else None,
+                    'options': json.loads(q.options) if q.options else [],
+                    'correct_answer': json.loads(q.correct_answer) if q.correct_answer else None,
                     'points': q.points,
                     'explanation': q.explanation,
                     'starter_code': q.starter_code,
@@ -946,7 +946,7 @@ def submit_answer(attempt_id):
     test_case_score = None
     if question.type == 'multiple-choice':
         try:
-            correct = pyjson.loads(question.correct_answer)
+            correct = json.loads(question.correct_answer)
             is_correct = (answer == correct)
         except Exception:
             is_correct = None
@@ -955,7 +955,7 @@ def submit_answer(attempt_id):
     elif question.type == 'coding':
         # Evaluate code against test cases
         try:
-            test_cases = pyjson.loads(question.test_cases) if question.test_cases else []
+            test_cases = json.loads(question.test_cases) if question.test_cases else []
         except Exception:
             test_cases = []
         code = answer
@@ -1180,7 +1180,7 @@ def code_evaluation(attempt_answer_id):
         feedback = data.get('feedback')
         cer = CodeEvaluationResult(
             attempt_answer_id=attempt_answer_id,
-            test_case_results=pyjson.dumps(test_case_results) if test_case_results else None,
+            test_case_results=json.dumps(test_case_results) if test_case_results else None,
             score=score,
             feedback=feedback
         )
@@ -1194,7 +1194,7 @@ def code_evaluation(attempt_answer_id):
             return jsonify({'error': 'Not found'}), 404
         return jsonify({
             'id': cer.id,
-            'test_case_results': pyjson.loads(cer.test_case_results) if cer.test_case_results else [],
+            'test_case_results': json.loads(cer.test_case_results) if cer.test_case_results else [],
             'score': cer.score,
             'feedback': cer.feedback,
             'created_at': cer.created_at
