@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -288,6 +288,7 @@ def notifications_settings():
                     'push_interview_reminders': True,
                     'push_assessment_reminders': True,
                     'push_message_notifications': True,
+                    'push_message_notifications': True,
                     'weekly_job_alerts': True,
                     'monthly_progress_reports': False,
                 }), 200
@@ -298,6 +299,7 @@ def notifications_settings():
                 'email_results_updates': settings.email_results_updates,
                 'push_new_opportunities': settings.push_new_opportunities,
                 'push_interview_reminders': settings.push_interview_reminders,
+                'push_message_notifications': settings.push_message_notifications,
                 'push_assessment_reminders': settings.push_assessment_reminders,
                 'push_message_notifications': settings.push_message_notifications,
                 'weekly_job_alerts': settings.weekly_job_alerts,
@@ -1878,5 +1880,317 @@ def practice_problem_to_dict(problem):
         'updated_at': problem.updated_at.isoformat() if problem.updated_at else None,
     }
 
+
+
+@auth_bp.route('/messages/conversations', methods=['GET'])
+def get_conversations():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    # Get all unique conversation_ids for this user
+    conversations = (
+        db.session.query(Message.conversation_id)
+        .filter((Message.sender_id == user_id) | (Message.receiver_id == user_id))
+        .distinct()
+        .all()
+    )
+    conversation_list = []
+    for (conv_id,) in conversations:
+        # Get the latest message in this conversation
+        last_message = (
+            Message.query.filter_by(conversation_id=conv_id)
+            .order_by(Message.timestamp.desc())
+            .first()
+        )
+        # Get the other user in the conversation
+        if last_message.sender_id == user_id:
+            other_user = User.query.get(last_message.receiver_id)
+        else:
+            other_user = User.query.get(last_message.sender_id)
+        # Get unread count for this conversation
+        unread_count = Message.query.filter_by(
+            conversation_id=conv_id,
+            receiver_id=user_id,
+            read=False
+        ).count()
+        
+        # Get company info for recruiters
+        company = None
+        if other_user.role == 'recruiter' and other_user.recruiter_profile:
+            company = other_user.recruiter_profile.company_name
+        
+        conversation_list.append({
+            'conversation_id': conv_id,
+            'last_message': last_message.content,
+            'last_message_at': last_message.timestamp.isoformat(),
+            'unread_count': unread_count,
+            'other_user': {
+                'id': other_user.id,
+                'email': other_user.email,
+                'role': other_user.role,
+                'first_name': getattr(other_user.interviewee_profile, 'first_name', None) or getattr(other_user.recruiter_profile, 'first_name', None),
+                'last_name': getattr(other_user.interviewee_profile, 'last_name', None) or getattr(other_user.recruiter_profile, 'last_name', None),
+                'avatar': getattr(other_user.interviewee_profile, 'avatar', None) or getattr(other_user.recruiter_profile, 'avatar', None),
+                'company': company,
+                'status': 'online'  # Default status, can be enhanced later
+            }
+        })
+    # Sort by latest message timestamp
+    conversation_list.sort(key=lambda c: c['last_message_at'], reverse=True)
+    return jsonify({'conversations': conversation_list}), 200
+
+@auth_bp.route('/messages/<conversation_id>', methods=['GET'])
+def get_messages(conversation_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    # Only allow access if user is part of the conversation
+    messages = Message.query.filter_by(conversation_id=conversation_id).order_by(Message.timestamp).all()
+    if not messages or (messages[0].sender_id != user_id and messages[0].receiver_id != user_id):
+        return jsonify({'error': 'Unauthorized or conversation not found'}), 403
+    message_list = [
+        {
+            'id': m.id,
+            'sender_id': m.sender_id,
+            'receiver_id': m.receiver_id,
+            'content': m.content,
+            'created_at': m.timestamp.isoformat(),
+            'read': m.read
+        }
+        for m in messages
+    ]
+    return jsonify({'messages': message_list}), 200
+
+@auth_bp.route('/messages/send', methods=['POST'])
+def send_message():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    data = request.get_json()
+    receiver_id = data.get('receiver_id')
+    content = data.get('content')
+    if not receiver_id or not content:
+        return jsonify({'error': 'receiver_id and content are required'}), 400
+    receiver = User.query.get(receiver_id)
+    if not receiver:
+        return jsonify({'error': 'Receiver not found'}), 404
+    # Only recruiters can initiate conversations
+    if user.role == 'recruiter':
+        # Recruiter can message any interviewee
+        if receiver.role != 'interviewee':
+            return jsonify({'error': 'Recruiters can only message interviewees'}), 403
+        conversation_id = f"{user.id}-{receiver.id}"
+    elif user.role == 'interviewee':
+        # Interviewee can only reply to recruiters who have already messaged them
+        if receiver.role != 'recruiter':
+            return jsonify({'error': 'Interviewees can only message recruiters'}), 403
+        # Check if a message from this recruiter exists
+        existing = Message.query.filter_by(sender_id=receiver.id, receiver_id=user.id).first()
+        if not existing:
+            return jsonify({'error': 'You cannot initiate a conversation with a recruiter'}), 403
+        conversation_id = f"{receiver.id}-{user.id}"
+    else:
+        return jsonify({'error': 'Invalid user role'}), 403
+    # Save message
+    message = Message(
+        sender_id=user.id,
+        receiver_id=receiver.id,
+        content=content,
+        conversation_id=conversation_id,
+        timestamp=datetime.now()  # Use local time instead of UTC
+    )
+    db.session.add(message)
+    db.session.commit()
+    # Notification logic
+    notif_settings = None
+    if receiver.role == 'recruiter':
+        notif_settings = RecruiterNotificationSettings.query.filter_by(user_id=receiver.id).first()
+        push_enabled = notif_settings.push_message_notifications if notif_settings else True
+    else:
+        notif_settings = IntervieweeNotificationSettings.query.filter_by(user_id=receiver.id).first()
+        push_enabled = notif_settings.push_message_notifications if notif_settings else True
+    if push_enabled:
+        notif = Notification(
+            user_id=receiver.id,
+            type='message',
+            content=f'New message from {user.email}',
+            data=json.dumps({'message_id': message.id, 'conversation_id': conversation_id, 'sender_id': user.id}),
+            read=False
+        )
+        db.session.add(notif)
+        db.session.commit()
+    return jsonify({'message': 'Message sent successfully', 'message_id': message.id}), 201
+
+@auth_bp.route('/messages/<int:message_id>/read', methods=['POST'])
+def mark_message_read(message_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    message = Message.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+    if message.receiver_id != user_id:
+        return jsonify({'error': 'You can only mark your own received messages as read'}), 403
+    message.read = True
+    db.session.commit()
+    # Optionally, mark related notification as read
+    notif = Notification.query.filter_by(user_id=user_id, type='message').filter(Notification.data.contains(str(message_id))).first()
+    if notif:
+        notif.read = True
+        db.session.commit()
+    return jsonify({'message': 'Message marked as read'}), 200
+
+@auth_bp.route('/messages/<int:message_id>', methods=['DELETE'])
+def delete_message(message_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    message = Message.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+    # Users can only delete their own messages
+    if message.sender_id != user_id:
+        return jsonify({'error': 'You can only delete your own messages'}), 403
+    
+    # Store conversation_id before deleting for response
+    conversation_id = message.conversation_id
+    
+    # Delete the message
+    db.session.delete(message)
+    db.session.commit()
+    
+    return jsonify({'message': 'Message deleted successfully', 'conversation_id': conversation_id}), 200
+
+@auth_bp.route('/messages/<conversation_id>/mark-read', methods=['POST'])
+def mark_conversation_read(conversation_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Mark all unread messages in this conversation as read
+    messages = Message.query.filter_by(
+        conversation_id=conversation_id,
+        receiver_id=user_id,
+        read=False
+    ).all()
+    
+    for message in messages:
+        message.read = True
+    
+    db.session.commit()
+    return jsonify({'message': 'Messages marked as read'}), 200
+
+# --- NOTIFICATION ENDPOINTS ---
+@auth_bp.route('/notifications', methods=['GET'])
+def get_notifications():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    notifications = Notification.query.filter_by(user_id=user_id).order_by(Notification.created_at.desc()).all()
+    notif_list = [
+        {
+            'id': n.id,
+            'type': n.type,
+            'content': n.content,
+            'data': n.data,
+            'read': n.read,
+            'created_at': n.created_at.isoformat()
+        }
+        for n in notifications
+    ]
+    return jsonify(notif_list), 200
+
+@auth_bp.route('/notifications/unread-count', methods=['GET'])
+def get_unread_notification_count():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    count = Notification.query.filter_by(user_id=user_id, read=False).count()
+    return jsonify({'unread_count': count}), 200
+
+@auth_bp.route('/notifications/<int:notification_id>/read', methods=['POST'])
+def mark_notification_read(notification_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    notif = Notification.query.get(notification_id)
+    if not notif or notif.user_id != user_id:
+        return jsonify({'error': 'Notification not found'}), 404
+    notif.read = True
+    db.session.commit()
+    return jsonify({'message': 'Notification marked as read'}), 200
+
+@auth_bp.route('/notifications/mark-all-read', methods=['POST'])
+def mark_all_notifications_read():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Mark all unread notifications as read
+    notifications = Notification.query.filter_by(user_id=user_id, read=False).all()
+    for notification in notifications:
+        notification.read = True
+    
+    db.session.commit()
+    return jsonify({'message': 'All notifications marked as read'}), 200
+
+@auth_bp.route('/notifications/clear-all', methods=['DELETE'])
+def clear_all_notifications():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Delete all notifications for the user
+    notifications = Notification.query.filter_by(user_id=user_id).all()
+    for notification in notifications:
+        db.session.delete(notification)
+    
+    db.session.commit()
+    return jsonify({'message': 'All notifications cleared'}), 200
+
+@auth_bp.route('/messages/available-candidates', methods=['GET'])
+def get_available_candidates():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    # Only recruiters can access this endpoint
+    if user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    # Get all interviewees
+    interviewees = User.query.filter_by(role='interviewee').all()
+    candidates = []
+    for interviewee in interviewees:
+        profile = interviewee.interviewee_profile
+        if profile:
+            candidates.append({
+                'id': interviewee.id,
+                'email': interviewee.email,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'avatar': profile.avatar,
+                'created_at': interviewee.created_at.isoformat() if interviewee.created_at else None,
+            })
+    return jsonify({'candidates': candidates}), 200
 
 
