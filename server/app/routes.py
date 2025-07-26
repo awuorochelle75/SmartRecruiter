@@ -1,17 +1,19 @@
 import os
-from flask import Blueprint, request, jsonify, session, current_app
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem
+from flask import Blueprint, request, jsonify, session, current_app, g
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
 import uuid
-import json as pyjson
+import json
 import smtplib
 from email.mime.text import MIMEText
 from sqlalchemy import func
 import subprocess
 import tempfile
-import json
+from datetime import datetime, timezone
+import time
+import logging
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -1242,7 +1244,6 @@ def recruiter_assessment_analytics(assessment_id):
     }), 200
     
     
-# TODO: Implement the code evaluation route for running code snippets and test cases.
 @auth_bp.route('/run-code', methods=['POST'])
 def run_code():
     try:
@@ -1316,6 +1317,112 @@ const readline = () => {json.dumps(input_val)};
                 if timeout_occurred:
                     return jsonify({'test_case_results': [], 'timeout': True, 'output': timeout_error_result['error']}), 200
                 if all(r['error'] and not r['output'] for r in results):
+                    return jsonify({'test_case_results': results, 'timeout': False}), 200
+                return jsonify({'test_case_results': results, 'timeout': False}), 200
+        # --- Python support ---
+        elif language == 'python':
+            import sys
+            import ast
+            def get_func_args(user_code):
+                import re
+                match = re.search(r'def ([a-zA-Z_][a-zA-Z0-9_]*)\(([^)]*)\)', user_code)
+                if match:
+                    args = match.group(2).replace(' ', '')
+                    return match.group(1), [a for a in args.split(',') if a]
+                return 'solution', ['s']
+            def wrap_python_code(user_code, func_name, arg_names):
+                parse_args = '\n    '.join([f'{a} = ast.literal_eval(inputs[{i}])' for i, a in enumerate(arg_names)])
+                args_str = ', '.join(arg_names)
+                return f"""{user_code}\nif __name__ == '__main__':\n    import sys\n    import ast\n    inputs = sys.stdin.read().strip().split('\\n')\n    {parse_args}\n    print({func_name}({args_str}))\n"""
+            func_name, arg_names = get_func_args(code)
+            if not test_cases:  # Run Code (single input)
+                input_val = data.get('input', '')
+                py_code = wrap_python_code(code, func_name, arg_names)
+                with tempfile.NamedTemporaryFile(suffix='.py', delete=False, mode='w') as f:
+                    f.write(py_code)
+                    temp_path = f.name
+                try:
+                    proc = subprocess.run(['python3', temp_path], input=input_val, capture_output=True, text=True, timeout=5)
+                    output = proc.stdout.strip()
+                    error = proc.stderr.strip()
+                    if error:
+                        return jsonify({'output': '', 'error': error, 'compile_error': True, 'code': py_code}), 200
+                    return jsonify({'output': output, 'error': '', 'code': py_code}), 200
+                except subprocess.TimeoutExpired:
+                    return jsonify({'output': '', 'error': 'Error: Code execution timed out (possible infinite loop)', 'compile_error': True, 'code': py_code}), 200
+                finally:
+                    os.remove(temp_path)
+            else:
+                # First, check for compile errors before running test cases
+                py_code = wrap_python_code(code, func_name, arg_names)
+                with tempfile.NamedTemporaryFile(suffix='.py', delete=False, mode='w') as f:
+                    f.write(py_code)
+                    temp_path = f.name
+                try:
+                    compile(open(temp_path).read(), temp_path, 'exec')
+                except Exception as e:
+                    error_msg = str(e)
+                    os.remove(temp_path)
+                    return jsonify({'test_case_results': [], 'timeout': False, 'output': '', 'error': error_msg, 'compile_error': True}), 200
+                os.remove(temp_path)
+                timeout_occurred = False
+                timeout_error_result = None
+                results = []
+                for tc in test_cases:
+                    input_val = tc.get('input', '')
+                    expected = tc.get('expectedOutput', '')
+                    py_code = wrap_python_code(code, func_name, arg_names)
+                    with tempfile.NamedTemporaryFile(suffix='.py', delete=False, mode='w') as f:
+                        f.write(py_code)
+                        temp_path = f.name
+                    try:
+                        proc = subprocess.run(['python3', temp_path], input=input_val, capture_output=True, text=True, timeout=5)
+                        output = proc.stdout.strip()
+                        error = proc.stderr.strip()
+                        if error:
+                            results.append({
+                                'input': input_val,
+                                'expected': expected,
+                                'output': 'Runtime Error',
+                                'error': '',
+                                'passed': False,
+                                'runtime_error': True,
+                                'raw_stdout': '',
+                                'raw_stderr': '',
+                            })
+                        else:
+                            # Ensure both are strings and strip whitespace for comparison
+                            output_str = str(output).strip()
+                            expected_str = str(expected).strip()
+                            passed = (output_str == expected_str)
+                            results.append({
+                                'input': input_val,
+                                'expected': expected,
+                                'output': output,
+                                'error': '',
+                                'passed': passed,
+                                'runtime_error': False,
+                                'raw_stdout': proc.stdout,
+                                'raw_stderr': proc.stderr,
+                            })
+                    except subprocess.TimeoutExpired:
+                        timeout_occurred = True
+                        timeout_error_result = {
+                            'input': input_val,
+                            'expected': expected,
+                            'output': 'Runtime Error',
+                            'error': '',
+                            'passed': False,
+                            'runtime_error': True,
+                            'raw_stdout': '',
+                            'raw_stderr': '',
+                        }
+                        break
+                    finally:
+                        os.remove(temp_path)
+                if timeout_occurred:
+                    return jsonify({'test_case_results': [], 'timeout': True, 'output': timeout_error_result['error']}), 200
+                if all(r['runtime_error'] for r in results):
                     return jsonify({'test_case_results': results, 'timeout': False}), 200
                 return jsonify({'test_case_results': results, 'timeout': False}), 200
         return jsonify({'output': '', 'error': 'Unsupported language'}), 400
@@ -1513,6 +1620,227 @@ def public_practice_problems():
         query = query.filter_by(category_id=category_id)
     problems = query.order_by(PracticeProblem.created_at.desc()).all()
     return jsonify([practice_problem_to_dict(p) for p in problems]), 200
+
+
+@auth_bp.route('/practice-problems/<int:problem_id>/attempt', methods=['POST'])
+def submit_practice_problem_attempt(problem_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    problem = PracticeProblem.query.get(problem_id)
+    if not problem:
+        return jsonify({'error': 'Problem not found'}), 404
+    data = request.get_json()
+    start_time = data.get('start_time')
+    end_time = time.time()
+    time_taken = int(end_time - start_time) if start_time else None
+    problem_type = problem.problem_type
+    answer = data.get('answer')
+    selected_option = data.get('selected_option')
+    code_submission = data.get('code_submission')
+    test_case_results = None
+    score = 0
+    max_score = 1
+    passed = False
+    points_earned = 0
+    error_message = None
+    # --- Evaluate based on type ---
+    if problem_type == 'multiple-choice' or problem_type == 'multiple_choice':
+        passed = (selected_option == problem.correct_answer)
+        score = 1 if passed else 0
+        max_score = 1
+    elif problem_type == 'short-answer' or problem_type == 'short_answer':
+        # Handle both JSON array and plain string formats for answer_template
+        accepted = []
+        if problem.answer_template:
+            try:
+                # Try to parse as JSON array first
+                accepted = json.loads(problem.answer_template)
+                if not isinstance(accepted, list):
+                    # If it's not a list, treat it as a single answer
+                    accepted = [problem.answer_template]
+            except json.JSONDecodeError:
+                # If JSON parsing fails, treat it as a single answer
+                accepted = [problem.answer_template]
+        passed = any(a.strip().lower() == (answer or '').strip().lower() for a in accepted)
+        score = 1 if passed else 0
+        max_score = 1
+    elif problem_type == 'coding':
+        # Use the run_code logic for real code execution
+        from flask import current_app
+        from flask import request as flask_request
+        # Prepare test cases
+        all_cases = []
+        try:
+            all_cases = json.loads(problem.visible_test_cases or '[]') + json.loads(problem.hidden_test_cases or '[]')
+        except Exception:
+            pass
+        # Call the run_code logic
+        run_code_data = {
+            'code': code_submission,
+            'language': data.get('language', 'javascript'),
+            'test_cases': all_cases
+        }
+        with current_app.test_request_context('/run-code', method='POST', json=run_code_data):
+            from flask import jsonify as flask_jsonify
+            run_code_resp = run_code()
+            if hasattr(run_code_resp, 'get_json'):
+                run_code_result = run_code_resp.get_json()
+            else:
+                run_code_result = run_code_resp[0].get_json() if isinstance(run_code_resp, tuple) else {}
+        test_case_results = run_code_result.get('test_case_results', [])
+        error_message = run_code_result.get('error')
+        timeout = run_code_result.get('timeout')
+        # Score
+        num_passed = sum(1 for tc in test_case_results if tc.get('passed'))
+        score = num_passed
+        max_score = len(all_cases)
+        passed = (score == max_score and max_score > 0)
+        test_case_results = json.dumps(test_case_results)
+    # --- Points logic ---
+    points_earned = problem.points if passed else 0
+    # Check for previous attempts
+    prev = PracticeProblemAttempt.query.filter_by(user_id=user_id, problem_id=problem_id).order_by(PracticeProblemAttempt.score.desc()).first()
+    attempt_number = 1
+    streak = 1
+    if prev:
+        attempt_number = prev.attempt_number + 1
+        streak = prev.streak + 1 if prev.passed else 1
+        # Only award points if this is a higher score
+        if prev.score >= score:
+            points_earned = 0
+    # Save attempt
+    attempt = PracticeProblemAttempt(
+        user_id=user_id,
+        problem_id=problem_id,
+        problem_type=problem_type,
+        answer=answer,
+        selected_option=selected_option,
+        code_submission=code_submission,
+        test_case_results=test_case_results,
+        score=score,
+        max_score=max_score,
+        passed=passed,
+        time_taken=time_taken,
+        attempt_number=attempt_number,
+        points_earned=points_earned,
+        streak=streak
+    )
+    db.session.add(attempt)
+    db.session.commit()
+    return jsonify({
+        'passed': passed,
+        'score': score,
+        'max_score': max_score,
+        'points_earned': points_earned,
+        'attempt_number': attempt_number,
+        'streak': streak,
+        'test_case_results': json.loads(test_case_results) if test_case_results else None,
+        'error': error_message
+    }), 200
+
+# --- Get user attempts and streaks ---
+@auth_bp.route('/practice-problems/attempts', methods=['GET'])
+def get_user_practice_attempts():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    attempts = PracticeProblemAttempt.query.filter_by(user_id=user_id).order_by(PracticeProblemAttempt.timestamp.desc()).all()
+    return jsonify([
+        {
+            'problem_id': a.problem_id,
+            'problem_type': a.problem_type,
+            'score': a.score,
+            'max_score': a.max_score,
+            'passed': a.passed,
+            'time_taken': a.time_taken,
+            'attempt_number': a.attempt_number,
+            'points_earned': a.points_earned,
+            'streak': a.streak,
+            'timestamp': a.timestamp.isoformat() if a.timestamp else None
+        }
+        for a in attempts
+    ]), 200
+
+# --- Get user practice statistics ---
+@auth_bp.route('/practice-problems/statistics', methods=['GET'])
+def get_user_practice_statistics():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Get all attempts for the user
+    attempts = PracticeProblemAttempt.query.filter_by(user_id=user_id).all()
+    
+    if not attempts:
+        return jsonify({
+            'problems_solved': 0,
+            'success_rate': 0,
+            'avg_time': 0,
+            'streak': 0
+        }), 200
+    
+    # Calculate statistics
+    total_attempts = len(attempts)
+    passed_attempts = len([a for a in attempts if a.passed])
+    problems_solved = passed_attempts  # Count unique problems passed
+    success_rate = round((passed_attempts / total_attempts) * 100) if total_attempts > 0 else 0
+    
+    # Calculate average time (convert to minutes)
+    total_time = sum(a.time_taken or 0 for a in attempts)
+    avg_time_minutes = round(total_time / 60) if total_attempts > 0 else 0
+    
+    # Get current streak (from the most recent attempt)
+    latest_attempt = max(attempts, key=lambda x: x.timestamp)
+    current_streak = latest_attempt.streak
+    
+    return jsonify({
+        'problems_solved': problems_solved,
+        'success_rate': success_rate,
+        'avg_time': avg_time_minutes,
+        'streak': current_streak
+    }), 200
+
+# --- Get attempts for a specific practice problem ---
+@auth_bp.route('/practice-problems/<int:problem_id>/attempts', methods=['GET'])
+def get_problem_attempts(problem_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Check if problem exists
+    problem = PracticeProblem.query.get(problem_id)
+    if not problem:
+        return jsonify({'error': 'Problem not found'}), 404
+    
+    # Get all attempts for this problem with user information
+    attempts = db.session.query(PracticeProblemAttempt, User).join(
+        User, PracticeProblemAttempt.user_id == User.id
+    ).filter(
+        PracticeProblemAttempt.problem_id == problem_id
+    ).order_by(PracticeProblemAttempt.timestamp.desc()).all()
+    
+    return jsonify([
+        {
+            'id': a.PracticeProblemAttempt.id,
+            'user_id': a.PracticeProblemAttempt.user_id,
+            'user_email': a.User.email,
+            'problem_id': a.PracticeProblemAttempt.problem_id,
+            'problem_type': a.PracticeProblemAttempt.problem_type,
+            'score': a.PracticeProblemAttempt.score,
+            'max_score': a.PracticeProblemAttempt.max_score,
+            'passed': a.PracticeProblemAttempt.passed,
+            'time_taken': a.PracticeProblemAttempt.time_taken,
+            'attempt_number': a.PracticeProblemAttempt.attempt_number,
+            'points_earned': a.PracticeProblemAttempt.points_earned,
+            'streak': a.PracticeProblemAttempt.streak,
+            'timestamp': a.PracticeProblemAttempt.timestamp.isoformat() if a.PracticeProblemAttempt.timestamp else None
+        }
+        for a in attempts
+    ]), 200
 
 
 def practice_problem_to_dict(problem):

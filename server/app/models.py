@@ -269,3 +269,24 @@ class PracticeProblem(db.Model):
     recruiter = db.relationship('User', backref=db.backref('practice_problems', lazy='dynamic'))
 
 
+class PracticeProblemAttempt(db.Model):
+    __tablename__ = 'practice_problem_attempt'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    problem_id = db.Column(db.Integer, db.ForeignKey('practice_problem.id'), nullable=False)
+    problem_type = db.Column(db.String(50), nullable=False)
+    answer = db.Column(db.Text)  # For short answer
+    selected_option = db.Column(db.Integer)  # For multiple choice
+    code_submission = db.Column(db.Text)  # For coding
+    test_case_results = db.Column(db.Text)  # JSON: [{input, expected, output, passed}]
+    score = db.Column(db.Float, nullable=False, default=0)
+    max_score = db.Column(db.Float, nullable=False, default=0)
+    passed = db.Column(db.Boolean, default=False)
+    time_taken = db.Column(db.Integer)  # seconds
+    attempt_number = db.Column(db.Integer, nullable=False, default=1)
+    points_earned = db.Column(db.Integer, nullable=False, default=0)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    streak = db.Column(db.Integer, nullable=False, default=1)
+    # Relationships
+    user = db.relationship('User', backref=db.backref('practice_problem_attempts', lazy='dynamic'))
+    problem = db.relationship('PracticeProblem', backref=db.backref('attempts', lazy='dynamic'))
