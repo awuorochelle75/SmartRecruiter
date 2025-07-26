@@ -314,3 +314,30 @@ class Notification(db.Model):
     read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     user = db.relationship('User', backref=db.backref('notifications', lazy='dynamic'))
+    
+    
+class Interview(db.Model):
+    __tablename__ = 'interview'
+    id = db.Column(db.Integer, primary_key=True)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    interviewee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'), nullable=True)
+    position = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(50), nullable=False)
+    scheduled_at = db.Column(db.DateTime, nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='scheduled')
+    meeting_link = db.Column(db.String(255))
+    location = db.Column(db.String(255))
+    notes = db.Column(db.Text)
+    feedback = db.Column(db.Text)
+    rating = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationships
+    recruiter = db.relationship('User', foreign_keys=[recruiter_id], backref='scheduled_interviews')
+    interviewee = db.relationship('User', foreign_keys=[interviewee_id], backref='interviews')
+    assessment = db.relationship('Assessment', backref='interviews')
+
+
