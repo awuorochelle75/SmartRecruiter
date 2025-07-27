@@ -163,7 +163,7 @@ def get_current_user():
     return jsonify(result), 200
 
 
-# TODO: Implement the profile route to retrieve and update user profiles for interviewees and recruiters and make sure to handle both GET and POST methods.
+
 @auth_bp.route('/profile', methods=['GET', 'POST'])
 def profile():
     user_id = session.get('user_id')
@@ -264,8 +264,8 @@ def profile():
             profile.position = data.get('position', profile.position)
             db.session.commit()
             return jsonify({'message': 'Profile updated successfully'}), 200
-        
-        
+
+# --- Interviewee Notification Settings ---
 @auth_bp.route('/settings/notifications', methods=['GET', 'POST'])
 def notifications_settings():
     user_id = session.get('user_id')
@@ -288,7 +288,6 @@ def notifications_settings():
                     'push_interview_reminders': True,
                     'push_assessment_reminders': True,
                     'push_message_notifications': True,
-                    'push_message_notifications': True,
                     'weekly_job_alerts': True,
                     'monthly_progress_reports': False,
                 }), 200
@@ -299,7 +298,6 @@ def notifications_settings():
                 'email_results_updates': settings.email_results_updates,
                 'push_new_opportunities': settings.push_new_opportunities,
                 'push_interview_reminders': settings.push_interview_reminders,
-                'push_message_notifications': settings.push_message_notifications,
                 'push_assessment_reminders': settings.push_assessment_reminders,
                 'push_message_notifications': settings.push_message_notifications,
                 'weekly_job_alerts': settings.weekly_job_alerts,
@@ -335,6 +333,7 @@ def notifications_settings():
                     'push_new_applications': False,
                     'push_assessment_completed': True,
                     'push_interview_reminders': True,
+                    'push_message_notifications': True,
                     'weekly_reports': True,
                     'monthly_analytics': False,
                 }), 200
@@ -345,6 +344,7 @@ def notifications_settings():
                 'push_new_applications': settings.push_new_applications,
                 'push_assessment_completed': settings.push_assessment_completed,
                 'push_interview_reminders': settings.push_interview_reminders,
+                'push_message_notifications': settings.push_message_notifications,
                 'weekly_reports': settings.weekly_reports,
                 'monthly_analytics': settings.monthly_analytics,
             }), 200
@@ -360,6 +360,7 @@ def notifications_settings():
             settings.push_new_applications = data.get('push_new_applications', settings.push_new_applications)
             settings.push_assessment_completed = data.get('push_assessment_completed', settings.push_assessment_completed)
             settings.push_interview_reminders = data.get('push_interview_reminders', settings.push_interview_reminders)
+            settings.push_message_notifications = data.get('push_message_notifications', settings.push_message_notifications)
             settings.weekly_reports = data.get('weekly_reports', settings.weekly_reports)
             settings.monthly_analytics = data.get('monthly_analytics', settings.monthly_analytics)
             db.session.commit()
@@ -367,7 +368,7 @@ def notifications_settings():
     else:
         return jsonify({'error': 'Unauthorized'}), 403
 
-
+# --- Interviewee Privacy Settings ---
 @auth_bp.route('/settings/privacy', methods=['GET', 'POST'])
 def interviewee_privacy():
     user_id = session.get('user_id')
@@ -377,7 +378,6 @@ def interviewee_privacy():
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Unauthorized'}), 403
     from .models import IntervieweePrivacySettings
-    # TODO: Implement the privacy settings route for interviewees to manage profile visibility and contact preferences.
     if request.method == 'GET':
         settings = IntervieweePrivacySettings.query.filter_by(user_id=user.id).first()
         if not settings:
@@ -409,7 +409,7 @@ def interviewee_privacy():
         db.session.commit()
         return jsonify({'message': 'Privacy settings updated successfully'}), 200
 
-
+# --- Interviewee Security: Password Change and 2FA ---
 @auth_bp.route('/settings/security', methods=['POST'])
 def interviewee_security():
     user_id = session.get('user_id')
@@ -419,7 +419,7 @@ def interviewee_security():
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Unauthorized'}), 403
     data = request.get_json()
-    # TODO: Implement the security settings route for interviewees to manage password changes and two-factor authentication.
+    
     if 'current_password' in data and 'new_password' in data:
         if not user.check_password(data['current_password']):
             return jsonify({'error': 'Current password is incorrect'}), 400
@@ -435,6 +435,7 @@ def interviewee_security():
         db.session.commit()
     return jsonify({'message': 'Security settings updated successfully'}), 200
 
+# --- Company Logo Upload Endpoint ---
 @auth_bp.route('/profile/company_logo', methods=['POST'])
 def upload_company_logo():
     user_id = session.get('user_id')
@@ -468,7 +469,7 @@ def upload_company_logo():
         db.session.commit()
     return jsonify({'message': 'Company logo updated successfully', 'company_logo': filename}), 200
 
-
+# --- Security: Password Change and 2FA ---
 @auth_bp.route('/settings/security', methods=['POST'])
 def recruiter_security():
     user_id = session.get('user_id')
@@ -516,6 +517,7 @@ def upload_avatar():
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
+    # Remove old avatar if exists
     if user.role == 'interviewee':
         profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
     else:
@@ -643,6 +645,7 @@ def assessment_operations(assessment_id):
         assessment.deadline = data.get('deadline', assessment.deadline)
         assessment.category_id = data.get('category_id', assessment.category_id)
 
+        # --- PATCH: Safe update logic for questions ---
         incoming_questions = data.get('questions', [])
         incoming_ids = set(q.get('id') for q in incoming_questions if q.get('id'))
         existing_questions = {q.id: q for q in assessment.questions}
@@ -696,8 +699,9 @@ def assessment_operations(assessment_id):
         db.session.delete(assessment)
         db.session.commit()
         return jsonify({'message': 'Assessment deleted'}), 200
-    
-    
+
+
+
 @auth_bp.route('/assessments', methods=['GET', 'OPTIONS'])
 def list_assessments():
     if request.method == 'OPTIONS':
@@ -754,8 +758,7 @@ def list_assessments():
 @auth_bp.route('/public/test-assessments', methods=['GET'])
 def public_test_assessments():
     tests = Assessment.query.filter_by(is_test=True, status='active').order_by(Assessment.created_at.desc()).all()
-    result = [] # Initialize result list
-    
+    result = []
     for a in tests:
         result.append({
             'id': a.id,
@@ -819,8 +822,7 @@ def send_invite():
         return jsonify({'message': 'Invitation sent successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-    
+
 
 @auth_bp.route('/settings/delete-account', methods=['POST'])
 def delete_account():
@@ -857,6 +859,7 @@ def delete_account():
             RecruiterProfile.query.filter_by(user_id=user.id).delete()
             RecruiterNotificationSettings.query.filter_by(user_id=user.id).delete()
             # TODO: Delete recruiter's messages, invites, etc. if applicable
+        # Delete user
         db.session.delete(user)
         db.session.commit()
         session.clear()
@@ -867,6 +870,7 @@ def delete_account():
         db.session.rollback()
         return jsonify({'error': 'Failed to delete account', 'details': str(e)}), 500
 
+# --- INTERVIEWEE TEST ATTEMPT ENDPOINTS ---
 
 @auth_bp.route('/interviewee/assessments/<int:assessment_id>/start', methods=['POST'])
 def start_assessment_attempt(assessment_id):
@@ -904,7 +908,7 @@ def get_current_attempt(assessment_id):
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Unauthorized'}), 403
     attempt = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).order_by(AssessmentAttempt.num_attempt.desc()).first()
-    #TODO: Check if the assessment is a test and active
+    
     if not attempt:
         return jsonify({'error': 'No attempt found'}), 404
     answers = {a.question_id: a.answer for a in attempt.answers}
@@ -920,8 +924,7 @@ def get_current_attempt(assessment_id):
         'num_attempt': attempt.num_attempt,
         'time_spent': attempt.time_spent
     }), 200
-    
-    
+
 @auth_bp.route('/interviewee/attempts/<int:attempt_id>/answer', methods=['POST'])
 def submit_answer(attempt_id):
     user_id = session.get('user_id')
@@ -1072,7 +1075,7 @@ def get_attempts_for_assessment(assessment_id):
 
 
 
-
+# --- INTERVIEWEE ATTEMPTS SUMMARY ENDPOINT ---
 @auth_bp.route('/interviewee/attempts/summary', methods=['GET'])
 def get_attempts_summary():
     user_id = session.get('user_id')
@@ -1099,8 +1102,7 @@ def get_attempts_summary():
         })
     return jsonify(result), 200
 
-
-#TODO: Implement the route to retrieve feedback for assessment attempts by interviewees.
+# --- FEEDBACK ENDPOINTS ---
 @auth_bp.route('/feedback/assessment/<int:assessment_id>', methods=['POST', 'GET'])
 def assessment_feedback(assessment_id):
     user_id = session.get('user_id')
@@ -1166,13 +1168,10 @@ def candidate_feedback(attempt_id):
             } for f in feedbacks
         ]), 200
 
-
+# --- CODE EVALUATION ENDPOINTS ---
 @auth_bp.route('/code-eval/<int:attempt_answer_id>', methods=['GET', 'POST'])
 def code_evaluation(attempt_answer_id):
-    # user_id = session.get('user_id')
-    # user = User.query.get(session.get('user_id'))
-    # if not user or user.role not in ['interviewee', 'recruiter']:
-    #     return jsonify({'error': 'Unauthorized'}), 403
+    
     if request.method == 'POST':
         data = request.get_json()
         test_case_results = data.get('test_case_results')
@@ -1187,8 +1186,7 @@ def code_evaluation(attempt_answer_id):
         db.session.add(cer)
         db.session.commit()
         return jsonify({'message': 'Code evaluation saved'}), 201
-    else:
-        
+    else:  # GET
         cer = CodeEvaluationResult.query.filter_by(attempt_answer_id=attempt_answer_id).first()
         if not cer:
             return jsonify({'error': 'Not found'}), 404
@@ -1200,7 +1198,7 @@ def code_evaluation(attempt_answer_id):
             'created_at': cer.created_at
         }), 200
 
-
+# --- ANALYTICS ENDPOINTS ---
 @auth_bp.route('/analytics/interviewee/summary', methods=['GET'])
 def interviewee_analytics():
     user_id = session.get('user_id')
@@ -1226,9 +1224,7 @@ def recruiter_assessment_analytics(assessment_id):
     user = User.query.get(user_id)
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Unauthorized'}), 403
-    # assessment = Assessment.query.get(assessment_id)
-    # if not assessment or assessment.recruiter_id != user.id:
-    #     return jsonify({'error': 'Assessment not found'}), 404
+    
     attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment_id).all()
     total = len(attempts)
     completed = [a for a in attempts if a.status == 'completed']
@@ -1244,8 +1240,7 @@ def recruiter_assessment_analytics(assessment_id):
         'feedback_count': len(feedbacks),
         'average_feedback_rating': avg_rating
     }), 200
-    
-    
+
 @auth_bp.route('/run-code', methods=['POST'])
 def run_code():
     try:
@@ -1361,12 +1356,14 @@ const readline = () => {json.dumps(input_val)};
                     f.write(py_code)
                     temp_path = f.name
                 try:
+                    # Try to compile the code
                     compile(open(temp_path).read(), temp_path, 'exec')
                 except Exception as e:
                     error_msg = str(e)
                     os.remove(temp_path)
                     return jsonify({'test_case_results': [], 'timeout': False, 'output': '', 'error': error_msg, 'compile_error': True}), 200
                 os.remove(temp_path)
+                # If no compile error, run test cases
                 timeout_occurred = False
                 timeout_error_result = None
                 results = []
@@ -1430,7 +1427,6 @@ const readline = () => {json.dumps(input_val)};
         return jsonify({'output': '', 'error': 'Unsupported language'}), 400
     except Exception as e:
         return jsonify({'output': '', 'error': str(e)}), 200
-    
 
 @auth_bp.route('/assessments/<int:assessment_id>/results', methods=['GET'])
 def get_assessment_results(assessment_id):
@@ -1462,9 +1458,7 @@ def get_assessment_results(assessment_id):
         })
     return jsonify(results), 200
 
-
-    
-
+# --- CATEGORY ENDPOINTS ---
 @auth_bp.route('/categories', methods=['GET', 'POST'])
 def categories():
     user_id = session.get('user_id')
@@ -1514,7 +1508,7 @@ def category_ops(cat_id):
         db.session.commit()
         return jsonify({'message': 'Category deleted'}), 200
 
-
+# --- Practice Problems CRUD (Recruiter) ---
 @auth_bp.route('/practice-problems', methods=['GET', 'POST'])
 def practice_problems():
     user_id = session.get('user_id')
@@ -1613,7 +1607,7 @@ def practice_problem_detail(problem_id):
         db.session.commit()
         return jsonify({'message': 'Practice problem deleted'}), 200
 
-
+# --- Public endpoint for interviewees to list practice problems by category ---
 @auth_bp.route('/public/practice-problems', methods=['GET'])
 def public_practice_problems():
     category_id = request.args.get('category_id')
@@ -1623,7 +1617,7 @@ def public_practice_problems():
     problems = query.order_by(PracticeProblem.created_at.desc()).all()
     return jsonify([practice_problem_to_dict(p) for p in problems]), 200
 
-
+# --- Submit a practice problem attempt ---
 @auth_bp.route('/practice-problems/<int:problem_id>/attempt', methods=['POST'])
 def submit_practice_problem_attempt(problem_id):
     user_id = session.get('user_id')
@@ -1844,7 +1838,7 @@ def get_problem_attempts(problem_id):
         for a in attempts
     ]), 200
 
-
+# --- Helper function ---
 def practice_problem_to_dict(problem):
     return {
         'id': problem.id,
@@ -1880,8 +1874,7 @@ def practice_problem_to_dict(problem):
         'updated_at': problem.updated_at.isoformat() if problem.updated_at else None,
     }
 
-
-
+# --- MESSAGING ENDPOINTS ---
 @auth_bp.route('/messages/conversations', methods=['GET'])
 def get_conversations():
     user_id = session.get('user_id')
@@ -2194,6 +2187,7 @@ def get_available_candidates():
     
     return jsonify({'candidates': candidates}), 200
 
+# --- INTERVIEW SCHEDULING ENDPOINTS ---
 
 @auth_bp.route('/interviews', methods=['GET'])
 def get_interviews():
@@ -2637,43 +2631,6 @@ def get_candidates():
     
     return jsonify({'candidates': candidates}), 200
 
-@auth_bp.route('/interviews/candidates', methods=['GET'])
-def get_interview_candidates():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'Not authenticated'}), 401
-    user = User.query.get(user_id)
-    if not user or user.role != 'recruiter':
-        return jsonify({'error': 'Only recruiters can view candidates'}), 403
-    
-    interviewees = User.query.filter_by(role='interviewee').all()
-    candidates = []
-    
-    for interviewee in interviewees:
-        profile = IntervieweeProfile.query.filter_by(user_id=interviewee.id).first()
-        if profile:
-            attempts = AssessmentAttempt.query.filter_by(interviewee_id=interviewee.id).all()
-            completed_assessments = [a for a in attempts if a.status == 'completed']
-            
-            candidate_data = {
-                'id': interviewee.id,
-                'email': interviewee.email,
-                'first_name': profile.first_name,
-                'last_name': profile.last_name,
-                'position': profile.position,
-                'company': profile.company,
-                'skills': profile.skills,
-                'avatar': profile.avatar,
-                'completed_assessments': len(completed_assessments),
-                'total_assessments': len(attempts),
-                'average_score': sum([a.score for a in completed_assessments if a.score]) / len(completed_assessments) if completed_assessments else 0
-            }
-            candidates.append(candidate_data)
-    
-    return jsonify({'candidates': candidates}), 200
-
-
-# TODO: Implement recruiter dashboard
 @auth_bp.route('/dashboard/recruiter', methods=['GET'])
 def get_recruiter_dashboard():
     user_id = session.get('user_id')
@@ -2741,12 +2698,15 @@ def get_recruiter_dashboard():
                         'type': interview.type.replace('_', ' ').title()
                     })
     
+    # Sort by scheduled time
     upcoming_interviews.sort(key=lambda x: x['time'])
     
+    # Calculate weekly changes
     week_ago = today - timedelta(days=7)
     week_ago_assessments = len([a for a in assessments if a.created_at >= week_ago])
     week_ago_candidates = len(set([a.interviewee_id for a in assessment_attempts if a.started_at >= week_ago]))
     
+    # Get assessment performance by category
     category_performance = []
     categories = Category.query.filter_by(recruiter_id=user_id).all()
     for category in categories:
@@ -2762,7 +2722,9 @@ def get_recruiter_dashboard():
                 'total_attempts': len(category_attempts)
             })
     
+    # If no categories, create default performance data
     if not category_performance:
+        # Get overall performance data
         scores = [a.score for a in assessment_attempts if a.score is not None]
         avg_score = round(sum(scores) / len(scores), 0) if scores else 0
         category_performance.append({
@@ -2799,6 +2761,7 @@ def get_recruiter_analytics():
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Only recruiters can access analytics'}), 403
     
+    # Get all data for this recruiter
     assessments = Assessment.query.filter_by(recruiter_id=user_id).all()
     assessment_attempts = AssessmentAttempt.query.join(Assessment).filter(Assessment.recruiter_id == user_id).all()
     interviews = Interview.query.filter_by(recruiter_id=user_id).all()
@@ -2808,6 +2771,7 @@ def get_recruiter_analytics():
         (Message.sender_id == user_id) | (Message.receiver_id == user_id)
     ).all()
     
+    # Calculate analytics
     total_assessments = len(assessments)
     total_attempts = len(assessment_attempts)
     completed_attempts = len([a for a in assessment_attempts if a.status == 'completed'])
@@ -2826,12 +2790,14 @@ def get_recruiter_analytics():
     total_messages = len(messages)
     unread_messages = len([m for m in messages if not m.read and m.receiver_id == user_id])
     
+    # Get unique candidates
     unique_candidates = set()
     for attempt in assessment_attempts:
         unique_candidates.add(attempt.interviewee_id)
     for interview in interviews:
         unique_candidates.add(interview.interviewee_id)
     
+    # Monthly trends (last 6 months)
     from datetime import datetime, timedelta
     months = []
     assessment_trends = []
@@ -2848,6 +2814,7 @@ def get_recruiter_analytics():
         assessment_trends.append(month_assessments)
         interview_trends.append(month_interviews)
     
+    # Top performing assessments
     assessment_performance = []
     for assessment in assessments:
         attempts = [a for a in assessment_attempts if a.assessment_id == assessment.id]
@@ -2862,8 +2829,10 @@ def get_recruiter_analytics():
                 'type': 'test' if assessment.is_test else 'regular'
             })
     
+    # Sort by average score
     assessment_performance.sort(key=lambda x: x['average_score'], reverse=True)
     
+    # Category breakdown
     categories = Category.query.filter_by(recruiter_id=user_id).all()
     category_stats = []
     for category in categories:
@@ -2926,7 +2895,7 @@ def get_recruiter_analytics():
         }
     }), 200
 
-# TODO: Implement interviewee dashboard
+
 @auth_bp.route('/dashboard/interviewee', methods=['GET'])
 def get_interviewee_dashboard():
     user_id = session.get('user_id')
@@ -2936,11 +2905,12 @@ def get_interviewee_dashboard():
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Only interviewees can access dashboard'}), 403
     
+    
     assessment_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user_id).all()
     practice_attempts = PracticeProblemAttempt.query.filter_by(user_id=user_id).all()
     interviews = Interview.query.filter_by(interviewee_id=user_id).all()
     
-    # Calculate stats
+    
     completed_tests = len([a for a in assessment_attempts if a.status == 'completed'])
     total_attempts = len(assessment_attempts)
     
@@ -3062,6 +3032,7 @@ def get_interviewee_dashboard():
                 'total_attempts': len(attempts)
             })
     
+    # Calculate weekly changes
     week_ago = today - timedelta(days=7)
     week_ago_completed = len([a for a in assessment_attempts if a.status == 'completed' and a.completed_at and a.completed_at >= week_ago])
     week_ago_practice = len([p for p in practice_attempts if p.timestamp >= week_ago])
@@ -3082,10 +3053,9 @@ def get_interviewee_dashboard():
         'available_tests': available_tests[:3],
         'recent_results': recent_results,
         'upcoming_interviews': upcoming_interviews[:2],
-        'skill_progress': skill_progress[:3] 
+        'skill_progress': skill_progress[:3]
     }), 200
-    
-# TODO: Implement profile statistics for recruiters and interviewees
+
 @auth_bp.route('/profile/recruiter/stats', methods=['GET'])
 def get_recruiter_profile_stats():
     """Get recruiter profile statistics and recent activity"""
@@ -3108,13 +3078,17 @@ def get_recruiter_profile_stats():
                 candidate_ids.add(attempt.interviewee_id)
         candidates_managed = len(candidate_ids)
         
+        # Get interviews scheduled by recruiter
         interviews = Interview.query.filter_by(recruiter_id=user_id).all()
         interviews_scheduled = len(interviews)
         
+        # Get member since date
         member_since = user.created_at.strftime('%b %Y') if user.created_at else 'Unknown'
         
+        # Get recent activity (last 5 activities)
         recent_activities = []
         
+        # Recent assessments created
         recent_assessments = Assessment.query.filter_by(recruiter_id=user_id).order_by(Assessment.created_at.desc()).limit(3).all()
         for assessment in recent_assessments:
             recent_activities.append({
@@ -3123,6 +3097,7 @@ def get_recruiter_profile_stats():
                 'date': assessment.created_at.isoformat() if assessment.created_at else None
             })
         
+        # Recent interviews scheduled
         recent_interviews = Interview.query.filter_by(recruiter_id=user_id).order_by(Interview.created_at.desc()).limit(3).all()
         for interview in recent_interviews:
             interviewee = User.query.get(interview.interviewee_id)
@@ -3132,6 +3107,7 @@ def get_recruiter_profile_stats():
                 'date': interview.created_at.isoformat() if interview.created_at else None
             })
         
+        # Recent candidate invitations (assessment attempts)
         recent_attempts = AssessmentAttempt.query.join(Assessment).filter(
             Assessment.recruiter_id == user_id
         ).order_by(AssessmentAttempt.started_at.desc()).limit(3).all()
@@ -3145,6 +3121,7 @@ def get_recruiter_profile_stats():
                 'date': attempt.started_at.isoformat() if attempt.started_at else None
             })
         
+        # Sort all activities by date and take top 5
         recent_activities.sort(key=lambda x: x['date'] or '', reverse=True)
         recent_activities = recent_activities[:5]
         
@@ -3174,6 +3151,7 @@ def get_interviewee_profile_stats():
         return jsonify({'error': 'Only interviewees can access this endpoint'}), 403
     
     try:
+        # Get completed assessments
         completed_attempts = AssessmentAttempt.query.filter_by(
             interviewee_id=user_id, 
             status='completed'
@@ -3208,6 +3186,7 @@ def get_interviewee_profile_stats():
         
         achievements = []
         
+        # Top performer achievement
         if average_score >= 90:
             achievements.append({
                 'title': 'Top Performer',
@@ -3215,6 +3194,7 @@ def get_interviewee_profile_stats():
                 'date': datetime.now().strftime('%Y-%m-%d')
             })
         
+        # Quick learner achievement
         if assessments_completed >= 5:
             achievements.append({
                 'title': 'Quick Learner',
@@ -3228,7 +3208,7 @@ def get_interviewee_profile_stats():
                 'description': f'Maintained {average_score}%+ average score',
                 'date': datetime.now().strftime('%Y-%m-%d')
             })
-    
+        
         recent_high_scores = [a for a in completed_attempts if a.score and a.score >= 90]
         if recent_high_scores:
             achievements.append({
@@ -3238,7 +3218,7 @@ def get_interviewee_profile_stats():
             })
         
         achievements.sort(key=lambda x: x['date'], reverse=True)
-        achievements = achievements[:4]
+        achievements = achievements[:4]  # Limit to 4 achievements
         
         return jsonify({
             'stats': {
@@ -3253,7 +3233,6 @@ def get_interviewee_profile_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 
 @auth_bp.route('/feedback', methods=['POST'])
@@ -3400,7 +3379,6 @@ def get_feedback_stats():
         suggestion_feedback = Feedback.query.filter_by(type='suggestion').count()
         bug_report_feedback = Feedback.query.filter_by(type='bug_report').count()
         
-        # Recent feedback (last 7 days)
         from datetime import datetime, timedelta
         week_ago = datetime.now() - timedelta(days=7)
         recent_feedback = Feedback.query.filter(Feedback.created_at >= week_ago).count()
@@ -3418,7 +3396,6 @@ def get_feedback_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 
 @auth_bp.route('/tests/available', methods=['GET'])
@@ -3441,7 +3418,7 @@ def get_available_tests():
     completed_attempts = [a for a in user_attempts if a.status == 'completed' and a.score is not None]
     average_score = round(sum([a.score for a in completed_attempts]) / len(completed_attempts), 0) if completed_attempts else 0
     
-    total_time = sum([a.time_spent or 0 for a in user_attempts if a.time_spent]) // 3600 
+    total_time = sum([a.time_spent or 0 for a in user_attempts if a.time_spent]) // 3600  # Convert to hours
     
     tests_data = []
     for test in public_tests:
@@ -3450,6 +3427,7 @@ def get_available_tests():
         test_attempts = [a for a in user_attempts if a.assessment_id == test.id]
         completed_attempts_for_test = [a for a in test_attempts if a.status == 'completed']
         
+        # Determine status
         if completed_attempts_for_test:
             status = "completed"
             score = round(completed_attempts_for_test[0].score, 0) if completed_attempts_for_test[0].score else 0
@@ -3530,6 +3508,4 @@ def get_interview_candidates():
             candidates.append(candidate_data)
     
     return jsonify({'candidates': candidates}), 200
-
-
 
