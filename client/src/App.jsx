@@ -53,59 +53,370 @@ import IntervieweeFeedback from "./pages/interviewee/Feedback"
 import IntervieweeNotifications from "./pages/interviewee/Notifications"
 
 
+// Protected Route Component
+function ProtectedRoute({ children, requiredRole }) {
+  const { user, isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    const redirectPath = user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"
+    return <Navigate to={redirectPath} replace />
+  }
+
+  return children
+}
+
+function OnboardingGuard({ children }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== "interviewee") return <Navigate to="/" replace />
+  if (user.onboarding === false) return children
+  // If onboarding is complete, redirect to dashboard
+  return <Navigate to="/interviewee/dashboard" replace />
+}
+
+function AppRoutes() {
+  const { user, isAuthenticated, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
 
 
 
-function App() {
   return (
-    < ThemeProvider  defaultTheme='system' storageKey="SmartRecruiter-Theme">
- 
-
-    <BrowserRouter>
-     <Routes>
+    <Routes>
       <Route path="/" element={<Home />} />
-      <Route path='/navbar' element={<NavbarDashboard/>}/>
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/intervieweedashboard" element={<IntervieweeDashboard />} />
-      <Route path="/Sidebar" element={<IntervieweeSidebar />} />
-      <Route path="/availabletest" element={<AvailableTests />} />
-      <Route path="/results" element={<MyResults/>} />
-
-     
-
-      <Route path="/practice" element={<PracticeArena/>} /> 
-      <Route path="/interviews" element={<ScheduledInterviews/>} /> 
-      <Route path="/myProfile" element={<IntervieweeProfile/>} />
-      <Route path="/notifications" element={<IntervieweeNotification/>} />
-      <Route path="/mySettings" element={<IntervieweeSettings/>} />
-      <Route path="/messages" element={<MyMessages/>} />
-
-     
-
-      
-
-
-      <Route path = "/onboarding" element = {< Onboarding />} />
-      <Route path = "/recruiterdashboard" element = {<RecruiterDashboard/>} />
-      <Route path = "/assessments" element = {< Assessments />} />
-      <Route path = "/candidates" element = {< Candidates />} />
-      <Route path = "/resultsanalytics" element = {< ResultsAnalytics />} />
-      <Route path = "/interview" element = {< Interview />} />
-      <Route path = "/createassessment" element = {< CreateAssessment />} />
-      <Route path = "/recruiter/profile" element = {< RecruiterProfile />} />
-      <Route path = "/recruiter/settings" element = {< Settings />} />
-      <Route path="/404" element={<NotFound />} />
-
-
-
-
-     </Routes>
-   
- 
-    </BrowserRouter>
- </ThemeProvider>
+      <Route
+        path="/login"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <Login />
+          )
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <Signup />
+          )
+        }
+      />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <OnboardingGuard>
+              <Onboarding />
+            </OnboardingGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/about" element={<About />} />
+      <Route
+        path="/recruiter/dashboard"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <RecruiterDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/create-assessment"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <CreateAssessment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/edit-assessment/:id"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <EditAssessment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/assessments"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <RecruiterAssessments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/assessments/:id"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <AssessmentDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/assessments/:id/results"
+        element={<Results />}
+      />
+      <Route
+        path="/recruiter/assessments/:id/send-invites"
+        element={<SendInvites />}
+      />
+      <Route
+        path="/recruiter/send-invites"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <SendInvites />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/candidates"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <Candidates />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/results"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <RecruiterResults />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/analytics"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <ResultsAnalytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/interviews"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <Interviews />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/messages"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <Messages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/settings"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/profile"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <RecruiterProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/feedback"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <RecruiterFeedback />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/notifications"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <RecruiterNotifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/create-test-assessment"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <CreateTestAssessment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/categories"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <Categories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/practice-problems"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <PracticeProblems />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/practice-problems/create"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <CreatePracticeProblem />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/practice-problems/edit/:id"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <EditPracticeProblem />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/practice-problems/details/:id"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <PracticeProblemDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/dashboard"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/tests"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <AvailableTests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/assessment/:id"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <AssessmentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/practice-assessment/:id"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <AssessmentPage isPractice={true} />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/results"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeResults />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/practice"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <PracticeArena />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/interviews"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <ScheduledInterviews />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/messages"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeMessages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/profile"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/settings"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/feedback"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeFeedback />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interviewee/notifications"
+        element={
+          <ProtectedRoute requiredRole="interviewee">
+            <IntervieweeNotifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   )
 }
 
-export default App;
+export default function App() {
+  return (
+    <ThemeProvider defaultTheme="system" storageKey="smart-recruiter-theme">
+      <AuthProvider>
+        <NotificationProvider>
+          <ToastProvider>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </ToastProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  )
+}
+
+
