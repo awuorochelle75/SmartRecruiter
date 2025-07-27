@@ -1,214 +1,335 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MoreVertical } from 'lucide-react';
-import DashboardNavbar from '../../components/DashboardNavbar';
-import NavbarDashboard from '../../components/DashboardNavbar';
-import { Button } from '../../components/ui/button';
-import {Card,CardHeader,CardTitle,CardDescription,CardContent, } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
+"use client"
+
+import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
+import { Users, FileText, BarChart3, TrendingUp, Award, Calendar, Plus, Eye } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Progress } from "../../components/ui/progress"
+import { Badge } from "../../components/ui/badge"
+import { useToast } from "../../components/ui/use-toast"
+import RecruiterSidebar from "../../components/RecruiterSidebar"
+import DashboardNavbar from "../../components/DashboardNavbar"
+import { DashboardSkeleton } from "../../components/LoadingSkeleton"
 
 export default function RecruiterDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true)
+  const [dashboardData, setDashboardData] = useState(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/dashboard/recruiter`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setDashboardData(data)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch dashboard data",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch dashboard data",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+  
+
+  const formatTimeAgo = (dateString) => {
+    const now = new Date()
+    const date = new Date(dateString)
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60))
+    
+    if (diffInHours < 1) return "Just now"
+    if (diffInHours < 24) return `${diffInHours}h ago`
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`
+    return `${Math.floor(diffInHours / 168)}w ago`
+  }
+
+  const formatInterviewTime = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    if (date.toDateString() === now.toDateString()) {
+      return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-background">
+        <RecruiterSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardNavbar />
+          <main className="flex-1 p-6">
+            <DashboardSkeleton />
+          </main>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex h-screen bg-background text-foreground dark:bg-background dark:text-foreground overflow-hidden relative">
-     
-      <div className="hidden md:block w-64">
+    <div className="flex h-screen bg-background">
+      <RecruiterSidebar />
+      <div className="flex-1 flex flex-col">
         <DashboardNavbar />
-      </div>
-
-      
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 flex">
-          <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
-            <DashboardNavbar />
-          </div>
-          <div
-            className="flex-1 bg-black bg-opacity-30"
-            onClick={() => setSidebarOpen(false)}
-          />
-        </div>
-      )}
-
-     
-      <div className="flex-1 flex flex-col overflow-hidden">
-        
-        <div className="h-16 bg-background border-b border-border shadow-sm flex items-center justify-between px-4">
-         
-          <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
-            <MoreVertical className="h-6 w-6" />
-          </button>
-
-         
-          <NavbarDashboard />
-        </div>
-
-      
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted dark:bg-muted space-y-10">
-         
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold">Recruiter Dashboard</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage your assessments and track candidate performance.
-              </p>
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Recruiter Dashboard</h1>
+                <p className="text-muted-foreground">Manage your assessments and track candidate performance</p>
+              </div>
+              <div className="flex gap-2">
+                <Button asChild>
+                  <Link to="/recruiter/create-assessment">
+                    <span className="inline-flex items-center">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Assessment
+                    </span>
+                  </Link>
+                </Button>
+                <Button variant="outline" className="bg-transparent" asChild>
+                  <Link to="/recruiter/send-invites">
+                    <span className="inline-flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      Invite Candidates
+                    </span>
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm">
-                <Link to="/createassessment">Create assessment</Link>
-              </Button>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/invitecandidates">Invite candidates</Link>
-              </Button>
-            </div>
-          </div>
 
-        
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: 'Active Assessments', value: '12' },
-              { title: 'Total Candidates', value: '248' },
-              { title: 'Completion Rate', value: '87%' },
-              { title: 'Average Score', value: '78.5' },
-            ].map((stat, i) => (
-              <Card key={i} className="hover:shadow-lg transition">
-                <CardHeader>
-                  <CardTitle className="text-primary text-sm font-medium">{stat.title}</CardTitle>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Active Assessments</CardTitle>
+                  <FileText className="h-4 w-4 text-blue-600" />
                 </CardHeader>
-                <CardContent className="text-2xl font-bold">{stat.value}</CardContent>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {dashboardData?.stats?.active_assessments || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-green-600">{dashboardData?.stats?.weekly_changes?.assessments || "+0 this week"}</span>
+                  </p>
+                </CardContent>
               </Card>
-            ))}
-          </div>
 
-        
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           
-            <Card className="transition hover:shadow-lg">
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Candidates</CardTitle>
+                  <Users className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {dashboardData?.stats?.total_candidates || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-green-600">{dashboardData?.stats?.weekly_changes?.candidates || "+0 this week"}</span>
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {dashboardData?.stats?.completion_rate || 0}%
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-green-600">{dashboardData?.stats?.weekly_changes?.completion_rate || "+0% from last month"}</span>
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Score</CardTitle>
+                  <Award className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {Math.round(dashboardData?.stats?.average_score || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-green-600">{dashboardData?.stats?.weekly_changes?.average_score || "+0 points"}</span>
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Candidates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5" />
+                    <span>Recent Candidate Activity</span>
+                  </CardTitle>
+                  <CardDescription>Latest submissions and progress updates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData?.recent_candidates?.length > 0 ? (
+                      dashboardData.recent_candidates.map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{candidate.name}</p>
+                            <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                            <p className="text-xs text-muted-foreground">{candidate.assessment}</p>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <Badge
+                              variant={candidate.status === "completed" ? "default" : "secondary"}
+                              className={
+                                candidate.status === "completed"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              }
+                            >
+                              {candidate.status}
+                            </Badge>
+                            {candidate.score && (
+                              <p className="text-sm font-medium text-foreground">Score: {Math.round(candidate.score)}%</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {candidate.status === "completed" 
+                                ? formatTimeAgo(candidate.completed_at)
+                                : `Started ${formatTimeAgo(candidate.submitted_at)}`
+                              }
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to="/recruiter/results">
+                              <span>
+                                <Eye className="h-4 w-4" />
+                              </span>
+                            </Link>
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No recent candidate activity</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Upcoming Interviews */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Calendar className="h-5 w-5" />
+                    <span>Upcoming Interviews</span>
+                  </CardTitle>
+                  <CardDescription>Scheduled interviews for this week</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData?.upcoming_interviews?.length > 0 ? (
+                      dashboardData.upcoming_interviews.map((interview) => (
+                        <div key={interview.id} className="p-3 rounded-lg bg-muted/30">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-foreground">{interview.candidate}</h4>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link to="/recruiter/interviews">
+                                <span>
+                                  <Eye className="h-4 w-4" />
+                                </span>
+                              </Link>
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{interview.position}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-muted-foreground">{formatInterviewTime(interview.time)}</span>
+                            <Badge variant="outline">{interview.type}</Badge>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No upcoming interviews</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Assessment Performance */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Recent Candidate Activity</CardTitle>
-                <CardDescription>Latest submissions and progress updates</CardDescription>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="h-5 w-5" />
+                  <span>Assessment Performance Overview</span>
+                </CardTitle>
+                <CardDescription>Performance metrics across all active assessments</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  {
-                    name: "Sarah Johnson",
-                    email: "sarah.johnson@example.com",
-                    role: "Frontend Dev Test",
-                    status: "Completed",
-                    score: "92%",
-                    time: "2 days ago",
-                  },
-                  {
-                    name: "Mike Chen",
-                    email: "mike.chen@example.com",
-                    role: "Backend Dev Test",
-                    status: "In Progress",
-                    score: null,
-                    time: "1 day ago",
-                  },
-                  {
-                    name: "Alex Rodriguez",
-                    email: "alex.rodriguez@example.com",
-                    role: "Fullstack Challenge",
-                    status: "Completed",
-                    score: "88%",
-                    time: "3 days ago",
-                  },
-                ].map((candidate, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted px-4 py-2 rounded-md gap-2"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{candidate.name}</p>
-                      <p className="text-xs text-muted-foreground">{candidate.email}</p>
-                      <p className="text-xs text-muted-foreground">{candidate.role}</p>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {dashboardData?.category_performance?.length > 0 ? (
+                    dashboardData.category_performance.slice(0, 3).map((category, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{category.name}</span>
+                          <span className="text-sm text-muted-foreground">{Math.round(category.average_score)}% avg</span>
+                        </div>
+                        <Progress value={Math.round(category.average_score)} className="h-2" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-8">
+                      <p className="text-muted-foreground">No assessment performance data available</p>
                     </div>
-                    <div className="text-right space-y-1">
-                      <Badge
-                        className={`${
-                          candidate.status === "Completed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-100"
-                            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-100"
-                        } text-xs`}
-                      >
-                        {candidate.status}
-                      </Badge>
-                      {candidate.status === "Completed" && (
-                        <p className="text-xs text-muted-foreground">
-                          <span className="font-medium">Score:</span> {candidate.score}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-400">{candidate.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            
-            <Card className="transition hover:shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Upcoming Interviews</CardTitle>
-                <CardDescription>Scheduled interviews for this week</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  { name: 'Emma Wilson', date: 'Today, 4PM', label: 'Technical Interview' },
-                  { name: 'David Amedi', date: 'Tomorrow, 10AM', label: 'System Design' },
-                  { name: 'James Kimani', date: 'Saturday, 9AM', label: 'Code Review' },
-                ].map((interview, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted px-4 py-2 rounded-md gap-2"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{interview.name}</p>
-                      <p className="text-xs text-muted-foreground">{interview.date}</p>
-                    </div>
-                    <Badge variant="outline" className="text-xs rounded-full px-2 py-0.5 whitespace-nowrap">
-                      <Link to="/signup">{interview.label}</Link>
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-        
-          <Card className="mx-auto w-full transition hover:shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg md:text-xl">Assessment Performance Overview</CardTitle>
-              <CardDescription>
-                Performance metrics across all active assessments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {[
-                { title: 'Frontend Assessments', value: '85%' },
-                { title: 'Backend Assessments', value: '88%' },
-                { title: 'Full Stack Challenges', value: '72%' },
-              ].map((item, i) => (
-                <div key={i}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{item.title}</span>
-                    <span className="text-sm text-muted-foreground">{item.value} avg</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: item.value }}
-                    />
-                  </div>
+                  )}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
       </div>
     </div>
-  );
-
-
+  )
 }
+
+
 
