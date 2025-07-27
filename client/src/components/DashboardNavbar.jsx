@@ -1,18 +1,22 @@
 "use client";
 
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
-import ThemeToggle from './ThemeToggle';
+import { useState, useEffect } from "react"
+import ThemeToggle from "./ThemeToggle"
+import { Bell, Search } from "lucide-react"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
   DropdownMenuLabel,
-} from './ui/dropdown-menu';
-import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
-import { Bell } from 'lucide-react';
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { useAuth } from "../contexts/AuthContext"
+import { useNotifications } from "../contexts/NotificationContext"
 
 function NavbarDashboard() {
   return (

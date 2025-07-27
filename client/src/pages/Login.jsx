@@ -1,109 +1,205 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {Card,CardHeader,CardTitle,CardContent,} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import NavbarDashboard from "../components/DashboardNavbar";
-import { Code2 } from "lucide-react";
-import Footer from "./Footer";
+"use client"
 
-function Login() {
-  const [role, setRole] = useState("");
-  const navigate = useNavigate();
+import { Eye, EyeOff, Code2 } from "lucide-react"
+import { Button } from "../components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { Input } from "../components/ui/input"
+import { Label } from "../components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
+import Navbar from "../components/Navbar"
+import Footer from "../components/Footer"
+import { useAuth } from "../contexts/AuthContext"
+import { useToast } from "../components/ui/use-toast"
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (role === "recruiter") {
-      navigate("/recruiterdashboard");
-    } else if (role === "interviewee") {
-      navigate("/IntervieweeDashboard");
-    } else {
-      alert("Please select a role");
+export default function Login() {
+  const [showPassword, setShowPassword] = useState(false)
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    role: "interviewee",
+  })
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    // Improved validation
+    if (!formData.email || !formData.password) {
+      toast({ title: "Error", description: "Email and password are required.", variant: "destructive" })
+      return
     }
-  };
+    if (!/^[^@]+@[^@]+\.[^@]+$/.test(formData.email)) {
+      toast({ title: "Error", description: "Please enter a valid email address.", variant: "destructive" })
+      return
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+      email: formData.email,
+          password: formData.password,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error("Login error response:", data)
+        toast({ title: "Error", description: data.error || "Login failed", variant: "destructive" })
+        return
+      }
+      
+      
+      const userRes = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
+        credentials: "include",
+      })
+      
+      if (userRes.ok) {
+        const userData = await userRes.json()
+
+        
+        let onboardingStatus = true
+        if (userData.role === 'interviewee') {
+          onboardingStatus = !!userData.onboarding_completed
+        }
+        
+        login({ 
+          ...userData, 
+          onboarding: onboardingStatus 
+        })
+        // localStorage.setItem("smartrecruiter_user", JSON.stringify(userData))
+        // toast({ title: "Success", description: "Login successful!", variant: "default" })
+        if (data.redirect) {
+          navigate(data.redirect)
+        } else {
+          navigate("/")
+        }
+    } else {
+        console.error("Failed to fetch user data:", userRes.status)
+        toast({ title: "Error", description: "Failed to fetch user data", variant: "destructive" })
+      }
+    } catch (err) {
+      console.error("Login error:", err)
+      toast({ title: "Error", description: "Login failed: " + err.message, variant: "destructive" })
+    }
+  }
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
+  }
+
+  const handleRoleChange = (value) => {
+    setFormData({
+      ...formData,
+      role: value,
+    })
+  }
 
   return (
-    <div className="bg-muted min-h-screen text-foreground">
-      <NavbarDashboard />
+    <div className="min-h-screen bg-background-alt">
+      <Navbar />
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <Code2 className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold text-foreground">SmartRecruiter</span>
+            </div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
+            <p className="text-muted-foreground">Sign in to your account to continue</p>
+          </div>
 
-      <div className="flex flex-col items-center gap-2 px-4 mt-4">
-        <Link to="/" className="flex items-center space-x-2 mt-5">
-          <Code2 className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">SmartRecruiter</span>
-        </Link>
+          <Card>
+            <CardHeader>
+              <CardTitle>Sign In</CardTitle>
+              <CardDescription>Enter your credentials to access your account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="role">I am a...</Label>
+                  <Select value={formData.role} onValueChange={handleRoleChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recruiter">Recruiter</SelectItem>
+                      <SelectItem value="interviewee">Interviewee</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <h2 className="font-bold text-lg">Welcome Back</h2>
-        <p className="text-sm text-muted-foreground font-light text-center">
-          Sign in to your account to continue
-        </p>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
 
-        <Card className="bg-card border border-border shadow-lg rounded-2xl p-6 w-full max-w-2xl mb-6">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold">Sign In</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Enter your credentials to access your account
-            </p>
-            <p className="text-sm mt-2 font-medium">I am a...</p>
-          </CardHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
 
-          <CardContent>
-            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-             
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="border border-border bg-background rounded-md px-4 py-2 text-sm w-full"
-              >
-                <option value="" disabled>
-                  Select role
-                </option>
-                <option value="recruiter">Recruiter</option>
-                <option value="interviewee">Interviewee</option>
-              </select>
+                <div className="flex items-center justify-between">
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                    Forgot your password?
+                  </Link>
+                </div>
 
-              
-              <div className="flex flex-col mt-2">
-                <label className="text-sm font-medium">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="border border-border bg-background rounded-md px-4 py-2 text-sm mt-1"
-                />
-              </div>
+                <Button type="submit" className="w-full">
+                  Sign In as {formData.role === "recruiter" ? "Recruiter" : "Interviewee"}
+                </Button>
 
-              
-              <div className="flex flex-col mt-2">
-                <label className="text-sm font-medium">Password</label>
-                <input
-                  type="password"
-                  placeholder="Enter your password"
-                  className="border border-border bg-background rounded-md px-4 py-2 text-sm mt-1"
-                />
-              </div>
-
-             
-              <Link to="/resetpassword" className="text-primary text-sm">
-                Forgot your password?
-              </Link>
-
-              <Button size="lg" className="text-lg px-8 mt-2" type="submit">
-                <span className="inline-flex items-center">Sign In</span>
-              </Button>
-
-              
-              <p className="flex justify-center text-sm mt-2">
-                Don't have an account?{" "}
-                <Link to="/signup" className="text-primary ml-1">
-                  Sign Up here
-                </Link>
-              </p>
-            </form>
-          </CardContent>
-        </Card>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link to="/signup" className="text-primary hover:underline">
+                      Sign up here
+                    </Link>
+                  </p>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
       <Footer />
     </div>
-  );
+  )
 }
 
-export default Login;
+
