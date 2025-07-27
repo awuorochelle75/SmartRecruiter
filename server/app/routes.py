@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -3249,6 +3249,171 @@ def get_interviewee_profile_stats():
             },
             'skills': skills,
             'achievements': achievements
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+@auth_bp.route('/feedback', methods=['POST'])
+def submit_feedback():
+    """Submit feedback from interviewee"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Only interviewees can submit feedback'}), 403
+    
+    try:
+        data = request.get_json()
+        feedback_type = data.get('type')
+        subject = data.get('subject')
+        message = data.get('message')
+        
+        if not all([feedback_type, subject, message]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        if feedback_type not in ['general', 'suggestion', 'bug_report']:
+            return jsonify({'error': 'Invalid feedback type'}), 400
+        
+        # Create new feedback
+        feedback = Feedback(
+            interviewee_id=user_id,
+            type=feedback_type,
+            subject=subject,
+            message=message
+        )
+        
+        db.session.add(feedback)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Feedback submitted successfully',
+            'feedback_id': feedback.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/feedback', methods=['GET'])
+def get_feedback():
+    """Get feedback - all for recruiters, own for interviewees"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    try:
+        if user.role == 'recruiter':
+            feedback_list = Feedback.query.order_by(Feedback.created_at.desc()).all()
+        else:
+            feedback_list = Feedback.query.filter_by(interviewee_id=user_id).order_by(Feedback.created_at.desc()).all()
+        
+        feedback_data = []
+        for feedback in feedback_list:
+            interviewee = User.query.get(feedback.interviewee_id)
+            interviewee_profile = IntervieweeProfile.query.filter_by(user_id=feedback.interviewee_id).first()
+            feedback_data.append({
+                'id': feedback.id,
+                'type': feedback.type,
+                'subject': feedback.subject,
+                'message': feedback.message,
+                'status': feedback.status,
+                'priority': feedback.priority,
+                'admin_notes': feedback.admin_notes,
+                'created_at': feedback.created_at.isoformat() if feedback.created_at else None,
+                'interviewee_name': f"{interviewee_profile.first_name} {interviewee_profile.last_name}" if interviewee_profile else "Unknown User",
+                'interviewee_email': interviewee.email if interviewee else "Unknown"
+            })
+        
+        return jsonify({'feedback': feedback_data}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/feedback/<int:feedback_id>', methods=['PUT'])
+def update_feedback_status(feedback_id):
+    """Update feedback status and admin notes (recruiters only)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can update feedback status'}), 403
+    
+    try:
+        data = request.get_json()
+        status = data.get('status')
+        priority = data.get('priority')
+        admin_notes = data.get('admin_notes')
+        
+        feedback = Feedback.query.get(feedback_id)
+        if not feedback:
+            return jsonify({'error': 'Feedback not found'}), 404
+        
+        if status:
+            feedback.status = status
+        if priority:
+            feedback.priority = priority
+        if admin_notes is not None:
+            feedback.admin_notes = admin_notes
+        
+        feedback.updated_at = datetime.now()
+        db.session.commit()
+        
+        return jsonify({'message': 'Feedback updated successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/feedback/stats', methods=['GET'])
+def get_feedback_stats():
+    """Get feedback statistics (recruiters only)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can view feedback stats'}), 403
+    
+    try:
+        total_feedback = Feedback.query.count()
+        pending_feedback = Feedback.query.filter_by(status='pending').count()
+        reviewed_feedback = Feedback.query.filter_by(status='reviewed').count()
+        resolved_feedback = Feedback.query.filter_by(status='resolved').count()
+        
+        # Feedback by type
+        general_feedback = Feedback.query.filter_by(type='general').count()
+        suggestion_feedback = Feedback.query.filter_by(type='suggestion').count()
+        bug_report_feedback = Feedback.query.filter_by(type='bug_report').count()
+        
+        # Recent feedback (last 7 days)
+        from datetime import datetime, timedelta
+        week_ago = datetime.now() - timedelta(days=7)
+        recent_feedback = Feedback.query.filter(Feedback.created_at >= week_ago).count()
+        
+        return jsonify({
+            'total_feedback': total_feedback,
+            'pending_feedback': pending_feedback,
+            'reviewed_feedback': reviewed_feedback,
+            'resolved_feedback': resolved_feedback,
+            'general_feedback': general_feedback,
+            'suggestion_feedback': suggestion_feedback,
+            'bug_report_feedback': bug_report_feedback,
+            'recent_feedback': recent_feedback
         }), 200
         
     except Exception as e:
