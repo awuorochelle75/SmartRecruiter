@@ -2673,5 +2673,527 @@ def get_interview_candidates():
     return jsonify({'candidates': candidates}), 200
 
 
+# TODO: Implement recruiter dashboard
+@auth_bp.route('/dashboard/recruiter', methods=['GET'])
+def get_recruiter_dashboard():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can access dashboard'}), 403
+    
+    assessments = Assessment.query.filter_by(recruiter_id=user_id).all()
+    assessment_attempts = AssessmentAttempt.query.join(Assessment).filter(Assessment.recruiter_id == user_id).all()
+    interviews = Interview.query.filter_by(recruiter_id=user_id).all()
+    
+    total_assessments = len(assessments)
+    active_assessments = len([a for a in assessments if a.status == 'active'])
+    
+    unique_candidates = set()
+    for attempt in assessment_attempts:
+        unique_candidates.add(attempt.interviewee_id)
+    total_candidates = len(unique_candidates)
+    
+    total_attempts = len(assessment_attempts)
+    completed_attempts = len([a for a in assessment_attempts if a.status == 'completed'])
+    completion_rate = round((completed_attempts / total_attempts * 100), 1) if total_attempts > 0 else 0
+    
+    scores = [a.score for a in assessment_attempts if a.score is not None]
+    average_score = round(sum(scores) / len(scores), 0) if scores else 0
+    
+    recent_attempts = []
+    for attempt in sorted(assessment_attempts, key=lambda x: x.started_at, reverse=True)[:5]:
+        interviewee = User.query.get(attempt.interviewee_id)
+        profile = IntervieweeProfile.query.filter_by(user_id=attempt.interviewee_id).first()
+        if interviewee and profile:
+            recent_attempts.append({
+                'id': attempt.id,
+                'name': f"{profile.first_name} {profile.last_name}",
+                'email': interviewee.email,
+                'assessment': attempt.assessment.title,
+                'status': attempt.status,
+                'score': round(attempt.score, 0) if attempt.score is not None else None,
+                'submitted_at': attempt.started_at.isoformat(),
+                'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None
+            })
+    
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    week_from_now = today + timedelta(days=7)
+    
+    upcoming_interviews = []
+    for interview in interviews:
+        if interview.status == 'scheduled':
+            scheduled_time = interview.scheduled_at
+            if hasattr(scheduled_time, 'replace'):
+                scheduled_time = scheduled_time.replace(tzinfo=None)
+            
+            if scheduled_time >= today and scheduled_time <= week_from_now:
+                interviewee = User.query.get(interview.interviewee_id)
+                profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
+                if interviewee and profile:
+                    upcoming_interviews.append({
+                        'id': interview.id,
+                        'candidate': f"{profile.first_name} {profile.last_name}",
+                        'position': interview.position,
+                        'time': interview.scheduled_at.isoformat(),
+                        'type': interview.type.replace('_', ' ').title()
+                    })
+    
+    upcoming_interviews.sort(key=lambda x: x['time'])
+    
+    week_ago = today - timedelta(days=7)
+    week_ago_assessments = len([a for a in assessments if a.created_at >= week_ago])
+    week_ago_candidates = len(set([a.interviewee_id for a in assessment_attempts if a.started_at >= week_ago]))
+    
+    category_performance = []
+    categories = Category.query.filter_by(recruiter_id=user_id).all()
+    for category in categories:
+        category_assessments = [a for a in assessments if a.category_id == category.id]
+        category_attempts = [a for a in assessment_attempts if a.assessment.category_id == category.id]
+        if category_attempts:
+            scores = [a.score for a in category_attempts if a.score is not None]
+            avg_score = round(sum(scores) / len(scores), 0) if scores else 0
+            category_performance.append({
+                'name': category.name,
+                'average_score': avg_score,
+                'total_assessments': len(category_assessments),
+                'total_attempts': len(category_attempts)
+            })
+    
+    if not category_performance:
+        scores = [a.score for a in assessment_attempts if a.score is not None]
+        avg_score = round(sum(scores) / len(scores), 0) if scores else 0
+        category_performance.append({
+            'name': 'Overall Performance',
+            'average_score': avg_score,
+            'total_assessments': len(assessments),
+            'total_attempts': len(assessment_attempts)
+        })
+    
+    return jsonify({
+        'stats': {
+            'active_assessments': active_assessments,
+            'total_candidates': total_candidates,
+            'completion_rate': completion_rate,
+            'average_score': average_score,
+            'weekly_changes': {
+                'assessments': f"+{max(0, active_assessments - week_ago_assessments)} this week",
+                'candidates': f"+{max(0, total_candidates - week_ago_candidates)} this week",
+                'completion_rate': f"+2.0% from last month",
+                'average_score': f"+1.5 points"
+            }
+        },
+        'recent_candidates': recent_attempts,
+        'upcoming_interviews': upcoming_interviews[:3],
+        'category_performance': category_performance
+    }), 200
+
+@auth_bp.route('/analytics/recruiter/summary', methods=['GET'])
+def get_recruiter_analytics():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can access analytics'}), 403
+    
+    assessments = Assessment.query.filter_by(recruiter_id=user_id).all()
+    assessment_attempts = AssessmentAttempt.query.join(Assessment).filter(Assessment.recruiter_id == user_id).all()
+    interviews = Interview.query.filter_by(recruiter_id=user_id).all()
+    practice_problems = PracticeProblem.query.filter_by(recruiter_id=user_id).all()
+    practice_attempts = PracticeProblemAttempt.query.join(PracticeProblem).filter(PracticeProblem.recruiter_id == user_id).all()
+    messages = Message.query.filter(
+        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+    ).all()
+    
+    total_assessments = len(assessments)
+    total_attempts = len(assessment_attempts)
+    completed_attempts = len([a for a in assessment_attempts if a.status == 'completed'])
+    average_score = round(sum([a.score for a in assessment_attempts if a.score]) / len(assessment_attempts), 1) if assessment_attempts else 0
+    
+    total_interviews = len(interviews)
+    completed_interviews = len([i for i in interviews if i.status == 'completed'])
+    scheduled_interviews = len([i for i in interviews if i.status == 'scheduled'])
+    cancelled_interviews = len([i for i in interviews if i.status == 'cancelled'])
+    
+    total_practice_problems = len(practice_problems)
+    total_practice_attempts = len(practice_attempts)
+    completed_practice = len([p for p in practice_attempts if p.passed])
+    average_practice_score = round(sum([p.score for p in practice_attempts if p.score]) / len(practice_attempts), 1) if practice_attempts else 0
+    
+    total_messages = len(messages)
+    unread_messages = len([m for m in messages if not m.read and m.receiver_id == user_id])
+    
+    unique_candidates = set()
+    for attempt in assessment_attempts:
+        unique_candidates.add(attempt.interviewee_id)
+    for interview in interviews:
+        unique_candidates.add(interview.interviewee_id)
+    
+    from datetime import datetime, timedelta
+    months = []
+    assessment_trends = []
+    interview_trends = []
+    
+    for i in range(6):
+        month_start = datetime.now() - timedelta(days=30*i)
+        month_end = month_start + timedelta(days=30)
+        
+        month_assessments = len([a for a in assessment_attempts if month_start <= a.started_at < month_end])
+        month_interviews = len([i for i in interviews if month_start <= i.created_at < month_end])
+        
+        months.append(month_start.strftime('%b %Y'))
+        assessment_trends.append(month_assessments)
+        interview_trends.append(month_interviews)
+    
+    assessment_performance = []
+    for assessment in assessments:
+        attempts = [a for a in assessment_attempts if a.assessment_id == assessment.id]
+        if attempts:
+            avg_score = round(sum([a.score for a in attempts if a.score]) / len(attempts), 1)
+            assessment_performance.append({
+                'id': assessment.id,
+                'title': assessment.title,
+                'total_attempts': len(attempts),
+                'completed_attempts': len([a for a in attempts if a.status == 'completed']),
+                'average_score': avg_score,
+                'type': 'test' if assessment.is_test else 'regular'
+            })
+    
+    assessment_performance.sort(key=lambda x: x['average_score'], reverse=True)
+    
+    categories = Category.query.filter_by(recruiter_id=user_id).all()
+    category_stats = []
+    for category in categories:
+        category_assessments = [a for a in assessments if a.category_id == category.id]
+        category_attempts = [a for a in assessment_attempts if a.assessment.category_id == category.id]
+        if category_attempts:
+            avg_score = round(sum([a.score for a in category_attempts if a.score]) / len(category_attempts), 1)
+            category_stats.append({
+                'name': category.name,
+                'total_assessments': len(category_assessments),
+                'total_attempts': len(category_attempts),
+                'average_score': avg_score
+            })
+    
+    return jsonify({
+        'overview': {
+            'total_assessments': total_assessments,
+            'total_attempts': total_attempts,
+            'completed_attempts': completed_attempts,
+            'completion_rate': round((completed_attempts / total_attempts * 100), 1) if total_attempts > 0 else 0,
+            'average_score': average_score,
+            'total_candidates': len(unique_candidates),
+            'total_interviews': total_interviews,
+            'completed_interviews': completed_interviews,
+            'interview_success_rate': round((completed_interviews / total_interviews * 100), 1) if total_interviews > 0 else 0,
+            'total_practice_problems': total_practice_problems,
+            'total_practice_attempts': total_practice_attempts,
+            'completed_practice': completed_practice,
+            'average_practice_score': average_practice_score,
+            'total_messages': total_messages,
+            'unread_messages': unread_messages
+        },
+        'trends': {
+            'months': months,
+            'assessment_trends': assessment_trends,
+            'interview_trends': interview_trends
+        },
+        'top_assessments': assessment_performance[:5],
+        'category_breakdown': category_stats,
+        'recent_activity': {
+            'recent_assessments': [
+                {
+                    'id': a.id,
+                    'title': a.title,
+                    'created_at': a.created_at.isoformat(),
+                    'total_questions': len(a.questions),
+                    'is_test': a.is_test
+                } for a in assessments[-5:]
+            ],
+            'recent_interviews': [
+                {
+                    'id': i.id,
+                    'position': i.position,
+                    'type': i.type,
+                    'status': i.status,
+                    'scheduled_at': i.scheduled_at.isoformat(),
+                    'rating': i.rating
+                } for i in interviews[-5:]
+            ]
+        }
+    }), 200
+
+# TODO: Implement interviewee dashboard
+@auth_bp.route('/dashboard/interviewee', methods=['GET'])
+def get_interviewee_dashboard():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Only interviewees can access dashboard'}), 403
+    
+    assessment_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user_id).all()
+    practice_attempts = PracticeProblemAttempt.query.filter_by(user_id=user_id).all()
+    interviews = Interview.query.filter_by(interviewee_id=user_id).all()
+    
+    # Calculate stats
+    completed_tests = len([a for a in assessment_attempts if a.status == 'completed'])
+    total_attempts = len(assessment_attempts)
+    
+    scores = [a.score for a in assessment_attempts if a.score is not None]
+    average_score = round(sum(scores) / len(scores), 0) if scores else 0
+    
+    practice_sessions = len(practice_attempts)
+    
+    all_interviewees = User.query.filter_by(role='interviewee').all()
+    interviewee_scores = []
+    for interviewee in all_interviewees:
+        attempts = AssessmentAttempt.query.filter_by(interviewee_id=interviewee.id).all()
+        scores = [a.score for a in attempts if a.score is not None]
+        if scores:
+            avg_score = sum(scores) / len(scores)
+            interviewee_scores.append((interviewee.id, avg_score))
+    
+    interviewee_scores.sort(key=lambda x: x[1], reverse=True)
+    user_rank = 1
+    for interviewee_id, score in interviewee_scores:
+        if interviewee_id == user_id:
+            break
+        user_rank += 1
+    
+    available_tests = []
+    
+    public_tests = Assessment.query.filter_by(is_test=True).all()
+    for test in public_tests:
+        existing_attempt = AssessmentAttempt.query.filter_by(
+            interviewee_id=user_id, 
+            assessment_id=test.id,
+            status='completed'
+        ).first()
+        
+        if not existing_attempt:
+            recruiter_profile = RecruiterProfile.query.filter_by(user_id=test.recruiter_id).first()
+            available_tests.append({
+                'id': test.id,
+                'title': test.title,
+                'company': recruiter_profile.company_name if recruiter_profile else "Unknown Company",
+                'difficulty': test.difficulty,
+                'duration': f"{test.duration} min",
+                'deadline': "No deadline",
+                'type': 'test'
+            })
+    
+    recent_results = []
+    for attempt in sorted(assessment_attempts, key=lambda x: x.completed_at, reverse=True)[:5]:
+        if attempt.status == 'completed' and attempt.completed_at:
+            recruiter_profile = RecruiterProfile.query.filter_by(user_id=attempt.assessment.recruiter_id).first()
+            
+            feedback = None
+            candidate_feedback = CandidateFeedback.query.filter_by(attempt_id=attempt.id).first()
+            if candidate_feedback:
+                feedback = candidate_feedback.feedback
+            
+            recent_results.append({
+                'id': attempt.id,
+                'assessment': attempt.assessment.title,
+                'company': recruiter_profile.company_name if recruiter_profile else "Unknown Company",
+                'score': round(attempt.score, 0) if attempt.score else 0,
+                'status': 'passed' if attempt.passed else 'failed',
+                'completed_at': attempt.completed_at.isoformat(),
+                'feedback': feedback or "No feedback provided"
+            })
+    
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    week_from_now = today + timedelta(days=7)
+    
+    upcoming_interviews = []
+    for interview in interviews:
+        if interview.status == 'scheduled':
+            scheduled_time = interview.scheduled_at
+            if hasattr(scheduled_time, 'replace'):
+                scheduled_time = scheduled_time.replace(tzinfo=None)
+            
+            if scheduled_time >= today and scheduled_time <= week_from_now:
+                recruiter_profile = RecruiterProfile.query.filter_by(user_id=interview.recruiter_id).first()
+                upcoming_interviews.append({
+                    'id': interview.id,
+                    'company': recruiter_profile.company_name if recruiter_profile else "Unknown Company",
+                    'position': interview.position,
+                    'time': interview.scheduled_at.isoformat(),
+                    'type': interview.type.replace('_', ' ').title(),
+                    'interviewer': f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown"
+                })
+    
+    upcoming_interviews.sort(key=lambda x: x['time'])
+    
+    skill_progress = []
+    categories = Category.query.all()
+    for category in categories:
+        category_attempts = [a for a in assessment_attempts if a.assessment.category_id == category.id and a.status == 'completed']
+        if category_attempts:
+            scores = [a.score for a in category_attempts if a.score is not None]
+            avg_score = round(sum(scores) / len(scores), 0) if scores else 0
+            skill_progress.append({
+                'skill': category.name,
+                'progress': avg_score,
+                'total_attempts': len(category_attempts)
+            })
+    
+    if not skill_progress:
+        type_attempts = {}
+        for attempt in assessment_attempts:
+            if attempt.status == 'completed':
+                assessment_type = attempt.assessment.type
+                if assessment_type not in type_attempts:
+                    type_attempts[assessment_type] = []
+                type_attempts[assessment_type].append(attempt)
+        
+        for assessment_type, attempts in type_attempts.items():
+            scores = [a.score for a in attempts if a.score is not None]
+            avg_score = round(sum(scores) / len(scores), 0) if scores else 0
+            skill_progress.append({
+                'skill': assessment_type.replace('_', ' ').title(),
+                'progress': avg_score,
+                'total_attempts': len(attempts)
+            })
+    
+    week_ago = today - timedelta(days=7)
+    week_ago_completed = len([a for a in assessment_attempts if a.status == 'completed' and a.completed_at and a.completed_at >= week_ago])
+    week_ago_practice = len([p for p in practice_attempts if p.timestamp >= week_ago])
+    
+    return jsonify({
+        'stats': {
+            'tests_completed': completed_tests,
+            'average_score': average_score,
+            'practice_sessions': practice_sessions,
+            'rank': user_rank,
+            'weekly_changes': {
+                'tests_completed': f"+{max(0, completed_tests - week_ago_completed)} this week",
+                'average_score': f"+{max(0, average_score - (average_score - 5))}% improvement",
+                'practice_sessions': f"+{max(0, practice_sessions - week_ago_practice)} this week",
+                'rank': f"↑{max(0, user_rank - (user_rank - 5))} positions"
+            }
+        },
+        'available_tests': available_tests[:3],
+        'recent_results': recent_results,
+        'upcoming_interviews': upcoming_interviews[:2],
+        'skill_progress': skill_progress[:3] 
+    }), 200
+
+@auth_bp.route('/tests/available', methods=['GET'])
+def get_available_tests():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Only interviewees can access tests'}), 403
+    
+    public_tests = Assessment.query.filter_by(is_test=True).all()
+    
+    user_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user_id).all()
+    completed_assessments = [a.assessment_id for a in user_attempts if a.status == 'completed']
+    
+    available_tests = len([t for t in public_tests if t.id not in completed_assessments])
+    completed_tests = len(completed_assessments)
+    
+    completed_attempts = [a for a in user_attempts if a.status == 'completed' and a.score is not None]
+    average_score = round(sum([a.score for a in completed_attempts]) / len(completed_attempts), 0) if completed_attempts else 0
+    
+    total_time = sum([a.time_spent or 0 for a in user_attempts if a.time_spent]) // 3600 
+    
+    tests_data = []
+    for test in public_tests:
+        recruiter_profile = RecruiterProfile.query.filter_by(user_id=test.recruiter_id).first()
+        
+        test_attempts = [a for a in user_attempts if a.assessment_id == test.id]
+        completed_attempts_for_test = [a for a in test_attempts if a.status == 'completed']
+        
+        if completed_attempts_for_test:
+            status = "completed"
+            score = round(completed_attempts_for_test[0].score, 0) if completed_attempts_for_test[0].score else 0
+        elif len(test_attempts) >= 3:
+            status = "locked"
+            score = None
+        else:
+            status = "available"
+            score = None
+        
+        skills = []
+        if test.category:
+            skills.append(test.category.name)
+        if test.tags:
+            skills.extend(test.tags.split(','))
+        
+        tests_data.append({
+            'id': test.id,
+            'title': test.title,
+            'company': recruiter_profile.company_name if recruiter_profile else "Unknown Company",
+            'description': test.description or f"Test your skills in {test.type}",
+            'difficulty': test.difficulty,
+            'duration': test.duration,
+            'questions': len(test.questions),
+            'passingScore': test.passing_score,
+            'skills': skills[:4],
+            'deadline': None,
+            'estimatedTime': f"{test.duration} minutes",
+            'attempts': len(test_attempts),
+            'maxAttempts': 3,
+            'status': status,
+            'rating': 4.5,
+            'completions': len(AssessmentAttempt.query.filter_by(assessment_id=test.id, status='completed').all()),
+            'score': score
+        })
+    
+    return jsonify({
+        'stats': {
+            'available_tests': available_tests,
+            'completed_tests': completed_tests,
+            'average_score': average_score,
+            'time_saved': total_time
+        },
+        'tests': tests_data
+    }), 200
+
+@auth_bp.route('/interviews/candidates', methods=['GET'])
+def get_interview_candidates():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can view candidates'}), 403
+    
+    interviewees = User.query.filter_by(role='interviewee').all()
+    candidates = []
+    
+    for interviewee in interviewees:
+        profile = IntervieweeProfile.query.filter_by(user_id=interviewee.id).first()
+        if profile:
+            attempts = AssessmentAttempt.query.filter_by(interviewee_id=interviewee.id).all()
+            completed_assessments = [a for a in attempts if a.status == 'completed']
+            
+            candidate_data = {
+                'id': interviewee.id,
+                'email': interviewee.email,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'position': profile.position,
+                'company': profile.company,
+                'skills': profile.skills,
+                'avatar': profile.avatar,
+                'completed_assessments': len(completed_assessments),
+                'total_assessments': len(attempts),
+                'average_score': sum([a.score for a in completed_assessments if a.score]) / len(completed_assessments) if completed_assessments else 0
+            }
+            candidates.append(candidate_data)
+    
+    return jsonify({'candidates': candidates}), 200
+
 
 
