@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
 
-
 class DatabaseSession(CallbackDict, SessionMixin):
     def __init__(self, initial=None, sid=None, permanent=False):
         def on_update(self):
@@ -38,42 +37,38 @@ class DatabaseSessionInterface(SessionInterface):
         if not sid:
             sid = self._generate_sid()
             return DatabaseSession(sid=sid, permanent=self.permanent)
-        
+    
         # Find session in database
         from .models import db
         session_record = db.session.execute(
             db.text("SELECT * FROM session WHERE session_id = :sid"),
             {"sid": sid}
         ).fetchone()
-        
+    
         if not session_record:
             return DatabaseSession(sid=sid, permanent=self.permanent)
-        
+    
         # Check if session has expired
-        if session_record.expiry < datetime.utcnow():
-            db.session.execute(
-                db.text("DELETE FROM session WHERE session_id = :sid"),
-                {"sid": sid}
-            )
-            db.session.commit()
-            return DatabaseSession(sid=sid, permanent=self.permanent)
+        # Handle both string and datetime types for expiry
+        expiry = session_record.expiry
+        if isinstance(expiry, str):
+            from datetime import datetime
+            try:
+                expiry = datetime.fromisoformat(expiry.replace('Z', '+00:00'))
+            except ValueError:
+                # If parsing fails, treat as expired
+                return DatabaseSession(sid=sid, permanent=self.permanent)
         
+        if expiry < datetime.utcnow():
+            return DatabaseSession(sid=sid, permanent=self.permanent)
+    
         # Load session data
         try:
-            data_str = session_record.data
-            if hasattr(data_str, 'tobytes'):
-                data_str = data_str.tobytes().decode('utf-8')
-            elif isinstance(data_str, memoryview):
-                data_str = data_str.tobytes().decode('utf-8')
-            
-            data = json.loads(data_str)
-            return DatabaseSession(initial=data, sid=sid, permanent=self.permanent)
-        except (json.JSONDecodeError, TypeError, AttributeError):
-            db.session.execute(
-                db.text("DELETE FROM session WHERE session_id = :sid"),
-                {"sid": sid}
-            )
-            db.session.commit()
+            session_data = json.loads(session_record.data)
+            session = DatabaseSession(session_data, sid=sid, permanent=self.permanent)
+            session.modified = False
+            return session
+        except (json.JSONDecodeError, KeyError):
             return DatabaseSession(sid=sid, permanent=self.permanent)
 
     def save_session(self, app, session, response):
@@ -81,14 +76,17 @@ class DatabaseSessionInterface(SessionInterface):
         if not self.should_set_cookie(app, session):
             return
         
+        # Calculate expiry time
         if session.permanent:
             expiry = datetime.utcnow() + self.max_age
         else:
             expiry = datetime.utcnow() + timedelta(days=1)
         
+        # Save session to database
         session_data = json.dumps(dict(session))
         
         from .models import db
+        # Check if session already exists
         existing = db.session.execute(
             db.text("SELECT id FROM session WHERE session_id = :sid"),
             {"sid": session.sid}
@@ -123,10 +121,9 @@ class DatabaseSessionInterface(SessionInterface):
     def _generate_sid(self):
         return str(uuid.uuid4())
 
-
-def create_app():
+def create_app(config=None):
     app = Flask(__name__)
-    app.secret_key = 'dev-secret-key'
+    app.secret_key = 'dev-secret-key'  # Ensure static secret key
     
     # Support both localhost and 127.0.0.1 for CORS in local dev
     CORS(
@@ -137,11 +134,15 @@ def create_app():
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     )
     
-    env = os.environ.get('FLASK_ENV', 'development')
-    if env == 'production':
-        app.config.from_object(ProductionConfig)
+    # Use provided config or determine from environment
+    if config:
+        app.config.from_object(config)
     else:
-        app.config.from_object(DevelopmentConfig)
+        env = os.environ.get('FLASK_ENV', 'development')
+        if env == 'production':
+            app.config.from_object(ProductionConfig)
+        else:
+            app.config.from_object(DevelopmentConfig)
     
     db.init_app(app)
     Migrate(app, db)
@@ -150,8 +151,12 @@ def create_app():
     app.session_interface = DatabaseSessionInterface(app)
     
     logging.basicConfig(level=logging.DEBUG)
+    # Remove or comment out lines like:
+    # DEBUG:root:Request: ... session: ...
+    # But keep error logging and other non-session, non-login logs.
     from .routes import auth_bp
     app.register_blueprint(auth_bp)
+    # Serve avatars
     @app.route('/uploads/avatars/<filename>')
     def uploaded_avatar(filename):
         uploads_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'avatars')

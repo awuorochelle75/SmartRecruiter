@@ -17,8 +17,7 @@ from app.config import TestingConfig
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
-    app = create_app()
-    app.config.from_object(TestingConfig)
+    app = create_app(TestingConfig)
     
     with app.app_context():
         db.create_all()
