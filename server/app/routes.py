@@ -3084,6 +3084,177 @@ def get_interviewee_dashboard():
         'upcoming_interviews': upcoming_interviews[:2],
         'skill_progress': skill_progress[:3] 
     }), 200
+    
+# TODO: Implement profile statistics for recruiters and interviewees
+@auth_bp.route('/profile/recruiter/stats', methods=['GET'])
+def get_recruiter_profile_stats():
+    """Get recruiter profile statistics and recent activity"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can access this endpoint'}), 403
+    
+    try:
+        assessments = Assessment.query.filter_by(recruiter_id=user_id).all()
+        assessments_count = len(assessments)
+        
+        candidate_ids = set()
+        for assessment in assessments:
+            attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment.id).all()
+            for attempt in attempts:
+                candidate_ids.add(attempt.interviewee_id)
+        candidates_managed = len(candidate_ids)
+        
+        interviews = Interview.query.filter_by(recruiter_id=user_id).all()
+        interviews_scheduled = len(interviews)
+        
+        member_since = user.created_at.strftime('%b %Y') if user.created_at else 'Unknown'
+        
+        recent_activities = []
+        
+        recent_assessments = Assessment.query.filter_by(recruiter_id=user_id).order_by(Assessment.created_at.desc()).limit(3).all()
+        for assessment in recent_assessments:
+            recent_activities.append({
+                'type': 'Assessment Created',
+                'details': assessment.title,
+                'date': assessment.created_at.isoformat() if assessment.created_at else None
+            })
+        
+        recent_interviews = Interview.query.filter_by(recruiter_id=user_id).order_by(Interview.created_at.desc()).limit(3).all()
+        for interview in recent_interviews:
+            interviewee = User.query.get(interview.interviewee_id)
+            recent_activities.append({
+                'type': 'Interview Scheduled',
+                'details': f"{interviewee.first_name} {interviewee.last_name} - {interview.position}",
+                'date': interview.created_at.isoformat() if interview.created_at else None
+            })
+        
+        recent_attempts = AssessmentAttempt.query.join(Assessment).filter(
+            Assessment.recruiter_id == user_id
+        ).order_by(AssessmentAttempt.started_at.desc()).limit(3).all()
+        
+        for attempt in recent_attempts:
+            interviewee = User.query.get(attempt.interviewee_id)
+            assessment = Assessment.query.get(attempt.assessment_id)
+            recent_activities.append({
+                'type': 'Candidate Invited',
+                'details': f"{interviewee.first_name} {interviewee.last_name} to {assessment.title}",
+                'date': attempt.started_at.isoformat() if attempt.started_at else None
+            })
+        
+        recent_activities.sort(key=lambda x: x['date'] or '', reverse=True)
+        recent_activities = recent_activities[:5]
+        
+        return jsonify({
+            'stats': {
+                'assessments_created': assessments_count,
+                'candidates_managed': candidates_managed,
+                'interviews_scheduled': interviews_scheduled,
+                'member_since': member_since
+            },
+            'recent_activities': recent_activities
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/profile/interviewee/stats', methods=['GET'])
+def get_interviewee_profile_stats():
+    """Get interviewee profile statistics, achievements, and skills"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Only interviewees can access this endpoint'}), 403
+    
+    try:
+        completed_attempts = AssessmentAttempt.query.filter_by(
+            interviewee_id=user_id, 
+            status='completed'
+        ).all()
+        
+        assessments_completed = len(completed_attempts)
+        
+        scores = [attempt.score for attempt in completed_attempts if attempt.score is not None]
+        average_score = round(sum(scores) / len(scores), 0) if scores else 0
+        
+        all_interviewees = User.query.filter_by(role='interviewee').all()
+        interviewee_scores = []
+        
+        for interviewee in all_interviewees:
+            interviewee_attempts = AssessmentAttempt.query.filter_by(
+                interviewee_id=interviewee.id, 
+                status='completed'
+            ).all()
+            if interviewee_attempts:
+                avg_score = sum([a.score for a in interviewee_attempts if a.score is not None]) / len(interviewee_attempts)
+                interviewee_scores.append((interviewee.id, avg_score))
+        
+        interviewee_scores.sort(key=lambda x: x[1], reverse=True)
+        rank = next((i + 1 for i, (uid, _) in enumerate(interviewee_scores) if uid == user_id), len(interviewee_scores))
+        
+        member_since = user.created_at.strftime('%b %Y') if user.created_at else 'Unknown'
+        
+        profile = IntervieweeProfile.query.filter_by(user_id=user_id).first()
+        skills = []
+        if profile and profile.skills:
+            skills = [skill.strip() for skill in profile.skills.split(',') if skill.strip()]
+        
+        achievements = []
+        
+        if average_score >= 90:
+            achievements.append({
+                'title': 'Top Performer',
+                'description': f'Scored {average_score}% average across all assessments',
+                'date': datetime.now().strftime('%Y-%m-%d')
+            })
+        
+        if assessments_completed >= 5:
+            achievements.append({
+                'title': 'Quick Learner',
+                'description': f'Completed {assessments_completed} assessments',
+                'date': datetime.now().strftime('%Y-%m-%d')
+            })
+        
+        if average_score >= 85:
+            achievements.append({
+                'title': 'Consistent',
+                'description': f'Maintained {average_score}%+ average score',
+                'date': datetime.now().strftime('%Y-%m-%d')
+            })
+    
+        recent_high_scores = [a for a in completed_attempts if a.score and a.score >= 90]
+        if recent_high_scores:
+            achievements.append({
+                'title': 'High Achiever',
+                'description': f'Scored 90%+ in recent assessments',
+                'date': recent_high_scores[0].started_at.strftime('%Y-%m-%d') if recent_high_scores[0].started_at else datetime.now().strftime('%Y-%m-%d')
+            })
+        
+        achievements.sort(key=lambda x: x['date'], reverse=True)
+        achievements = achievements[:4]
+        
+        return jsonify({
+            'stats': {
+                'assessments_completed': assessments_completed,
+                'average_score': average_score,
+                'rank': rank,
+                'member_since': member_since
+            },
+            'skills': skills,
+            'achievements': achievements
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 @auth_bp.route('/tests/available', methods=['GET'])
 def get_available_tests():
