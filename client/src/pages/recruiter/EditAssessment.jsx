@@ -1,0 +1,817 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
+import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users, ArrowLeft } from "lucide-react"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { Textarea } from "../../components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
+import { Badge } from "../../components/ui/badge"
+import { Separator } from "../../components/ui/separator"
+import RecruiterSidebar from "../../components/RecruiterSidebar"
+import DashboardNavbar from "../../components/DashboardNavbar"
+import { useToast } from "../../components/ui/use-toast"
+import { TableSkeleton } from "../../components/LoadingSkeleton"
+
+function isTestAssessment(data) {
+  return data.type === "test" || data.is_test === true || data.is_test === "true";
+}
+
+export default function EditAssessment() {
+  const { toast } = useToast()
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [assessmentData, setAssessmentData] = useState({
+    title: "",
+    description: "",
+    type: "technical",
+    difficulty: "intermediate",
+    duration: 60,
+    passingScore: 70,
+    instructions: "",
+    tags: [],
+    deadline: "",
+    is_test: false,
+  })
+
+  const [questions, setQuestions] = useState([])
+  const [fetchError, setFetchError] = useState("");
+  const [categories, setCategories] = useState([])
+  const [categoryId, setCategoryId] = useState("")
+
+  
+
+  const getDefaultQuestion = (type = "multiple-choice") => {
+    switch (type) {
+      case "multiple-choice":
+        return {
+          type: "multiple-choice",
+          question: "",
+          options: ["", ""],
+          correctAnswer: 0,
+          points: 10,
+          explanation: "",
+        }
+      case "coding":
+        return {
+          type: "coding",
+          question: "",
+          starterCode: "",
+          solution: "",
+          testCases: [{ input: "", expectedOutput: "" }, { input: "", expectedOutput: "" }],
+          points: 10,
+          explanation: "",
+        }
+      case "short-answer":
+        return {
+          type: "short-answer",
+          question: "",
+          answer: "",
+          points: 10,
+          explanation: "",
+        }
+      case "essay":
+        return {
+          type: "essay",
+          question: "",
+          points: 10,
+          explanation: "",
+        }
+      default:
+        return {
+          type: "multiple-choice",
+          question: "",
+          options: ["", ""],
+          correctAnswer: 0,
+          points: 10,
+          explanation: "",
+        }
+    }
+  }
+
+  const [currentQuestion, setCurrentQuestion] = useState(getDefaultQuestion())
+  const [editIndex, setEditIndex] = useState(null)
+
+  
+  const handleQuestionTypeChange = (type) => {
+    setCurrentQuestion(getDefaultQuestion(type))
+  }
+
+  
+  const addOption = () => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      options: [...prev.options, ""]
+    }))
+  }
+  const removeOption = (index) => {
+    setCurrentQuestion((prev) => {
+      const newOptions = prev.options.filter((_, i) => i !== index)
+      let newCorrect = prev.correctAnswer
+      if (index === prev.correctAnswer) newCorrect = 0
+      else if (index < prev.correctAnswer) newCorrect = prev.correctAnswer - 1
+      return {
+        ...prev,
+        options: newOptions,
+        correctAnswer: newCorrect
+      }
+    })
+  }
+
+  
+
+  const addQuestion = () => {
+    if (!currentQuestion.question.trim()) return
+    let questionToAdd = { type: currentQuestion.type, question: currentQuestion.question, points: currentQuestion.points, explanation: currentQuestion.explanation }
+    if (currentQuestion.type === "multiple-choice") {
+      questionToAdd.options = currentQuestion.options.map(opt => String(opt))
+      questionToAdd.correctAnswer = Number(currentQuestion.correctAnswer)
+    } else if (currentQuestion.type === "coding") {
+      questionToAdd.starter_code = currentQuestion.starterCode || ""
+      questionToAdd.solution = currentQuestion.solution || ""
+      questionToAdd.test_cases = JSON.stringify(currentQuestion.testCases || [])
+    } else if (currentQuestion.type === "short-answer") {
+      questionToAdd.answer = currentQuestion.answer || ""
+    }
+    setQuestions((prev) => [...prev, { ...questionToAdd, id: Date.now() }])
+    setCurrentQuestion(getDefaultQuestion(currentQuestion.type))
+  }
+
+  const removeQuestion = (id) => {
+    setQuestions((prev) => prev.filter((q) => q.id !== id))
+  }
+
+  const addTag = () => {
+    if (newTag.trim() && !assessmentData.tags.includes(newTag.trim())) {
+      setAssessmentData((prev) => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()],
+      }))
+      setNewTag("")
+    }
+  }
+
+  const removeTag = (tagToRemove) => {
+    setAssessmentData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }))
+  }
+
+  const handleSave = async (isDraft = false) => {
+    setSaving(true)
+    const assessment = {
+      ...assessmentData,
+      passing_score: assessmentData.passingScore,
+      is_test: assessmentData.is_test,
+      type: isTestAssessment(assessmentData) ? "test" : assessmentData.type,
+      questions,
+      status: isDraft ? "draft" : "active",
+      deadline: assessmentData.deadline || "",
+      category_id: categoryId || null,
+    }
+    
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(assessment),
+      })
+      
+      const data = await res.json()
+      if (!res.ok) {
+        toast({ title: "Error", description: data.error || "Failed to update assessment", variant: "destructive" })
+        return
+      }
+      
+      toast({ title: "Success", description: isDraft ? "Draft saved!" : "Assessment updated!", variant: "default" })
+      if (!isDraft) {
+        navigate("/recruiter/assessments")
+      }
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/categories`, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => setCategories(data))
+  }, [])
+
+  useEffect(() => {
+    fetchAssessment()
+  }, [id])
+
+  const fetchAssessment = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}`, {
+        credentials: "include",
+      })
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast({ title: "Error", description: "Assessment not found", variant: "destructive" })
+          navigate("/recruiter/assessments")
+          return
+        }
+        throw new Error("Failed to fetch assessment")
+      }
+      const data = await res.json()
+      setAssessmentData({
+        title: data.title || "",
+        description: data.description || "",
+        type: data.type || "technical",
+        difficulty: data.difficulty || "intermediate",
+        duration: data.duration || 60,
+        passingScore: data.passing_score || 70,
+        instructions: data.instructions || "",
+        tags: data.tags || [],
+        deadline: data.deadline ? data.deadline.split('T')[0] : "",
+        is_test: data.is_test,
+      })
+      setCategoryId(data.category_id ? String(data.category_id) : "")
+      
+      
+
+      const formattedQuestions = (data.questions || []).map(q => {
+        if (q.type === "multiple-choice") {
+          return {
+            id: q.id,
+            type: q.type,
+            question: q.question,
+            options: q.options || ["", ""],
+            correctAnswer: typeof q.correct_answer === "number" ? q.correct_answer : 0,
+            points: q.points,
+            explanation: q.explanation || "",
+          }
+        } else if (q.type === "coding") {
+          let testCases = []
+          if (q.test_cases) {
+            try { testCases = typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : q.test_cases } catch { testCases = [] }
+          } else if (q.testCases) {
+            try { testCases = typeof q.testCases === 'string' ? JSON.parse(q.testCases) : q.testCases } catch { testCases = [] }
+          }
+          if (!Array.isArray(testCases)) testCases = []
+          return {
+            id: q.id,
+            type: q.type,
+            question: q.question,
+            starterCode: q.starter_code || q.starterCode || "",
+            solution: q.solution || "",
+            testCases,
+            points: q.points,
+            explanation: q.explanation || "",
+          }
+        } else if (q.type === "short-answer") {
+          return {
+            id: q.id,
+            type: q.type,
+            question: q.question,
+            answer: q.answer || "",
+            points: q.points,
+            explanation: q.explanation || "",
+          }
+        } else if (q.type === "essay") {
+          return {
+            id: q.id,
+            type: q.type,
+            question: q.question,
+            points: q.points,
+            explanation: q.explanation || "",
+          }
+        } else {
+          return q
+        }
+      })
+      setQuestions(formattedQuestions)
+      setLoading(false)
+    } catch (err) {
+      setFetchError(err.message);
+      setLoading(false)
+    }
+  }
+
+  const handleAssessmentChange = (field, value) => {
+    setAssessmentData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const [newTag, setNewTag] = useState("")
+
+  // Edit an existing question
+  const handleEditQuestion = (index) => {
+    const q = questions[index]
+    if (q.type === "coding") {
+      let testCases = q.testCases
+      if ((!testCases || !Array.isArray(testCases)) && q.test_cases) {
+        try { testCases = typeof q.test_cases === 'string' ? JSON.parse(q.test_cases) : q.test_cases } catch { testCases = [] }
+      }
+      setEditIndex(index)
+      setCurrentQuestion({ ...q, testCases: testCases || [{ input: "", expectedOutput: "" }] })
+    } else {
+    setEditIndex(index)
+      setCurrentQuestion({ ...q })
+    }
+  }
+
+  // Update an existing question
+  const updateQuestion = () => {
+    if (!currentQuestion.question.trim()) return
+    let questionToUpdate = { type: currentQuestion.type, question: currentQuestion.question, points: currentQuestion.points, explanation: currentQuestion.explanation }
+    if (currentQuestion.type === "multiple-choice") {
+      questionToUpdate.options = currentQuestion.options.map(opt => String(opt))
+      questionToUpdate.correctAnswer = Number(currentQuestion.correctAnswer)
+    } else if (currentQuestion.type === "coding") {
+      questionToUpdate.starter_code = currentQuestion.starterCode || ""
+      questionToUpdate.solution = currentQuestion.solution || ""
+      questionToUpdate.test_cases = JSON.stringify(currentQuestion.testCases || [])
+    } else if (currentQuestion.type === "short-answer") {
+      questionToUpdate.answer = currentQuestion.answer || ""
+    }
+    setQuestions((prev) => prev.map((q, i) => i === editIndex ? { ...questionToUpdate, id: q.id } : q))
+    setCurrentQuestion(getDefaultQuestion(currentQuestion.type))
+    setEditIndex(null)
+  }
+
+  // 1. Add test case helpers and state
+  const addTestCase = () => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      testCases: [...(prev.testCases || []), { input: "", expectedOutput: "" }],
+    }))
+  }
+  const removeTestCase = (idx) => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      testCases: prev.testCases.filter((_, i) => i !== idx),
+    }))
+  }
+  const updateTestCase = (idx, field, value) => {
+    setCurrentQuestion((prev) => {
+      const newCases = [...(prev.testCases || [])]
+      newCases[idx][field] = value
+      return { ...prev, testCases: newCases }
+    })
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex h-screen bg-background">
+        <RecruiterSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardNavbar />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-2">Failed to load assessment</h2>
+              <p className="text-muted-foreground mb-4">{fetchError}</p>
+              <Button onClick={() => navigate('/recruiter/assessments')}>Back to Assessments</Button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-background">
+        <RecruiterSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardNavbar />
+          <main className="flex-1 p-6">
+            <TableSkeleton />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-screen bg-background">
+      <RecruiterSidebar />
+      <div className="flex-1 flex flex-col">
+        <DashboardNavbar />
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" onClick={() => navigate("/recruiter/assessments")}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Assessments
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">Edit Assessment</h1>
+                  <p className="text-muted-foreground">Update your technical assessment</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => handleSave(true)} disabled={saving} className="bg-transparent">
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Saving..." : "Save Draft"}
+                </Button>
+                <Button onClick={() => handleSave(false)} disabled={saving}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  {saving ? "Updating..." : "Update Assessment"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Basic Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+                <CardDescription>Update the fundamental details of your assessment</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className={`grid ${isTestAssessment(assessmentData) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Assessment Title</Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g., Senior React Developer Assessment"
+                      value={assessmentData.title}
+                      onChange={(e) => handleAssessmentChange("title", e.target.value)}
+                    />
+                  </div>
+                  {/* Assessment Type selector - only show for non-test assessments */}
+                  {!isTestAssessment(assessmentData) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Assessment Type</Label>
+                      <Select
+                        value={assessmentData.type}
+                        onValueChange={(value) => handleAssessmentChange("type", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="technical">Technical Skills</SelectItem>
+                          <SelectItem value="coding">Coding Challenge</SelectItem>
+                          <SelectItem value="system-design">System Design</SelectItem>
+                          <SelectItem value="behavioral">Behavioral</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select value={categoryId === "" ? "uncategorized" : categoryId} onValueChange={v => setCategoryId(v === "uncategorized" ? "" : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="uncategorized">Uncategorized</SelectItem>
+                        {categories.map(cat => (
+                          <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe what this assessment covers and what skills it evaluates..."
+                    value={assessmentData.description}
+                    onChange={(e) => handleAssessmentChange("description", e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="difficulty">Difficulty Level</Label>
+                    <Select
+                      value={assessmentData.difficulty}
+                      onValueChange={(value) => handleAssessmentChange("difficulty", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="duration">Duration (minutes)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={assessmentData.duration}
+                      onChange={(e) => handleAssessmentChange("duration", Number.parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="passingScore">Passing Score (%)</Label>
+                    <Input
+                      id="passingScore"
+                      type="number"
+                      value={assessmentData.passingScore}
+                      onChange={(e) => handleAssessmentChange("passingScore", Number.parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deadline">Deadline</Label>
+                    <Input
+                      id="deadline"
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={assessmentData.deadline}
+                      onChange={(e) => handleAssessmentChange("deadline", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="instructions">Instructions for Candidates</Label>
+                  <Textarea
+                    id="instructions"
+                    placeholder="Provide clear instructions on how to complete this assessment..."
+                    value={assessmentData.instructions}
+                    onChange={(e) => handleAssessmentChange("instructions", e.target.value)}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {assessmentData.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                        {tag} ×
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a tag (e.g., React, JavaScript, Frontend)"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && addTag()}
+                    />
+                    <Button type="button" onClick={addTag}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Questions Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Questions ({questions.length})</CardTitle>
+                <CardDescription>Update questions to evaluate candidate skills</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Question List */}
+                {questions.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Current Questions</h3>
+                    {questions.map((q, index) => (
+                      <div key={q.id} className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline">{q.type}</Badge>
+                              <span className="text-sm text-muted-foreground">{q.points} points</span>
+                            </div>
+                            <p className="font-medium mb-2">
+                              Q{index + 1}: {q.question}
+                            </p>
+                            {q.type === "multiple-choice" && (
+                              <div className="text-sm text-muted-foreground">
+                                Correct answer: {q.options[q.correctAnswer]}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2 items-end">
+                            <Button size="sm" variant="outline" onClick={() => handleEditQuestion(index)}>
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeQuestion(q.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Separator />
+                  </div>
+                )}
+
+                {/* Add/Edit Question */}
+                <div className="space-y-4">
+                  <h3 className="font-medium">{editIndex === null ? "Add New Question" : "Edit Question"}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Question Type</Label>
+                      <Select
+                        value={currentQuestion.type}
+                        onValueChange={handleQuestionTypeChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
+                          <SelectItem value="coding">Coding Challenge</SelectItem>
+                          <SelectItem value="short-answer">Short Answer</SelectItem>
+                          <SelectItem value="essay">Essay</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Points</Label>
+                      <Input
+                        type="number"
+                        value={currentQuestion.points}
+                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, points: Number.parseInt(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Question</Label>
+                    <Textarea
+                      placeholder="Enter your question here..."
+                      value={currentQuestion.question}
+                      onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, question: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+                  {currentQuestion.type === "multiple-choice" && (
+                    <div className="space-y-4">
+                      <Label>Answer Options</Label>
+                      {currentQuestion.options.map((option, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <RadioGroup
+                            value={currentQuestion.correctAnswer.toString()}
+                            onValueChange={(value) => setCurrentQuestion((prev) => ({ ...prev, correctAnswer: Number(value) }))}
+                          >
+                            <RadioGroupItem value={index.toString()} />
+                          </RadioGroup>
+                          <Input
+                            placeholder={`Option ${index + 1}`}
+                            value={option}
+                            onChange={(e) => setCurrentQuestion((prev) => {
+                              const newOptions = [...prev.options]
+                              newOptions[index] = e.target.value
+                              return { ...prev, options: newOptions }
+                            })}
+                          />
+                          {currentQuestion.options.length > 2 && (
+                            <Button type="button" size="icon" variant="ghost" onClick={() => removeOption(index)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <span className="text-sm text-muted-foreground">
+                            {index === currentQuestion.correctAnswer && "(Correct)"}
+                          </span>
+                        </div>
+                      ))}
+                      <Button type="button" size="sm" variant="outline" onClick={addOption}>
+                        + Add Option
+                      </Button>
+                    </div>
+                  )}
+                  {currentQuestion.type === "coding" && (
+                    <div className="space-y-2">
+                      <Label>Starter Code</Label>
+                      <Textarea
+                        placeholder="Provide starter code for the candidate..."
+                        value={currentQuestion.starterCode || ""}
+                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, starterCode: e.target.value }))}
+                        rows={3}
+                      />
+                      <Label>Solution</Label>
+                      <Textarea
+                        placeholder="Provide the expected solution..."
+                        value={currentQuestion.solution || ""}
+                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, solution: e.target.value }))}
+                        rows={3}
+                      />
+                      <Label>Test Cases</Label>
+                      {(currentQuestion.testCases || []).map((tc, idx) => (
+                        <div key={idx} className="flex gap-2 mb-2">
+                          <Input
+                            placeholder="Input"
+                            value={tc.input}
+                            onChange={(e) => updateTestCase(idx, 'input', e.target.value)}
+                          />
+                          <Input
+                            placeholder="Expected Output"
+                            value={tc.expectedOutput}
+                            onChange={(e) => updateTestCase(idx, 'expectedOutput', e.target.value)}
+                          />
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeTestCase(idx)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button type="button" size="sm" variant="outline" onClick={addTestCase}>
+                        + Add Test Case
+                      </Button>
+                    </div>
+                  )}
+                  {currentQuestion.type === "short-answer" && (
+                    <div className="space-y-2">
+                      <Label>Expected Answer</Label>
+                      <Input
+                        placeholder="Enter the expected answer..."
+                        value={currentQuestion.answer || ""}
+                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, answer: e.target.value }))}
+                      />
+                    </div>
+                  )}
+                  {/* Essay only needs question, points, explanation */}
+                  <div className="space-y-2">
+                    <Label>Explanation (Optional)</Label>
+                    <Textarea
+                      placeholder="Provide an explanation for the correct answer..."
+                      value={currentQuestion.explanation}
+                      onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, explanation: e.target.value }))}
+                      rows={2}
+                    />
+                  </div>
+                  <Button onClick={editIndex === null ? addQuestion : updateQuestion} disabled={!currentQuestion.question.trim()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {editIndex === null ? "Add Question" : "Update Question"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Assessment Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg mx-auto mb-2">
+                      <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <p className="text-2xl font-bold">{questions.length}</p>
+                    <p className="text-sm text-muted-foreground">Questions</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg mx-auto mb-2">
+                      <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <p className="text-2xl font-bold">{assessmentData.duration}</p>
+                    <p className="text-sm text-muted-foreground">Minutes</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg mx-auto mb-2">
+                      <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <p className="text-2xl font-bold">{assessmentData.passingScore}%</p>
+                    <p className="text-sm text-muted-foreground">Pass Score</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg mx-auto mb-2">
+                      <Code className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <p className="text-2xl font-bold">{questions.reduce((sum, q) => sum + q.points, 0)}</p>
+                    <p className="text-sm text-muted-foreground">Total Points</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-900 rounded-lg mx-auto mb-2">
+                      <FileText className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <p className="text-2xl font-bold">{categories.find(c => String(c.id) === String(categoryId))?.name || "Uncategorized"}</p>
+                    <p className="text-sm text-muted-foreground">Category</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+} 
+
+
+
