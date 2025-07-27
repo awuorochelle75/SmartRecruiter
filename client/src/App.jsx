@@ -1,31 +1,56 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Footer from './pages/Footer';
-import Home from './pages/Home';
-import Signup from './pages/Signup';
-import Login from './pages/Login'
-import { ThemeProvider } from './components/ThemeProvider';
-import IntervieweeDashboard from './pages/Interviewee/IntervieweeDashboard';
-import IntervieweeSidebar from './components/IntervieweeSidebar';
-import NavbarDashboard from './components/DashboardNavbar';
-import AvailableTests from './pages/Interviewee/AvailableTests';
-import MyResults from './pages/Interviewee/MyResults';
-import PracticeArena from './pages/Interviewee/PracticeArena';
-import ScheduledInterviews from './pages/Interviewee/ScheduledInterviews';
-import IntervieweeProfile from './pages/Interviewee/IntervieweeProfile';
-import IntervieweeNotification from './pages/Interviewee/IntervieweeNotification';
-import IntervieweeSettings from './pages/Interviewee/IntervieweeSettings';
-import MyMessages from './pages/Interviewee/myMessages';
-import Onboarding from './pages/Onboarding';
-import RecruiterDashboard from './pages/Recruiter/RecruiterDashboard';
-import Assessments from './pages/Recruiter/Assessments';
-import Candidates from './pages/Recruiter/Candidates'
-import ResultsAnalytics from './pages/Recruiter/ResultsAnalytics'
-import Interview from './pages/Recruiter/Interview'
-import CreateAssessment from './pages/Recruiter/CreateAssessment'
-import RecruiterProfile from './pages/Recruiter/Profile';
-import Settings from './pages/Recruiter/Settings';
+"use client"
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { ThemeProvider } from "./components/ThemeProvider"
+import { AuthProvider, useAuth } from "./contexts/AuthContext"
+import { NotificationProvider } from "./contexts/NotificationContext"
+import { ToastProvider } from "./components/ui/use-toast"
+
+// Pages
+import Home from "./pages/Home"
+import Login from "./pages/Login"
+import Signup from "./pages/Signup"
+import Onboarding from "./pages/Onboarding"
+import Pricing from "./pages/Pricing"
+import About from "./pages/About"
 import NotFound from "./pages/NotFound"
+
+// Recruiter Pages
+import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard"
+import CreateAssessment from "./pages/recruiter/CreateAssessment"
+import EditAssessment from "./pages/recruiter/EditAssessment"
+import RecruiterAssessments from "./pages/recruiter/Assessments"
+import Candidates from "./pages/recruiter/Candidates"
+import RecruiterResults from "./pages/recruiter/Results"
+import Interviews from "./pages/recruiter/Interviews"
+import Messages from "./pages/recruiter/Messages"
+import Settings from "./pages/recruiter/Settings"
+import RecruiterProfile from "./pages/recruiter/Profile" // New: Recruiter Profile
+import RecruiterFeedback from "./pages/recruiter/Feedback" // New: Recruiter Feedback
+import RecruiterNotifications from "./pages/recruiter/Notifications" // New: Recruiter Notifications
+import AssessmentDetails from './pages/recruiter/AssessmentDetails';
+import Results from './pages/recruiter/Results';
+import ResultsAnalytics from './pages/recruiter/ResultsAnalytics';
+import SendInvites from './pages/recruiter/SendInvites';
+import CreateTestAssessment from './pages/recruiter/CreateTestAssessment';
+import Categories from "./pages/recruiter/Categories"
+import PracticeProblems from "./pages/recruiter/PracticeProblems"
+import CreatePracticeProblem from "./pages/recruiter/CreatePracticeProblem"
+import EditPracticeProblem from "./pages/recruiter/EditPracticeProblem"
+import PracticeProblemDetails from "./pages/recruiter/PracticeProblemDetails"
+
+// Interviewee Pages
+import IntervieweeDashboard from "./pages/interviewee/IntervieweeDashboard"
+import AvailableTests from "./pages/interviewee/AvailableTests"
+import IntervieweeResults from "./pages/interviewee/Results"
+import PracticeArena from "./pages/interviewee/PracticeArena"
+import ScheduledInterviews from "./pages/interviewee/ScheduledInterviews"
+import IntervieweeMessages from "./pages/interviewee/Messages"
+import IntervieweeProfile from "./pages/interviewee/Profile"
+import IntervieweeSettings from "./pages/interviewee/Settings"
+import AssessmentPage from "./pages/interviewee/AssessmentPage"
+import IntervieweeFeedback from "./pages/interviewee/Feedback"
+import IntervieweeNotifications from "./pages/interviewee/Notifications"
 
 
 
