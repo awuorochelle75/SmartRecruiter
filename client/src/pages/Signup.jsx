@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import NavbarDashboard from "../components/NavbarDashboard";
+import NavbarDashboard from "../components/DashboardNavbar";
 import { Code2 } from 'lucide-react';
 import Footer from "./Footer";
 

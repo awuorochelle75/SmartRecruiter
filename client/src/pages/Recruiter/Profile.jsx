@@ -1,6 +1,6 @@
 import { useState } from "react";
-import SidebarRecruiter from "../../components/SidebarRecruiter";
-import NavbarDashboard from "../../components/NavbarDashboard";
+import DashboardNavbar from "../../components/DashboardNavbar";
+import NavbarDashboard from "../../components/DashboardNavbar";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -52,7 +52,7 @@ export default function RecruiterProfile() {
 
   return (
     <div className="flex min-h-screen bg-[#f4f6fa] dark:bg-gray-900"> {/* Light and Dark background */}
-      <SidebarRecruiter />
+      <DashboardNavbar />
       <div className="flex-1 flex flex-col min-w-0" style={{ marginLeft: 256 }}>
         <NavbarDashboard />
         <div className="flex justify-center px-2 pt-6 pb-10">

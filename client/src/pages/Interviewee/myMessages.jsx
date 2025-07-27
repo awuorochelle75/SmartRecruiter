@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Search, Bell, User, Send, Paperclip } from "lucide-react"; 
 import IntervieweeSidebar from "../../components/IntervieweeSidebar"; 
-import NavbarDashboard from "../../components/NavbarDashboard"; 
+import NavbarDashboard from "../../components/DashboardNavbar"; 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; 
 import { Button } from "@/components/ui/button"; 
 import { Input } from "@/components/ui/input"; 

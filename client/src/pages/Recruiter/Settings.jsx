@@ -1,6 +1,6 @@
 import { useState } from "react";
-import SidebarRecruiter from "../../components/SidebarRecruiter";
-import NavbarDashboard from "../../components/NavbarDashboard";
+import DashboardNavbar from "../../components/DashboardNavbar";
+import NavbarDashboard from "../../components/DashboardNavbar";
 
 const initialProfile = {
   firstName: "Dorothy",
@@ -57,7 +57,7 @@ export default function RecruiterSettings() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-200">
-      <SidebarRecruiter />
+      <DashboardNavbar />
 
       <div className="flex-1 flex flex-col min-w-0" style={{ marginLeft: 256 }}>
         <NavbarDashboard />

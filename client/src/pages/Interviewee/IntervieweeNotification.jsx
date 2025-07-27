@@ -1,6 +1,6 @@
 import React from "react";
 import IntervieweeSidebar from "../../components/IntervieweeSidebar";
-import NavbarDashboard from "../../components/NavbarDashboard";
+import NavbarDashboard from "../../components/DashboardNavbar";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 

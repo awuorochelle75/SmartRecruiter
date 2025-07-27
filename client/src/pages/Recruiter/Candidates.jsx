@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import SidebarRecruiter from '../../components/SidebarRecruiter';
-import NavbarDashboard from '../../components/NavbarDashboard';
+import DashboardNavbar from '../../components/DashboardNavbar';
+import NavbarDashboard from '../../components/DashboardNavbar';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
@@ -30,14 +30,14 @@ export default function Candidates() {
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
     
       <div className="hidden md:block w-64">
-        <SidebarRecruiter />
+        <DashboardNavbar />
       </div>
 
      
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="w-64 bg-white dark:bg-gray-900 shadow-md h-full">
-            <SidebarRecruiter />
+            <DashboardNavbar />
           </div>
           <div
             className="flex-1 bg-black bg-opacity-30"

@@ -7,7 +7,7 @@ import Login from './pages/Login'
 import { ThemeProvider } from './components/ThemeProvider';
 import IntervieweeDashboard from './pages/Interviewee/IntervieweeDashboard';
 import IntervieweeSidebar from './components/IntervieweeSidebar';
-import NavbarDashboard from './components/NavbarDashboard';
+import NavbarDashboard from './components/DashboardNavbar';
 import AvailableTests from './pages/Interviewee/AvailableTests';
 import MyResults from './pages/Interviewee/MyResults';
 import PracticeArena from './pages/Interviewee/PracticeArena';
@@ -25,7 +25,7 @@ import Interview from './pages/Recruiter/Interview'
 import CreateAssessment from './pages/Recruiter/CreateAssessment'
 import RecruiterProfile from './pages/Recruiter/Profile';
 import Settings from './pages/Recruiter/Settings';
-import NotFound from './pages/404 Errorpage';
+import NotFound from "./pages/NotFound"
 
 
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, Bell, User, Play } from "lucide-react";
 import IntervieweeSidebar from "../../components/IntervieweeSidebar";
-import NavbarDashboard from "../../components/NavbarDashboard";
+import NavbarDashboard from "../../components/DashboardNavbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

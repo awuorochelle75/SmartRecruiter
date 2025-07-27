@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {LayoutDashboard,FileText,Users,BarChart2,CalendarCheck,MessageSquare,User,Settings,LogOut,Code2,Menu,X} from 'lucide-react';
 import { Separator } from '../components/ui/separator';
 
-export default function SidebarRecruiter() {
+export default function DashboardNavbar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
