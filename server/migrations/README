@@ -21,6 +21,109 @@ Single-database configuration for Flask.
 
 ---
 
+# Database Reset Scripts
+
+## Complete Reset (Recommended)
+
+For a complete database and migration reset, use the provided scripts:
+
+### Development Environment
+```sh
+python scripts/environment_reset.py development
+```
+
+### Production Environment
+```sh
+python scripts/environment_reset.py production
+```
+
+### Testing Environment
+```sh
+python scripts/environment_reset.py testing
+```
+
+## Data Management
+
+### Clear All Data (Keep Tables)
+To clear all data while keeping the table structure:
+
+```sh
+python scripts/truncate_tables.py development
+python scripts/truncate_tables.py testing
+```
+
+**Note**: This will delete all data in the database but keep the table structure intact.
+
+### Manual Reset Steps
+If you prefer to reset manually:
+
+1. **Backup migration README:**
+   ```sh
+   python scripts/backup_migration_readme.py
+   ```
+
+2. **Reset database:**
+   ```sh
+   python scripts/reset_database.py
+   ```
+
+3. **Reset migrations:**
+   ```sh
+   python scripts/reset_migrations.py
+   ```
+
+4. **Restore migration README:**
+   ```sh
+   python scripts/restore_migration_readme.py
+   ```
+
+### Script Details
+
+- **`environment_reset.py`**: Complete reset for any environment (development, production, testing)
+- **`reset_database.py`**: Resets PostgreSQL database (drops and recreates)
+- **`reset_migrations.py`**: Resets migration history and creates fresh migrations
+- **`backup_migration_readme.py`**: Backs up the migration README before reset
+- **`restore_migration_readme.py`**: Restores the migration README after reset
+- **`truncate_tables.py`**: Truncates all tables in the database (for development only)
+- **`verify_setup.py`**: Verifies that database and migrations are properly configured
+
+**Note**: Production environment uses environment variables for database credentials and clears tables instead of dropping the database.
+
+---
+
+# Troubleshooting
+
+## Migration Issues
+
+### Tables Not Created After Migration
+If migrations run successfully but tables are not created:
+
+1. **Check migration status:**
+   ```sh
+   flask db current
+   ```
+
+2. **Try running upgrade again:**
+   ```sh
+   flask db upgrade
+   ```
+
+3. **If tables still don't exist, create them directly:**
+   ```python
+   from app import create_app, db
+   app = create_app()
+   with app.app_context():
+       db.create_all()
+   ```
+
+### Verification
+Always run the verification script after setup:
+```sh
+python scripts/verify_setup.py
+```
+
+---
+
 # PostgreSQL Database Setup & Usage
 
 ## 1. Create Database and User
