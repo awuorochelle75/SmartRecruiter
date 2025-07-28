@@ -70,10 +70,8 @@ const HeroSection = () => {
       className="relative py-12 md:py-20 lg:py-32 w-full overflow-hidden"
       ref={ref}
     >
-      {/* Dark overlay with gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 via-gray-900/85 to-indigo-900/85 z-0" />
       
-      {/* Background image - dark themed */}
       <div 
         className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')] bg-cover bg-center opacity-25 z-0" 
         aria-hidden="true"

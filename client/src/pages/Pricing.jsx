@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Check, X, ArrowRight, DollarSign, Zap, Users, Briefcase } from "lucide-react"; // Added icons for pricing features
+import { Check, X, ArrowRight, DollarSign, Zap, Users, Briefcase } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Navbar from "../components/Navbar";
@@ -41,7 +41,7 @@ const AnimatedOnScroll = ({ children, delay = 0, className = "" }) => {
   );
 };
 
-// Pricing Plan Data - Reduced Features
+// Pricing Plan Data
 const pricingPlans = [
   {
     name: "Starter",
@@ -74,7 +74,7 @@ const pricingPlans = [
     ],
     buttonText: "Choose Plan",
     buttonVariant: "default",
-    highlight: true, // To highlight this plan
+    highlight: true, 
   },
   {
     name: "Enterprise",
@@ -118,12 +118,11 @@ const faqData = [
 const Pricing = () => {
   return (
     <div className="bg-white text-gray-900 min-h-screen dark:bg-gray-900 dark:text-white">
-      {/* Navbar - Made fixed */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
       </div>
 
-      {/* Hero Section - Added pt-24 to account for fixed navbar height */}
+      {/* Hero Section  */}
       <section className="relative pt-24 pb-24 md:pt-32 md:pb-32 text-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-6">
           <AnimatedOnScroll>
@@ -219,7 +218,7 @@ const Pricing = () => {
         </div>
       </section>
 
-      {/* Call to Action Section (Reused from About.jsx for consistency) */}
+      
       <section className="py-20 md:py-24 bg-blue-600 dark:bg-blue-800 text-white text-center">
         <div className="container mx-auto px-6">
           <AnimatedOnScroll>
