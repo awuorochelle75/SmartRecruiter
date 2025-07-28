@@ -136,7 +136,7 @@ def create_app(config=None):
         "http://127.0.0.1:5173",
         "https://smart-recruiter-mu.vercel.app",
         "https://smart-recruiter-mu.vercel.app/",
-        "https://smartrecruiter-l0x0.onrender.com"
+        "https://smartrecruiter-b6h2.onrender.com"
     ]
     
     
