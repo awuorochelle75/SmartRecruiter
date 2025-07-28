@@ -27,6 +27,7 @@ import RecruiterProfile from './pages/Recruiter/Profile';
 import Settings from './pages/Recruiter/Settings';
 import NotFound from './pages/404 Errorpage';
 import About from './pages/About';
+import Pricing from './pages/Pricing';
 
 
 
@@ -47,9 +48,9 @@ function App() {
       <Route path="/Sidebar" element={<IntervieweeSidebar />} />
       <Route path="/availabletest" element={<AvailableTests />} />
       <Route path="/results" element={<MyResults/>} />
-      <Route path="/about" element={<About/>} />
+      <Route path="/about" element={<About/>} /> 
+      <Route path="/pricing" element={<Pricing/>} />
 
-     
 
       <Route path="/practice" element={<PracticeArena/>} /> 
       <Route path="/interviews" element={<ScheduledInterviews/>} /> 
