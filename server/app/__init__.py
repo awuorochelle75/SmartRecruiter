@@ -27,9 +27,9 @@ class DatabaseSessionInterface(SessionInterface):
         self.cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
         self.cookie_path = app.config.get('SESSION_COOKIE_PATH', '/')
         self.cookie_domain = app.config.get('SESSION_COOKIE_DOMAIN', None)
-        self.cookie_secure = app.config.get('SESSION_COOKIE_SECURE', False)
+        self.cookie_secure = app.config.get('SESSION_COOKIE_SECURE', True)
         self.cookie_httponly = app.config.get('SESSION_COOKIE_HTTPONLY', True)
-        self.cookie_samesite = app.config.get('SESSION_COOKIE_SAMESITE', 'Lax')
+        self.cookie_samesite = app.config.get('SESSION_COOKIE_SAMESITE', 'None')
         self.max_age = app.config.get('SESSION_MAX_AGE', timedelta(days=31))
 
     def open_session(self, app, request):
@@ -123,6 +123,12 @@ class DatabaseSessionInterface(SessionInterface):
 def create_app(config=None):
     app = Flask(__name__)
     app.secret_key = 'dev-secret-key'  # Ensure static secret key
+    
+    # Configure session for cross-origin requests
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_DOMAIN'] = None
     
     # CORS configuration for development and production
     allowed_origins = [
