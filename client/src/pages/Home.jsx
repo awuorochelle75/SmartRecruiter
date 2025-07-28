@@ -29,7 +29,7 @@ export default function Home() {
           </Button>
 
           <Button asChild size="lg" variant="outline" className="text-lg px-8">
-            <Link to="/signup">
+            <Link to="/login">
               <span className="inline-flex items-center">Sign In</span>
             </Link>
           </Button>
