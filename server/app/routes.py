@@ -82,16 +82,28 @@ def login():
     session['user_id'] = user.id
     session['role'] = user.role
     
+    # Create response
+    response_data = {
+        'message': 'Login successful',
+        'user_id': user.id,
+        'role': user.role,
+        'email': user.email
+    }
+    
     # Check if interviewee needs onboarding
     if user.role == 'interviewee':
         profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
         if not profile or not profile.onboarding_completed:
-            return jsonify({'redirect': '/onboarding'}), 200
+            response_data['redirect'] = '/onboarding'
+            return jsonify(response_data), 200
     
+    # Redirect based on role
     if user.role == 'recruiter':
-        return jsonify({'redirect': '/recruiter/dashboard'}), 200
+        response_data['redirect'] = '/recruiter/dashboard'
     else:
-        return jsonify({'redirect': '/interviewee/dashboard'}), 200
+        response_data['redirect'] = '/interviewee/dashboard'
+    
+    return jsonify(response_data), 200
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
@@ -128,6 +140,31 @@ def onboarding():
     profile.onboarding_completed = True
     db.session.commit()
     return jsonify({'message': 'Onboarding completed successfully'}), 200
+
+@auth_bp.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint to verify database status"""
+    try:
+        db.engine.connect()
+        
+        from sqlalchemy import text
+        result = db.session.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user'"))
+        user_table_exists = result.fetchone() is not None
+        
+        return jsonify({
+            'status': 'healthy',
+            'database_connected': True,
+            'user_table_exists': user_table_exists,
+            'environment': os.environ.get('FLASK_ENV', 'development')
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'database_connected': False,
+            'user_table_exists': False,
+            'environment': os.environ.get('FLASK_ENV', 'development')
+        }), 500
 
 
 @auth_bp.route('/me', methods=['GET'])
