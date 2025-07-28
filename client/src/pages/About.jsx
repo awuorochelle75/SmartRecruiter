@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
+import Footer from "./Footer";
 
 // Animation on scroll
 const AnimatedOnScroll = ({ children, delay = 0, className = "" }) => {
@@ -299,6 +300,8 @@ const About = () => {
           </AnimatedOnScroll>
         </div>
       </section>
+            <Footer />
+          
     </div>
   );
 };

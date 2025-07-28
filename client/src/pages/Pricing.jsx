@@ -235,8 +235,6 @@ const Pricing = () => {
           </AnimatedOnScroll>
       </div>
       </section>
-
-      {/* Footer (Imported from components/Footer.jsx) */}
       <Footer />
     </div>
   );
