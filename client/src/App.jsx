@@ -26,6 +26,7 @@ import CreateAssessment from './pages/Recruiter/CreateAssessment'
 import RecruiterProfile from './pages/Recruiter/Profile';
 import Settings from './pages/Recruiter/Settings';
 import NotFound from './pages/404 Errorpage';
+import About from './pages/About';
 
 
 
@@ -46,6 +47,7 @@ function App() {
       <Route path="/Sidebar" element={<IntervieweeSidebar />} />
       <Route path="/availabletest" element={<AvailableTests />} />
       <Route path="/results" element={<MyResults/>} />
+      <Route path="/about" element={<About/>} />
 
      
 
