@@ -5,15 +5,18 @@ import { Link, useLocation } from "react-router-dom"
 import {
   LayoutDashboard,
   FileText,
-  Trophy,
+  Users,
+  BarChart3,
   LogOut,
   Code2,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
-  Clock,
+  Plus,
+  Calendar,
   MessageSquare,
-  Play,
+  BookOpen,
+  FolderOpen,
+  ClipboardList,
 } from "lucide-react"
 import { Button } from "./ui/button"
 import { cn } from "../lib/utils"
@@ -22,37 +25,57 @@ import { useAuth } from "../contexts/AuthContext"
 const sidebarItems = [
   {
     title: "Dashboard",
-    href: "/interviewee/dashboard",
+    href: "/recruiter/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: "Available Tests",
-    href: "/interviewee/tests",
-    icon: Play,
+    title: "Create Assessment",
+    href: "/recruiter/create-assessment",
+    icon: Plus,
   },
   {
-    title: "My Results",
-    href: "/interviewee/results",
-    icon: Trophy,
-  },
-  {
-    title: "Practice Arena",
-    href: "/interviewee/practice",
+    title: "Create Test Assessment",
+    href: "/recruiter/create-test-assessment",
     icon: BookOpen,
   },
   {
-    title: "Scheduled Interviews",
-    href: "/interviewee/interviews",
-    icon: Clock,
+    title: "Practice Problems",
+    href: "/recruiter/practice-problems",
+    icon: FileText,
+  },
+  {
+    title: "Categories",
+    href: "/recruiter/categories",
+    icon: FolderOpen,
+  },
+  {
+    title: "Assessments",
+    href: "/recruiter/assessments",
+    icon: ClipboardList,
+  },
+  {
+    title: "Candidates",
+    href: "/recruiter/candidates",
+    icon: Users,
+  },
+  {
+    title: "Results & Analytics",
+    href: "/recruiter/analytics",
+    icon: BarChart3,
+  },
+  {
+    title: "Interviews",
+    href: "/recruiter/interviews",
+    icon: Calendar,
   },
   {
     title: "Messages",
-    href: "/interviewee/messages",
+    href: "/recruiter/messages",
     icon: MessageSquare,
   },
 ]
 
-export default function IntervieweeSidebar() {
+export default function RecruiterSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
   const { logout } = useAuth()
@@ -64,13 +87,14 @@ export default function IntervieweeSidebar() {
         collapsed ? "w-16" : "w-64",
       )}
     >
+      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
         {!collapsed && (
           <div className="flex items-center space-x-2">
             <Code2 className="h-6 w-6 text-sidebar-primary" />
             <div>
               <span className="font-bold text-sidebar-foreground">SmartRecruiter</span>
-              <p className="text-xs text-sidebar-foreground/70">Candidate Portal</p>
+              <p className="text-xs text-sidebar-foreground/70">Recruiter Portal</p>
             </div>
           </div>
         )}
@@ -84,6 +108,7 @@ export default function IntervieweeSidebar() {
         </Button>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {sidebarItems.map((item) => {
           const isActive = location.pathname === item.href
@@ -122,29 +147,3 @@ export default function IntervieweeSidebar() {
     </div>
   )
 }
-
-
-//       const currentPath = window.location.pathname
-//       if (currentPath !== "/interviewee/dashboard") {
-//         fetchNotifications()
-//         fetchUnreadCount()
-//       }
-//     }, 10000)
-
-//     return () => clearInterval(interval)
-//   }, [user])
-
-//   return (
-//     <NotificationContext.Provider
-//       value={{
-//         notifications,
-//         unreadCount,
-//         markAsRead,
-//         markAllAsRead,
-//         clearAllNotifications,
-//       }}
-//     >
-//       {children}
-//     </NotificationContext.Provider>
-//   )
-// }

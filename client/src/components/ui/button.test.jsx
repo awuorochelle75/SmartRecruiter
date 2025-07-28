@@ -2,17 +2,13 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Button } from './button';
 
-//testing the Button component
-
 describe('Button', () => {
   it('renders with default props and displays children', () => {
     render(<Button>Click me</Button>);
     const btn = screen.getByRole('button', { name: /click me/i });
     expect(btn).toBeInTheDocument();
-    expect(btn).toHaveClass('inline-flex');
+    expect(btn).toHaveClass('inline-flex'); // basic class from cva
   });
-
-
 
   it('applies the variant and size classes', () => {
     render(<Button variant="destructive" size="lg">Delete</Button>);
@@ -27,4 +23,3 @@ describe('Button', () => {
     expect(btn).toBeDisabled();
   });
 }); 
-

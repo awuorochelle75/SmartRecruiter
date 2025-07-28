@@ -5,57 +5,52 @@ import { Link, useLocation } from "react-router-dom"
 import {
   LayoutDashboard,
   FileText,
-  Trophy,
+  BarChart3,
+  User,
+  Settings,
   LogOut,
   Code2,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
-  Clock,
-  MessageSquare,
-  Play,
 } from "lucide-react"
 import { Button } from "./ui/button"
 import { cn } from "../lib/utils"
-import { useAuth } from "../contexts/AuthContext"
+
+
+// import { useAuth } from "../contexts/AuthContext"
+// import { useNotifications } from "../contexts/NotificationContext"
 
 const sidebarItems = [
   {
-    title: "Dashboard",
-    href: "/interviewee/dashboard",
+    title: "Overview",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: "Available Tests",
-    href: "/interviewee/tests",
-    icon: Play,
+    title: "Assessments",
+    href: "/assessments",
+    icon: FileText,
   },
   {
-    title: "My Results",
-    href: "/interviewee/results",
-    icon: Trophy,
+    title: "Results",
+    href: "/results",
+    icon: BarChart3,
   },
   {
-    title: "Practice Arena",
-    href: "/interviewee/practice",
-    icon: BookOpen,
+    title: "Profile",
+    href: "/profile",
+    icon: User,
   },
   {
-    title: "Scheduled Interviews",
-    href: "/interviewee/interviews",
-    icon: Clock,
-  },
-  {
-    title: "Messages",
-    href: "/interviewee/messages",
-    icon: MessageSquare,
+    title: "Settings",
+    href: "/settings",
+    icon: Settings,
   },
 ]
 
-export default function IntervieweeSidebar() {
+export default function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const { logout } = useAuth()
 
   return (
     <div
@@ -64,14 +59,12 @@ export default function IntervieweeSidebar() {
         collapsed ? "w-16" : "w-64",
       )}
     >
+      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
         {!collapsed && (
           <div className="flex items-center space-x-2">
             <Code2 className="h-6 w-6 text-sidebar-primary" />
-            <div>
-              <span className="font-bold text-sidebar-foreground">SmartRecruiter</span>
-              <p className="text-xs text-sidebar-foreground/70">Candidate Portal</p>
-            </div>
+            <span className="font-bold text-sidebar-foreground">SmartRecruiter</span>
           </div>
         )}
         <Button
@@ -84,6 +77,7 @@ export default function IntervieweeSidebar() {
         </Button>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {sidebarItems.map((item) => {
           const isActive = location.pathname === item.href
@@ -109,7 +103,6 @@ export default function IntervieweeSidebar() {
       <div className="p-4 border-t border-sidebar-border">
         <Button
           variant="ghost"
-          onClick={logout}
           className={cn(
             "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             collapsed && "justify-center",
@@ -124,27 +117,3 @@ export default function IntervieweeSidebar() {
 }
 
 
-//       const currentPath = window.location.pathname
-//       if (currentPath !== "/interviewee/dashboard") {
-//         fetchNotifications()
-//         fetchUnreadCount()
-//       }
-//     }, 10000)
-
-//     return () => clearInterval(interval)
-//   }, [user])
-
-//   return (
-//     <NotificationContext.Provider
-//       value={{
-//         notifications,
-//         unreadCount,
-//         markAsRead,
-//         markAllAsRead,
-//         clearAllNotifications,
-//       }}
-//     >
-//       {children}
-//     </NotificationContext.Provider>
-//   )
-// }
