@@ -127,7 +127,7 @@ def create_app(config=None):
     # Support both localhost and 127.0.0.1 for CORS in local dev
     CORS(
         app,
-        origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        origins=["http://localhost:5173", "http://127.0.0.1:5173","https://smart-recruiter-mu.vercel.app/"],
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
