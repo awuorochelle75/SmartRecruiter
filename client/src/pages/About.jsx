@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Navbar from "../components/Navbar";
+import { Link } from 'react-router-dom';
 
 // Animation Wrapper with Intersection Observer
 const AnimatedOnScroll = ({ children, delay = 0, className = "" }) => {
@@ -77,19 +78,34 @@ const features = [
     title: "AI-Powered Assessments",
     description: "Our algorithms evaluate 120+ data points to predict candidate success with 89% accuracy.",
     icon: <Target className="w-5 h-5 text-blue-600" />,
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop",
+    benefits: [
+      "Evaluates technical and soft skills simultaneously",
+      "Eliminates guesswork in screening candidates",
+      "Matches talent to job requirements in real time"
+    ]
   },
   {
     title: "Bias-Free Hiring",
     description: "Patented technology removes demographic identifiers while preserving skill signals.",
     icon: <Users className="w-5 h-5 text-blue-600" />,
-    image: "https://images.unsplash.com/photo-1521791055366-0d553872125f?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1521791055366-0d553872125f?w=800&auto=format&fit=crop",
+    benefits: [
+      "Ensures fairness across gender and ethnicity",
+      "Promotes diversity by focusing on potential",
+      "Complies with global and local hiring regulations"
+    ]
   },
   {
     title: "Real-Time Analytics",
     description: "Track pipeline metrics and optimize your hiring process with actionable insights.",
     icon: <Zap className="w-5 h-5 text-blue-600" />,
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop",
+    benefits: [
+      "Visual dashboards for decision-making",
+      "Live status tracking of candidate progress",
+      "Custom reports to improve hiring outcomes"
+    ]
   }
 ];
 
@@ -97,7 +113,7 @@ const About = () => {
   return (
     <div className="bg-white text-gray-900 min-h-screen">
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="relative py-24 md:py-32">
         <div className="container mx-auto px-6">
@@ -119,11 +135,12 @@ const About = () => {
               <AnimatedOnScroll delay={200}>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button className="gap-2">
-                    Get Started <ArrowRight className="w-4 h-4" />
+                    <Link to="/signup">
+                      <span className="inline-flex items-center">Get Started</span>
+                    </Link>
+                    <ArrowRight className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" className="gap-2">
-                    Learn More
-                  </Button>
+                  <Button variant="outline" className="gap-2">Learn More</Button>
                 </div>
               </AnimatedOnScroll>
             </div>
@@ -153,33 +170,19 @@ const About = () => {
           </AnimatedOnScroll>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <AnimatedOnScroll delay={100}>
-              <Card className="text-center p-6 hover:shadow-md transition-shadow">
-                <div className="text-3xl font-bold text-blue-600 mb-2">85%</div>
-                <p className="text-gray-600">Reduction in hiring bias</p>
-              </Card>
-            </AnimatedOnScroll>
-            
-            <AnimatedOnScroll delay={200}>
-              <Card className="text-center p-6 hover:shadow-md transition-shadow">
-                <div className="text-3xl font-bold text-blue-600 mb-2">3.5x</div>
-                <p className="text-gray-600">Faster hiring cycles</p>
-              </Card>
-            </AnimatedOnScroll>
-            
-            <AnimatedOnScroll delay={300}>
-              <Card className="text-center p-6 hover:shadow-md transition-shadow">
-                <div className="text-3xl font-bold text-blue-600 mb-2">92%</div>
-                <p className="text-gray-600">Candidate satisfaction</p>
-              </Card>
-            </AnimatedOnScroll>
-            
-            <AnimatedOnScroll delay={400}>
-              <Card className="text-center p-6 hover:shadow-md transition-shadow">
-                <div className="text-3xl font-bold text-blue-600 mb-2">250+</div>
-                <p className="text-gray-600">Enterprise clients</p>
-              </Card>
-            </AnimatedOnScroll>
+            {[
+              { stat: "85%", label: "Reduction in hiring bias" },
+              { stat: "3.5x", label: "Faster hiring cycles" },
+              { stat: "92%", label: "Candidate satisfaction" },
+              { stat: "250+", label: "Enterprise clients" }
+            ].map((item, idx) => (
+              <AnimatedOnScroll key={idx} delay={idx * 100}>
+                <Card className="text-center p-6 hover:shadow-md transition-shadow">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">{item.stat}</div>
+                  <p className="text-gray-600">{item.label}</p>
+                </Card>
+              </AnimatedOnScroll>
+            ))}
           </div>
         </div>
       </section>
@@ -195,7 +198,7 @@ const About = () => {
               </p>
             </div>
           </AnimatedOnScroll>
-          
+
           <div className="space-y-16">
             {features.map((feature, index) => (
               <AnimatedOnScroll key={index} delay={index * 100}>
@@ -209,17 +212,15 @@ const About = () => {
                   </div>
                   <div className="md:w-1/2">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-full bg-blue-50">
-                        {feature.icon}
-                      </div>
+                      <div className="p-2 rounded-full bg-blue-50">{feature.icon}</div>
                       <h3 className="text-2xl font-semibold">{feature.title}</h3>
                     </div>
                     <p className="text-gray-600 mb-6">{feature.description}</p>
                     <ul className="space-y-3">
-                      {[1, 2, 3].map((item) => (
-                        <li key={item} className="flex items-center gap-2">
+                      {feature.benefits.map((item, i) => (
+                        <li key={i} className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-green-500" />
-                          <span className="text-gray-700">Benefit {item} description</span>
+                          <span className="text-gray-700">{item}</span>
                         </li>
                       ))}
                     </ul>
