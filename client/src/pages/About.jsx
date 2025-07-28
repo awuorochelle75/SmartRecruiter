@@ -1,119 +1,304 @@
-import React from "react";
-import { Star } from "lucide-react"; 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; 
-import { Card, CardContent } from "@/components/ui/card"; 
+import React, { useState, useEffect, useRef } from "react";
+import { Star, Briefcase, Target, Users, Zap, ChevronDown, ArrowRight, Check } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Navbar from "../components/Navbar";
 
+// Animation Wrapper with Intersection Observer
+const AnimatedOnScroll = ({ children, delay = 0, className = "" }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
 
-// Mock data for testimonials (Kenyan-based dummy data)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) observer.observe(ref.current);
+    return () => {
+      if (ref.current) observer.unobserve(ref.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-500 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// Testimonials Data
 const testimonialsData = [
   {
     id: 1,
     name: "Amina Juma",
-    title: "HR Manager",
+    title: "HR Director",
     company: "Safaricom PLC",
-    quote: "SmartRecruiter transformed our hiring process. The assessments are incredibly insightful, and the platform is a joy to use. Highly recommend for any company looking to streamline their recruitment!",
-    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    quote: "SmartRecruiter reduced our hiring time by 60% while improving candidate quality. The platform's AI assessments are unmatched in our market.",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop",
     rating: 5,
   },
   {
     id: 2,
     name: "David Kimani",
-    title: "Senior Software Engineer",
-    company: "Andela Kenya",
-    quote: "As a candidate, I found SmartRecruiter's tests challenging yet fair. The feedback was constructive, helping me pinpoint areas for improvement. A truly professional experience.",
-    avatar: "https://randomuser.me/api/portraits/men/70.jpg",
-    rating: 4,
+    title: "Tech Lead",
+    company: "Cellulant",
+    quote: "The technical assessments accurately reflect real-world skills. We've seen a 40% reduction in early attrition since using SmartRecruiter.",
+    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop",
+    rating: 5,
   },
   {
     id: 3,
     name: "Fatima Ali",
-    title: "Talent Acquisition Lead",
-    company: "Equity Bank Group",
-    quote: "The ability to customize assessments and track candidate progress in real-time has been invaluable. SmartRecruiter saves us countless hours and ensures we find the best talent.",
-    avatar: "https://randomuser.me/api/portraits/women/72.jpg",
+    title: "Talent Acquisition",
+    company: "Equity Bank",
+    quote: "Transformed our graduate recruitment. We're finding exceptional candidates from diverse backgrounds we previously overlooked.",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop",
     rating: 5,
-  },
-  {
-    id: 4,
-    name: "Brian Omondi",
-    title: "Full Stack Developer",
-    company: "M-Pesa Africa",
-    quote: "I appreciate how user-friendly the platform is. Taking tests was straightforward, and the interface is clean. It's a great tool for both recruiters and candidates.",
-    avatar: "https://randomuser.me/api/portraits/men/45.jpg",
-    rating: 4,
   },
 ];
 
-// Kenyan-themed placeholder image URLs for background/hero sections
-const kenyanImageUrls = {
-  hero: "https://placehold.co/1920x800/2C3E50/E0E7FF?text=Nairobi+Skyline", // Darker blue background
-  mission: "https://placehold.co/1200x600/34495E/E0E7FF?text=Maasai+Mara+Sunset", // Slightly different dark blue
-};
+// Features Data
+const features = [
+  {
+    title: "AI-Powered Assessments",
+    description: "Our algorithms evaluate 120+ data points to predict candidate success with 89% accuracy.",
+    icon: <Target className="w-5 h-5 text-blue-600" />,
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop"
+  },
+  {
+    title: "Bias-Free Hiring",
+    description: "Patented technology removes demographic identifiers while preserving skill signals.",
+    icon: <Users className="w-5 h-5 text-blue-600" />,
+    image: "https://images.unsplash.com/photo-1521791055366-0d553872125f?w=800&auto=format&fit=crop"
+  },
+  {
+    title: "Real-Time Analytics",
+    description: "Track pipeline metrics and optimize your hiring process with actionable insights.",
+    icon: <Zap className="w-5 h-5 text-blue-600" />,
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop"
+  }
+];
 
 const About = () => {
   return (
-    <div className="flex min-h-screen font-sans bg-gray-50 dark:bg-gray-900">
-
-
-      {/* Main Content Area */}
-      <div className="flex-1  flex flex-col bg-gray-50 dark:bg-gray-900">
-        <Navbar/>
-
-        {/* Hero Section */}
-        <section
-          className="relative h-96 bg-cover bg-center flex items-center justify-center text-center p-6"
-          style={{ backgroundImage: `url(${kenyanImageUrls.hero})` }}
-        >
-          <div className="absolute inset-0 bg-black opacity-50"></div> {/* Overlay for text readability */}
-          <div className="relative z-10 text-white space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold">About SmartRecruiter</h1>
-            <p className="text-lg md:text-xl max-w-2xl mx-auto">
-              Revolutionizing talent acquisition through intelligent assessments and seamless connections.
-            </p>
-          </div>
-        </section>
-
-        {/* Our Mission/Story Section */}
-        <section className="py-16 px-6 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            <h2 className="text-3xl md:text-4xl font-bold">Our Mission</h2>
-            <p className="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
-              At SmartRecruiter, we believe in a world where talent finds opportunity effortlessly, and companies discover the perfect fit with precision. Our mission is to empower both job seekers and recruiters with cutting-edge technology that streamlines the assessment process, reduces bias, and fosters genuine connections.
-            </p>
-            <p className="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
-              Founded in Nairobi, Kenya, we are committed to building a platform that not only meets global standards but also understands the unique dynamics of the African job market. We strive to create a fair, transparent, and efficient ecosystem for talent acquisition.
-            </p>
-          </div>
-        </section>
-
-        {/* Testimonials Section Placeholder */}
-        <section className="py-16 px-6 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-          <div className="max-w-6xl mx-auto text-center space-y-8">
-            <h2 className="text-3xl md:text-4xl font-bold">What Our Users Say</h2>
-            <p className="text-lg text-gray-700 dark:text-gray-300">
-              Hear from the candidates and recruiters who've experienced the SmartRecruiter difference.
-            </p>
-            {/* Testimonials will be rendered here */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* Individual Testimonial Cards will go here */}
-                <p className="text-gray-500 dark:text-gray-400">Testimonials content will be populated here.</p>
+    <div className="bg-white text-gray-900 min-h-screen">
+      <Navbar />
+      
+      {/* Hero Section */}
+      <section className="relative py-24 md:py-32">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col lg:flex-row items-center gap-12">
+            <div className="lg:w-1/2">
+              <AnimatedOnScroll>
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                  <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                    Smarter Hiring
+                  </span>{" "}
+                  for Africa's Growing Businesses
+                </h1>
+              </AnimatedOnScroll>
+              <AnimatedOnScroll delay={100}>
+                <p className="text-xl text-gray-600 mb-8 max-w-2xl">
+                  We combine cutting-edge technology with deep market expertise to transform how companies find and hire top talent across Africa.
+                </p>
+              </AnimatedOnScroll>
+              <AnimatedOnScroll delay={200}>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button className="gap-2">
+                    Get Started <ArrowRight className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" className="gap-2">
+                    Learn More
+                  </Button>
+                </div>
+              </AnimatedOnScroll>
+            </div>
+            <div className="lg:w-1/2">
+              <AnimatedOnScroll delay={300}>
+                <img 
+                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop" 
+                  alt="Team working" 
+                  className="rounded-xl shadow-2xl border border-gray-100"
+                />
+              </AnimatedOnScroll>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Call to Action Section Placeholder */}
-        <section className="py-16 px-6 bg-blue-600 dark:bg-blue-800 text-white text-center space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">Ready to Transform Your Hiring?</h2>
-          <p className="text-lg max-w-2xl mx-auto">
-            Join SmartRecruiter today and experience the future of talent acquisition.
-          </p>
-          <Button variant="outline" className="bg-white text-blue-600 hover:bg-gray-100 dark:bg-gray-900 dark:text-blue-400 dark:hover:bg-gray-700 rounded-md px-8 py-3 text-lg font-semibold shadow-lg">
-            Get Started Now
-          </Button>
-        </section>
-      </div>
+      {/* Stats Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <AnimatedOnScroll>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold mb-4">Trusted by Africa's Top Employers</h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Our platform powers hiring for leading organizations across the continent
+              </p>
+            </div>
+          </AnimatedOnScroll>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <AnimatedOnScroll delay={100}>
+              <Card className="text-center p-6 hover:shadow-md transition-shadow">
+                <div className="text-3xl font-bold text-blue-600 mb-2">85%</div>
+                <p className="text-gray-600">Reduction in hiring bias</p>
+              </Card>
+            </AnimatedOnScroll>
+            
+            <AnimatedOnScroll delay={200}>
+              <Card className="text-center p-6 hover:shadow-md transition-shadow">
+                <div className="text-3xl font-bold text-blue-600 mb-2">3.5x</div>
+                <p className="text-gray-600">Faster hiring cycles</p>
+              </Card>
+            </AnimatedOnScroll>
+            
+            <AnimatedOnScroll delay={300}>
+              <Card className="text-center p-6 hover:shadow-md transition-shadow">
+                <div className="text-3xl font-bold text-blue-600 mb-2">92%</div>
+                <p className="text-gray-600">Candidate satisfaction</p>
+              </Card>
+            </AnimatedOnScroll>
+            
+            <AnimatedOnScroll delay={400}>
+              <Card className="text-center p-6 hover:shadow-md transition-shadow">
+                <div className="text-3xl font-bold text-blue-600 mb-2">250+</div>
+                <p className="text-gray-600">Enterprise clients</p>
+              </Card>
+            </AnimatedOnScroll>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24">
+        <div className="container mx-auto px-6">
+          <AnimatedOnScroll>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold mb-4">How We Transform Hiring</h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Our platform combines advanced technology with deep HR expertise
+              </p>
+            </div>
+          </AnimatedOnScroll>
+          
+          <div className="space-y-16">
+            {features.map((feature, index) => (
+              <AnimatedOnScroll key={index} delay={index * 100}>
+                <div className={`flex flex-col ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-12`}>
+                  <div className="md:w-1/2">
+                    <img 
+                      src={feature.image} 
+                      alt={feature.title} 
+                      className="rounded-xl shadow-lg border border-gray-100 w-full"
+                    />
+                  </div>
+                  <div className="md:w-1/2">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-full bg-blue-50">
+                        {feature.icon}
+                      </div>
+                      <h3 className="text-2xl font-semibold">{feature.title}</h3>
+                    </div>
+                    <p className="text-gray-600 mb-6">{feature.description}</p>
+                    <ul className="space-y-3">
+                      {[1, 2, 3].map((item) => (
+                        <li key={item} className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-500" />
+                          <span className="text-gray-700">Benefit {item} description</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </AnimatedOnScroll>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-24 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <AnimatedOnScroll>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold mb-4">What Our Clients Say</h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Trusted by HR leaders across East Africa
+              </p>
+            </div>
+          </AnimatedOnScroll>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonialsData.map((testimonial, index) => (
+              <AnimatedOnScroll key={testimonial.id} delay={index * 150}>
+                <Card className="h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-6">
+                      <Avatar>
+                        <AvatarImage src={testimonial.avatar} />
+                        <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{testimonial.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {testimonial.title}, {testimonial.company}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-gray-700 mb-6 italic">"{testimonial.quote}"</p>
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          className={`w-5 h-5 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedOnScroll>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24">
+        <div className="container mx-auto px-6">
+          <AnimatedOnScroll>
+            <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-0">
+              <CardHeader className="text-center">
+                <CardTitle className="text-3xl font-bold mb-4">
+                  Ready to Transform Your Hiring?
+                </CardTitle>
+                <CardDescription className="text-lg text-gray-700">
+                  Join hundreds of companies already benefiting from our platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button className="gap-2">
+                  Request Demo <ArrowRight className="w-4 h-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </AnimatedOnScroll>
+        </div>
+      </section>
     </div>
   );
 };
