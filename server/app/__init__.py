@@ -27,9 +27,9 @@ class DatabaseSessionInterface(SessionInterface):
         self.cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
         self.cookie_path = app.config.get('SESSION_COOKIE_PATH', '/')
         self.cookie_domain = app.config.get('SESSION_COOKIE_DOMAIN', None)
-        self.cookie_secure = app.config.get('SESSION_COOKIE_SECURE', False)
+        self.cookie_secure = app.config.get('SESSION_COOKIE_SECURE', True)
         self.cookie_httponly = app.config.get('SESSION_COOKIE_HTTPONLY', True)
-        self.cookie_samesite = app.config.get('SESSION_COOKIE_SAMESITE', 'Lax')
+        self.cookie_samesite = app.config.get('SESSION_COOKIE_SAMESITE', 'None')
         self.max_age = app.config.get('SESSION_MAX_AGE', timedelta(days=31))
 
     def open_session(self, app, request):
@@ -124,14 +124,57 @@ def create_app(config=None):
     app = Flask(__name__)
     app.secret_key = 'dev-secret-key'  # Ensure static secret key
     
-    # Support both localhost and 127.0.0.1 for CORS in local dev
+    # Configure session for cross-origin requests
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_DOMAIN'] = None
+    
+    # CORS configuration for development and production
+    allowed_origins = [
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",
+        "https://smart-recruiter-mu.vercel.app",
+        "https://smart-recruiter-mu.vercel.app/",
+        "https://smartrecruiter-l0x0.onrender.com"
+    ]
+    
+    
     CORS(
         app,
-        origins=["http://localhost:5173", "http://127.0.0.1:5173","https://smart-recruiter-mu.vercel.app/"],
+        origins=allowed_origins,
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        expose_headers=["Content-Type", "Authorization"],
+        max_age=86400  # Cache preflight requests for 24 hours
     )
+    
+    # Additional CORS headers for better compatibility
+    @app.after_request
+    def after_request(response):
+        origin = request.headers.get('Origin')
+        if origin in allowed_origins:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            response.headers.add('Access-Control-Max-Age', '86400')
+        return response
+    
+    # Handle OPTIONS requests for preflight
+    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+    @app.route('/<path:path>', methods=['OPTIONS'])
+    def handle_options(path):
+        response = app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin in allowed_origins:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            response.headers.add('Access-Control-Max-Age', '86400')
+        return response
     
     # Use provided config or determine from environment
     if config:
