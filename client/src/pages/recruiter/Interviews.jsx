@@ -49,8 +49,7 @@ export default function Interviews() {
   const [deleteInterviewTitle, setDeleteInterviewTitle] = useState("")
   const { toast } = useToast()
 
-
-
+  // Form state for scheduling
   const [scheduleForm, setScheduleForm] = useState({
     interviewee_id: "",
     position: "",
@@ -62,7 +61,7 @@ export default function Interviews() {
     assessment_id: null
   })
 
-  
+  // Form state for editing (separate from scheduling)
   const [editForm, setEditForm] = useState({
     position: "",
     type: "technical",
@@ -115,13 +114,23 @@ export default function Interviews() {
     setScheduling(true)
     
     try {
-      const scheduledAt = new Date(`${selectedDate}T${selectedTime}`).toISOString()
+      // Parse the date and time components
+      const [year, month, day] = selectedDate.split('-').map(Number)
+      const [hours, minutes] = selectedTime.split(':').map(Number)
       
+      // Create a date object in local timezone
+      const localDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0)
+      
+      // Use the ISO string directly - it's already in UTC
+      const scheduledAt = localDateTime.toISOString()
+      
+      // Prepare request body, handling empty assessment_id
       const requestBody = {
         ...scheduleForm,
         scheduled_at: scheduledAt
       }
       
+      // Remove assessment_id if it's empty
       if (!requestBody.assessment_id || requestBody.assessment_id === "") {
         delete requestBody.assessment_id
       }
@@ -142,6 +151,7 @@ export default function Interviews() {
         })
         setShowScheduleDialog(false)
         fetchInterviews()
+        // Reset form
         resetScheduleForm()
       } else {
         const error = await response.json()
@@ -162,8 +172,6 @@ export default function Interviews() {
       setScheduling(false)
     }
   }
-
-
 
   const resetScheduleForm = () => {
     setScheduleForm({
@@ -215,21 +223,6 @@ export default function Interviews() {
     }
   }
 
-
-  // const handleConfirmInterview = async (interviewId) => {
-  //   try {
-  //     const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}/confirm`, {
-  //       method: "POST",
-  //       credentials: "include",
-  //     })
-  //     if (response.ok) {
-  //       toast({
-  //         title: "Interview Confirmed",
-  //         description: "Interview has been confirmed successfully",
-  //       })
-  //       fetchInterviews()
-  //     } else {
-
   const handleCancelInterview = async (interviewId) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}`, {
@@ -266,15 +259,24 @@ export default function Interviews() {
     setEditing(true)
     
     try {
-      const scheduledAt = new Date(`${editDate}T${editTime}`).toISOString()
+      // Parse the date and time components
+      const [year, month, day] = editDate.split('-').map(Number)
+      const [hours, minutes] = editTime.split(':').map(Number)
       
-      const requestBody = {
+      // Create a date object in local timezone
+      const localDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0)
+      
+      // Use the ISO string directly - it's already in UTC
+      const scheduledAt = localDateTime.toISOString()
+      
+      const updates = {
         ...editForm,
         scheduled_at: scheduledAt
       }
       
-      if (!requestBody.assessment_id || requestBody.assessment_id === "") {
-        delete requestBody.assessment_id
+      // Remove assessment_id if it's empty
+      if (!updates.assessment_id || updates.assessment_id === "") {
+        delete updates.assessment_id
       }
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${selectedInterview.id}`, {
@@ -283,7 +285,7 @@ export default function Interviews() {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(updates),
       })
 
       if (response.ok) {
@@ -293,18 +295,6 @@ export default function Interviews() {
         })
         setShowEditDialog(false)
         fetchInterviews()
-        setEditForm({
-          position: "",
-          type: "technical",
-          duration: 60,
-          meeting_link: "",
-          location: "",
-          notes: "",
-          assessment_id: null
-        })
-        setEditDate("")
-        setEditTime("")
-        setSelectedInterview(null)
       } else {
         const error = await response.json()
         toast({
@@ -384,8 +374,6 @@ export default function Interviews() {
     }
   }
 
-
-
   const getStatusColor = (status) => {
     switch (status) {
       case "scheduled":
@@ -400,7 +388,6 @@ export default function Interviews() {
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
     }
   }
-
 
 
   const getTypeColor = (type) => {
@@ -418,8 +405,7 @@ export default function Interviews() {
     }
   }
 
-
-
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString()
@@ -467,6 +453,7 @@ export default function Interviews() {
         <DashboardNavbar />
         <main className="flex-1 p-6 overflow-auto">
           <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Interviews</h1>
@@ -481,6 +468,7 @@ export default function Interviews() {
                   </Button>
             </div>
 
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
@@ -528,9 +516,7 @@ export default function Interviews() {
               </Card>
             </div>
 
-
-
-
+            {/* Interviews List */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">All Interviews</h2>
@@ -707,28 +693,32 @@ export default function Interviews() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>
                     <Input
                       id="date"
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
+                      className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
                       min={new Date().toISOString().split('T')[0]}
+                      required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="time">Time</Label>
                     <Input
                       id="time"
                       type="time"
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
+                      className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                      required
                     />
                   </div>
                 </div>
-                <div>
+              <div>
                   <Label htmlFor="location">Location</Label>
                   <Input
                     id="location"
@@ -890,8 +880,8 @@ export default function Interviews() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="edit-duration">Duration (minutes)</Label>
                     <Input
                       id="edit-duration"
@@ -902,23 +892,26 @@ export default function Interviews() {
                       max="180"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="edit-time">Time</Label>
                     <Input
                       id="edit-time"
                       type="time"
                       value={editTime}
                       onChange={(e) => setEditTime(e.target.value)}
+                      className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
                     />
                   </div>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="edit-date">Date</Label>
                   <Input
                     id="edit-date"
                     type="date"
                     value={editDate}
                     onChange={(e) => setEditDate(e.target.value)}
+                    className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 <div>

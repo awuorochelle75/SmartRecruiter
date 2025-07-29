@@ -303,7 +303,7 @@ export default function Candidates() {
 
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search candidates by name, email, position, or skills..."
@@ -313,7 +313,7 @@ export default function Candidates() {
                 />
               </div>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] flex-shrink-0">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
@@ -327,175 +327,174 @@ export default function Candidates() {
               </Select>
             </div>
 
+            {/* Candidates Table */}
             <Card>
               <CardHeader>
                 <CardTitle>Candidate List</CardTitle>
                 <CardDescription>Detailed view of all candidates in your pipeline</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Candidate</TableHead>
-                      <TableHead>Position & Skills</TableHead>
-                      <TableHead>Assessments</TableHead>
-                      <TableHead>Interviews</TableHead>
-                      <TableHead>Score</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Activity</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCandidates.map((candidate) => (
-                      <TableRow key={candidate.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage 
-                                src={candidate.avatar ? `${import.meta.env.VITE_API_URL}/uploads/avatars/${candidate.avatar}` : "/placeholder.svg"} 
-                                alt={candidate.full_name} 
-                              />
-                              <AvatarFallback>
-                                {candidate.full_name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[140px] lg:w-[160px]">Candidate</TableHead>
+                        <TableHead className="w-[160px] lg:w-[200px]">Position & Skills</TableHead>
+                        <TableHead className="w-[80px] lg:w-[100px]">Assessments</TableHead>
+                        <TableHead className="w-[80px] lg:w-[100px]">Interviews</TableHead>
+                        <TableHead className="w-[60px] lg:w-[80px]">Score</TableHead>
+                        <TableHead className="w-[70px] lg:w-[90px]">Status</TableHead>
+                        <TableHead className="w-[80px] lg:w-[100px]">Last Activity</TableHead>
+                        <TableHead className="w-[80px] lg:w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCandidates.map((candidate) => (
+                        <TableRow key={candidate.id}>
+                          <TableCell className="w-[140px] lg:w-[160px]">
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8 flex-shrink-0">
+                                <AvatarImage 
+                                  src={candidate.avatar ? `${import.meta.env.VITE_API_URL}/uploads/avatars/${candidate.avatar}` : "/placeholder.svg"} 
+                                  alt={candidate.full_name} 
+                                />
+                                <AvatarFallback className="text-xs">
+                                  {candidate.full_name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium truncate text-sm">{candidate.full_name}</div>
+                                <div className="text-xs text-muted-foreground truncate">{candidate.email}</div>
+                                {candidate.location && (
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                                    <span className="truncate max-w-[80px] lg:max-w-[100px]">{candidate.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-[160px] lg:w-[200px]">
                             <div>
-                              <div className="font-medium">{candidate.full_name}</div>
-                              <div className="text-sm text-muted-foreground">{candidate.email}</div>
-                              {candidate.location && (
-                                <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {candidate.location}
+                              <div className="font-medium truncate text-sm">{candidate.position || 'Not specified'}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {candidate.position && candidate.position.includes('Senior') ? '5+ years' : 
+                                 candidate.position && candidate.position.includes('Junior') ? '1-3 years' : 
+                                 '3-5 years'} experience
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1 max-w-full">
+                                {(candidate.skills || []).slice(0, 1).map((skill, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs truncate max-w-[50px]">
+                                    {(skill || '').trim()}
+                                  </Badge>
+                                ))}
+                                {(candidate.skills || []).length > 1 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{(candidate.skills || []).length - 1}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-[80px] lg:w-[100px]">
+                            <div className="space-y-1">
+                              <div className="text-xs">
+                                <span className="font-medium">{candidate.assessments.completed}</span>
+                                <span className="text-muted-foreground">/{candidate.assessments.total}</span>
+                                <span className="text-muted-foreground"> reg</span>
+                              </div>
+                              <div className="text-xs">
+                                <span className="font-medium">{candidate.test_assessments.completed}</span>
+                                <span className="text-muted-foreground">/{candidate.test_assessments.total}</span>
+                                <span className="text-muted-foreground"> test</span>
+                              </div>
+                              <div className="text-xs">
+                                <span className="font-medium">{candidate.practice_problems.completed}</span>
+                                <span className="text-muted-foreground"> prac</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-[80px] lg:w-[100px]">
+                            <div className="space-y-1">
+                              <div className="text-xs">
+                                <span className="font-medium">{candidate.interviews.total}</span>
+                                <span className="text-muted-foreground"> tot</span>
+                              </div>
+                              <div className="text-xs">
+                                <span className="font-medium">{candidate.interviews.completed}</span>
+                                <span className="text-muted-foreground"> comp</span>
+                              </div>
+                              {candidate.interviews.scheduled > 0 && (
+                                <div className="text-xs">
+                                  <span className="font-medium">{candidate.interviews.scheduled}</span>
+                                  <span className="text-muted-foreground"> sched</span>
                                 </div>
                               )}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{candidate.position || 'Not specified'}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {candidate.position && candidate.position.includes('Senior') ? '5+ years' : 
-                               candidate.position && candidate.position.includes('Junior') ? '1-3 years' : 
-                               '3-5 years'} experience
+                          </TableCell>
+                          <TableCell className="w-[60px] lg:w-[80px]">
+                            <div className="flex items-center space-x-2">
+                              <span className={`font-medium ${getOverallScoreColor(candidate.overall_score)}`}>
+                                {Math.round(candidate.overall_score)}%
+                              </span>
+                              <Progress value={candidate.overall_score} className="w-16 h-2" />
                             </div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {(candidate.skills || []).slice(0, 3).map((skill, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {(skill || '').trim()}
-                                </Badge>
-                              ))}
-                              {(candidate.skills || []).length > 3 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{(candidate.skills || []).length - 3}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="text-sm">
-                              <span className="font-medium">{candidate.assessments.completed}</span>
-                              <span className="text-muted-foreground">/{candidate.assessments.total}</span>
-                              <span className="text-muted-foreground"> regular</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium">{candidate.test_assessments.completed}</span>
-                              <span className="text-muted-foreground">/{candidate.test_assessments.total}</span>
-                              <span className="text-muted-foreground"> test</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium">{candidate.practice_problems.completed}</span>
-                              <span className="text-muted-foreground"> practice</span>
-                            </div>
-                          </div>
-                        </TableCell>
-
-
-
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="text-sm">
-                              <span className="font-medium">{candidate.interviews.total}</span>
-                              <span className="text-muted-foreground"> total</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium">{candidate.interviews.completed}</span>
-                              <span className="text-muted-foreground"> completed</span>
-                            </div>
-                            {candidate.interviews.scheduled > 0 && (
-                              <div className="text-sm">
-                                <span className="font-medium">{candidate.interviews.scheduled}</span>
-                                <span className="text-muted-foreground"> scheduled</span>
+                          </TableCell>
+                          <TableCell className="w-[70px] lg:w-[90px]">
+                            <Badge className={getStatusColor(candidate.status)}>
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(candidate.status)}
+                                <span className="truncate">{candidate.status.replace("-", " ")}</span>
                               </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <span className={`font-medium ${getOverallScoreColor(candidate.overall_score)}`}>
-                              {Math.round(candidate.overall_score)}%
-                            </span>
-                            <Progress value={candidate.overall_score} className="w-16 h-2" />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(candidate.status)}>
-                            <div className="flex items-center gap-1">
-                              {getStatusIcon(candidate.status)}
-                              {candidate.status.replace("-", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="w-[80px] lg:w-[100px]">
+                            <div className="text-xs">
+                              <div className="truncate">{formatDate(candidate.last_activity)}</div>
+                              <div className="text-muted-foreground truncate">{formatTimeAgo(candidate.last_activity)}</div>
                             </div>
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div>{formatDate(candidate.last_activity)}</div>
-                            <div className="text-muted-foreground">{formatTimeAgo(candidate.last_activity)}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => {
-                                    setSelectedCandidate(candidate)
-                                    setShowCandidateDialog(true)
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                            </Dialog>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleMessageCandidate(candidate.id)}
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          </TableCell>
+                          <TableCell className="w-[80px] lg:w-[100px]">
+                            <div className="flex items-center space-x-1">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => {
+                                      setSelectedCandidate(candidate)
+                                      setShowCandidateDialog(true)
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                              </Dialog>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleMessageCandidate(candidate.id)}
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
-
-
-
 
           {/* Candidate Detail Dialog */}
           <Dialog open={showCandidateDialog} onOpenChange={setShowCandidateDialog}>
@@ -544,8 +543,6 @@ export default function Candidates() {
                         </div>
                       </div>
                     </div>
-
-
                     <div className="text-right">
                       <Badge className={getStatusColor(selectedCandidate.status)}>
                         {getStatusIcon(selectedCandidate.status)}
@@ -571,6 +568,7 @@ export default function Candidates() {
 
                     <TabsContent value="overview" className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Skills */}
                         <Card>
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -654,16 +652,6 @@ export default function Candidates() {
                                 </Button>
                               </div>
                             )}
-
-                            {/* {selectedCandidate.website_url && (
-                              <div className="flex items-center justify-between">
-                                <span>Website</span>
-                                <Button variant="ghost" size="sm" asChild>
-                                  <a href={selectedCandidate.website_url} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                                  <a href={selectedCandidate.website_url} target="_blank" rel="noopener noreferrer"> */}
                             {selectedCandidate.portfolio_url && (
                               <div className="flex items-center justify-between">
                                 <span>Portfolio</span>
@@ -696,7 +684,7 @@ export default function Candidates() {
 
                     <TabsContent value="assessments" className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
+                        {/* Regular Assessments */}
                         <Card>
                           <CardHeader>
                             <CardTitle>Regular Assessments</CardTitle>
@@ -728,8 +716,7 @@ export default function Candidates() {
                           </CardContent>
                         </Card>
 
-
-
+                        {/* Test Assessments */}
                         <Card>
                           <CardHeader>
                             <CardTitle>Test Assessments</CardTitle>
@@ -762,8 +749,6 @@ export default function Candidates() {
                         </Card>
                       </div>
                     </TabsContent>
-
-
 
                     <TabsContent value="interviews" className="space-y-4">
                       <Card>
@@ -800,8 +785,6 @@ export default function Candidates() {
                         </CardContent>
                       </Card>
                     </TabsContent>
-
-                    
 
                     <TabsContent value="profile" className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

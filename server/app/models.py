@@ -302,7 +302,7 @@ class PracticeProblemAttempt(db.Model):
     time_taken = db.Column(db.Integer)  # seconds
     attempt_number = db.Column(db.Integer, nullable=False, default=1)
     points_earned = db.Column(db.Integer, nullable=False, default=0)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     streak = db.Column(db.Integer, nullable=False, default=1)
     # Relationships
     user = db.relationship('User', backref=db.backref('practice_problem_attempts', lazy='dynamic'))
@@ -314,7 +314,7 @@ class Message(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     read = db.Column(db.Boolean, default=False)
     conversation_id = db.Column(db.String(64), nullable=False)  # e.g., "recruiterId-intervieweeId"
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')

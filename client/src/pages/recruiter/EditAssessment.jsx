@@ -530,9 +530,10 @@ export default function EditAssessment() {
                     <Input
                       id="deadline"
                       type="date"
-                      min={new Date().toISOString().split('T')[0]}
                       value={assessmentData.deadline}
                       onChange={(e) => handleAssessmentChange("deadline", e.target.value)}
+                      className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                      min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
                 </div>

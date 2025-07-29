@@ -2022,7 +2022,7 @@ def get_conversations():
         conversation_list.append({
             'conversation_id': conv_id,
             'last_message': last_message.content,
-            'last_message_at': last_message.timestamp.isoformat(),
+            'last_message_at': last_message.timestamp.isoformat() + 'Z',
             'unread_count': unread_count,
             'other_user': {
                 'id': other_user.id,
@@ -2316,7 +2316,7 @@ def get_interviews():
             'id': interview.id,
             'position': interview.position,
             'type': interview.type,
-            'scheduled_at': interview.scheduled_at.isoformat(),
+            'scheduled_at': interview.scheduled_at.isoformat() + 'Z',
             'duration': interview.duration,
             'status': interview.status,
             'meeting_link': interview.meeting_link,
@@ -2364,7 +2364,13 @@ def schedule_interview():
     
     try:
         scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
-    except ValueError:
+        
+        # Convert to UTC if it's timezone-aware
+        if scheduled_at.tzinfo is not None:
+            scheduled_at = scheduled_at.utctimetuple()
+            scheduled_at = datetime(*scheduled_at[:6])
+        
+    except ValueError as e:
         return jsonify({'error': 'Invalid date format for scheduled_at'}), 400
     
     recruiter_profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
@@ -2494,7 +2500,7 @@ def get_interview(interview_id):
         'id': interview.id,
         'position': interview.position,
         'type': interview.type,
-        'scheduled_at': interview.scheduled_at.isoformat(),
+        'scheduled_at': interview.scheduled_at.isoformat() + 'Z',
         'duration': interview.duration,
         'status': interview.status,
         'meeting_link': interview.meeting_link,
@@ -2573,8 +2579,15 @@ def update_interview(interview_id):
                 interview.assessment_id = None
     if 'scheduled_at' in data:
         try:
-            interview.scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
-        except ValueError:
+            scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
+            
+            # Convert to UTC if it's timezone-aware
+            if scheduled_at.tzinfo is not None:
+                scheduled_at = scheduled_at.utctimetuple()
+                scheduled_at = datetime(*scheduled_at[:6])
+            
+            interview.scheduled_at = scheduled_at
+        except ValueError as e:
             return jsonify({'error': 'Invalid date format for scheduled_at'}), 400
     
     db.session.commit()
@@ -2717,7 +2730,7 @@ def get_candidates():
                             'position': i.position,
                             'type': i.type,
                             'status': i.status,
-                            'scheduled_at': i.scheduled_at.isoformat(),
+                            'scheduled_at': i.scheduled_at.isoformat() + 'Z',
                             'rating': i.rating,
                             'feedback': i.feedback
                         } for i in interviews
@@ -2798,7 +2811,7 @@ def get_recruiter_dashboard():
                         'id': interview.id,
                         'candidate': f"{profile.first_name} {profile.last_name}",
                         'position': interview.position,
-                        'time': interview.scheduled_at.isoformat(),
+                        'time': interview.scheduled_at.isoformat() + 'Z',
                         'type': interview.type.replace('_', ' ').title()
                     })
     
@@ -2992,7 +3005,7 @@ def get_recruiter_analytics():
                     'position': i.position,
                     'type': i.type,
                     'status': i.status,
-                    'scheduled_at': i.scheduled_at.isoformat(),
+                    'scheduled_at': i.scheduled_at.isoformat() + 'Z',
                     'rating': i.rating
                 } for i in interviews[-5:]
             ]
@@ -3098,7 +3111,7 @@ def get_interviewee_dashboard():
                     'id': interview.id,
                     'company': recruiter_profile.company_name if recruiter_profile else "Unknown Company",
                     'position': interview.position,
-                    'time': interview.scheduled_at.isoformat(),
+                    'time': interview.scheduled_at.isoformat() + 'Z',
                     'type': interview.type.replace('_', ' ').title(),
                     'interviewer': f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown"
                 })
