@@ -78,15 +78,17 @@ export default function RecruiterProfile() {
         setAvatarUrl("")
       })
 
+    // Fetch profile statistics
     fetch(`${import.meta.env.VITE_API_URL}/profile/recruiter/stats`, {
       credentials: "include",
     })
-      .then((response) => response.json())
+      .then((response) => {
+        return response.json()
+      })
       .then((data) => {
         setProfileStats(data)
       })
       .catch((error) => {
-        console.error('Error fetching profile stats:', error)
         setProfileStats({
           stats: {
             assessments_created: 0,

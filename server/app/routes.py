@@ -3205,11 +3205,13 @@ def get_recruiter_profile_stats():
         recent_interviews = Interview.query.filter_by(recruiter_id=user_id).order_by(Interview.created_at.desc()).limit(3).all()
         for interview in recent_interviews:
             interviewee = User.query.get(interview.interviewee_id)
-            recent_activities.append({
-                'type': 'Interview Scheduled',
-                'details': f"{interviewee.first_name} {interviewee.last_name} - {interview.position}",
-                'date': interview.created_at.isoformat() if interview.created_at else None
-            })
+            interviewee_profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
+            if interviewee_profile:
+                recent_activities.append({
+                    'type': 'Interview Scheduled',
+                    'details': f"{interviewee_profile.first_name} {interviewee_profile.last_name} - {interview.position}",
+                    'date': interview.created_at.isoformat() if interview.created_at else None
+                })
         
         # Recent candidate invitations (assessment attempts)
         recent_attempts = AssessmentAttempt.query.join(Assessment).filter(
@@ -3218,12 +3220,14 @@ def get_recruiter_profile_stats():
         
         for attempt in recent_attempts:
             interviewee = User.query.get(attempt.interviewee_id)
+            interviewee_profile = IntervieweeProfile.query.filter_by(user_id=attempt.interviewee_id).first()
             assessment = Assessment.query.get(attempt.assessment_id)
-            recent_activities.append({
-                'type': 'Candidate Invited',
-                'details': f"{interviewee.first_name} {interviewee.last_name} to {assessment.title}",
-                'date': attempt.started_at.isoformat() if attempt.started_at else None
-            })
+            if interviewee_profile and assessment:
+                recent_activities.append({
+                    'type': 'Candidate Invited',
+                    'details': f"{interviewee_profile.first_name} {interviewee_profile.last_name} to {assessment.title}",
+                    'date': attempt.started_at.isoformat() if attempt.started_at else None
+                })
         
         # Sort all activities by date and take top 5
         recent_activities.sort(key=lambda x: x['date'] or '', reverse=True)
