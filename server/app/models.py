@@ -249,6 +249,47 @@ class CodeEvaluationResult(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     attempt_answer = db.relationship('AssessmentAttemptAnswer', backref=db.backref('code_evaluation_result', uselist=False))
 
+class AssessmentReview(db.Model):
+    __tablename__ = 'assessment_review'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt.id'), nullable=False)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    overall_score = db.Column(db.Float)
+    overall_feedback = db.Column(db.Text)
+    reviewed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    attempt = db.relationship('AssessmentAttempt', backref=db.backref('reviews', lazy='dynamic'))
+    recruiter = db.relationship('User', backref=db.backref('assessment_reviews', lazy='dynamic'))
+
+class AssessmentReviewAnswer(db.Model):
+    __tablename__ = 'assessment_review_answer'
+    id = db.Column(db.Integer, primary_key=True)
+    review_id = db.Column(db.Integer, db.ForeignKey('assessment_review.id'), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('assessment_question.id'), nullable=False)
+    attempt_answer_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt_answer.id'), nullable=False)
+    
+    # Manual scoring fields
+    manual_score = db.Column(db.Float)
+    max_points = db.Column(db.Float)
+    is_correct = db.Column(db.Boolean)
+    feedback = db.Column(db.Text)
+    review_notes = db.Column(db.Text)
+    
+    auto_score = db.Column(db.Float)
+    auto_is_correct = db.Column(db.Boolean)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    review = db.relationship('AssessmentReview', backref=db.backref('review_answers', lazy='dynamic'))
+    question = db.relationship('AssessmentQuestion')
+    attempt_answer = db.relationship('AssessmentAttemptAnswer')
+
 
 class PracticeProblem(db.Model):
     __tablename__ = 'practice_problem'

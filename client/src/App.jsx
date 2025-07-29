@@ -41,6 +41,7 @@ import PracticeProblems from "./pages/recruiter/PracticeProblems"
 import CreatePracticeProblem from "./pages/recruiter/CreatePracticeProblem"
 import EditPracticeProblem from "./pages/recruiter/EditPracticeProblem"
 import PracticeProblemDetails from "./pages/recruiter/PracticeProblemDetails"
+import ReviewSubmission from "./pages/recruiter/ReviewSubmission"
 
 // Interviewee Pages
 import IntervieweeDashboard from "./pages/interviewee/IntervieweeDashboard"
@@ -196,6 +197,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute requiredRole="recruiter">
             <AssessmentDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/review-submission/:assessmentId/:attemptId"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <ReviewSubmission />
           </ProtectedRoute>
         }
       />

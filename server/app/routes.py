@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -989,8 +989,21 @@ def start_assessment_attempt(assessment_id):
         return jsonify({'error': 'Assessment not found'}), 404
     prev_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).count()
     max_attempts = 3
+    
+    # Check if user has remaining attempts
     if prev_attempts >= max_attempts:
         return jsonify({'error': 'Max attempts reached'}), 403
+    
+    # Check if user has any completed attempts
+    completed_attempts = AssessmentAttempt.query.filter_by(
+        interviewee_id=user.id, 
+        assessment_id=assessment_id, 
+        status='completed'
+    ).count()
+    
+    # If user has completed attempts but still has remaining attempts, allow retake
+    if completed_attempts > 0 and prev_attempts < max_attempts:
+        pass
     attempt = AssessmentAttempt(
         interviewee_id=user.id,
         assessment_id=assessment_id,
@@ -1053,12 +1066,41 @@ def submit_answer(attempt_id):
     test_case_score = None
     if question.type == 'multiple-choice':
         try:
-            correct = json.loads(question.correct_answer)
-            is_correct = (answer == correct)
-        except Exception:
+            correct_index = json.loads(question.correct_answer)
+            options = json.loads(question.options) if question.options else []
+            
+            # Convert user answer to index if it's a text option
+            user_answer_index = None
+            if isinstance(answer, str):
+                # Try to find the option index by text
+                try:
+                    user_answer_index = options.index(answer)
+                except ValueError:
+                    try:
+                        user_answer_index = int(answer)
+                    except ValueError:
+                        user_answer_index = None
+            
+            # Compare indices
+            is_correct = (user_answer_index == correct_index)
+        except Exception as e:
+            print(f"Error comparing multiple-choice answer: {e}")
+            print(f"User answer: {answer} (type: {type(answer)})")
+            print(f"Correct answer: {question.correct_answer} (type: {type(question.correct_answer)})")
+            print(f"Options: {question.options}")
             is_correct = None
     elif question.type == 'short-answer':
-        is_correct = (answer.strip().lower() == (question.answer or '').strip().lower())
+        try:
+            user_answer = str(answer).strip().lower() if answer else ""
+            correct_answer = str(question.answer or "").strip().lower()
+            is_correct = (user_answer == correct_answer)
+        except Exception as e:
+            print(f"Error comparing short-answer: {e}")
+            print(f"User answer: {answer} (type: {type(answer)})")
+            print(f"Correct answer: {question.answer} (type: {type(question.answer)})")
+            is_correct = None
+    elif question.type == 'essay':
+        is_correct = None
     elif question.type == 'coding':
         # Evaluate code against test cases
         try:
@@ -1133,6 +1175,8 @@ def submit_attempt(attempt_id):
         if q.type == 'coding':
             if ans and ans.test_case_score is not None:
                 earned_points += q.points * ans.test_case_score
+        elif q.type == 'essay':
+            pass
         else:
             if ans and ans.is_correct:
                 earned_points += q.points
@@ -1192,7 +1236,8 @@ def get_attempts_summary():
     result = []
     for a in attempts:
         assessment = Assessment.query.get(a.assessment_id)
-        result.append({
+        review = AssessmentReview.query.filter_by(attempt_id=a.id).first()
+        result_data = {
             'assessment_id': a.assessment_id,
             'assessment_title': assessment.title if assessment else None,
             'attempt_id': a.id,
@@ -1202,8 +1247,12 @@ def get_attempts_summary():
             'started_at': a.started_at,
             'completed_at': a.completed_at,
             'num_attempt': a.num_attempt,
-            'time_spent': a.time_spent
-        })
+            'time_spent': a.time_spent,
+            'has_review': review is not None,
+            'review_status': review.status if review else None,
+            'final_score': review.overall_score if review else None
+        }
+        result.append(result_data)
     return jsonify(result), 200
 
 # --- FEEDBACK ENDPOINTS ---
@@ -3618,6 +3667,327 @@ def get_available_tests():
             'time_saved': total_time
         },
         'tests': tests_data
+    }), 200
+    
+# --- ASSESSMENT REVIEW ENDPOINTS ---
+
+@auth_bp.route('/assessments/<int:assessment_id>/submissions', methods=['GET'])
+def get_assessment_submissions(assessment_id):
+    """Get all submissions for an assessment with review status"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can view submissions'}), 403
+    
+    assessment = Assessment.query.get(assessment_id)
+    if not assessment or assessment.recruiter_id != user_id:
+        return jsonify({'error': 'Assessment not found'}), 404
+    
+    attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment_id).order_by(AssessmentAttempt.completed_at.desc()).all()
+    submissions = []
+    
+    for attempt in attempts:
+        interviewee = User.query.get(attempt.interviewee_id)
+        profile = IntervieweeProfile.query.filter_by(user_id=attempt.interviewee_id).first()
+        
+        # Get review status
+        review = AssessmentReview.query.filter_by(attempt_id=attempt.id).first()
+        
+        submissions.append({
+            'attempt_id': attempt.id,
+            'candidate_name': f"{profile.first_name} {profile.last_name}" if profile else "Unknown",
+            'candidate_email': interviewee.email if interviewee else "Unknown",
+            'avatar': profile.avatar if profile else None,
+            'status': attempt.status,
+            'auto_score': attempt.score,
+            'final_score': review.overall_score if review else attempt.score,
+            'time_spent': attempt.time_spent,
+            'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None,
+            'review_status': review.status if review else 'not_reviewed',
+            'review_id': review.id if review else None,
+            'num_attempt': attempt.num_attempt
+        })
+    
+    return jsonify(submissions), 200
+
+@auth_bp.route('/assessments/<int:assessment_id>/submissions/<int:attempt_id>/review', methods=['GET'])
+def get_submission_for_review(assessment_id, attempt_id):
+    """Get detailed submission data for review"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can review submissions'}), 403
+    
+    assessment = Assessment.query.get(assessment_id)
+    if not assessment or assessment.recruiter_id != user_id:
+        return jsonify({'error': 'Assessment not found'}), 404
+    
+    attempt = AssessmentAttempt.query.get(attempt_id)
+    if not attempt or attempt.assessment_id != assessment_id:
+        return jsonify({'error': 'Attempt not found'}), 404
+    
+    interviewee = User.query.get(attempt.interviewee_id)
+    profile = IntervieweeProfile.query.filter_by(user_id=attempt.interviewee_id).first()
+    
+    # Get or create review
+    review = AssessmentReview.query.filter_by(attempt_id=attempt_id).first()
+    if not review:
+        review = AssessmentReview(
+            attempt_id=attempt_id,
+            recruiter_id=user_id,
+            status='pending'
+        )
+        db.session.add(review)
+        db.session.commit()
+    
+    # Get questions and answers
+    questions_data = []
+    for question in assessment.questions:
+        attempt_answer = AssessmentAttemptAnswer.query.filter_by(
+            attempt_id=attempt_id,
+            question_id=question.id
+        ).first()
+        
+        review_answer = AssessmentReviewAnswer.query.filter_by(
+            review_id=review.id,
+            question_id=question.id
+        ).first()
+        
+        # Create review answer if it doesn't exist
+        if not review_answer and attempt_answer:
+            review_answer = AssessmentReviewAnswer(
+                review_id=review.id,
+                question_id=question.id,
+                attempt_answer_id=attempt_answer.id,
+                max_points=question.points,
+                auto_score=question.points if attempt_answer.is_correct else 0,
+                auto_is_correct=attempt_answer.is_correct
+            )
+            db.session.add(review_answer)
+        
+        questions_data.append({
+            'question_id': question.id,
+            'type': question.type,
+            'question': question.question,
+            'points': question.points,
+            'options': json.loads(question.options) if question.options else None,
+            'correct_answer': json.loads(question.correct_answer) if question.correct_answer else None,
+            'explanation': question.explanation,
+            'starter_code': question.starter_code,
+            'solution': question.solution,
+            'test_cases': question.test_cases,
+            'answer': attempt_answer.answer if attempt_answer else None,
+            'auto_score': review_answer.auto_score if review_answer else 0,
+            'auto_is_correct': review_answer.auto_is_correct if review_answer else None,
+            'manual_score': review_answer.manual_score if review_answer else None,
+            'manual_is_correct': review_answer.is_correct if review_answer else None,
+            'feedback': review_answer.feedback if review_answer else None,
+            'review_notes': review_answer.review_notes if review_answer else None
+        })
+    
+    db.session.commit()
+    
+    return jsonify({
+        'review_id': review.id,
+        'review_status': review.status,
+        'candidate_name': f"{profile.first_name} {profile.last_name}" if profile else "Unknown",
+        'candidate_email': interviewee.email if interviewee else "Unknown",
+        'assessment_title': assessment.title,
+        'auto_score': attempt.score,
+        'final_score': review.overall_score,
+        'overall_feedback': review.overall_feedback,
+        'time_spent': attempt.time_spent,
+        'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None,
+        'questions': questions_data
+    }), 200
+
+@auth_bp.route('/assessments/reviews/<int:review_id>/answers/<int:question_id>', methods=['PUT'])
+def update_review_answer(review_id, question_id):
+    """Update manual scoring for a specific question"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can update reviews'}), 403
+    
+    review = AssessmentReview.query.get(review_id)
+    if not review or review.recruiter_id != user_id:
+        return jsonify({'error': 'Review not found'}), 404
+    
+    review_answer = AssessmentReviewAnswer.query.filter_by(
+        review_id=review_id,
+        question_id=question_id
+    ).first()
+    
+    if not review_answer:
+        return jsonify({'error': 'Review answer not found'}), 404
+    
+    data = request.get_json()
+    review_answer.manual_score = data.get('manual_score', review_answer.manual_score)
+    review_answer.is_correct = data.get('is_correct', review_answer.is_correct)
+    review_answer.feedback = data.get('feedback', review_answer.feedback)
+    review_answer.review_notes = data.get('review_notes', review_answer.review_notes)
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Review answer updated'}), 200
+
+@auth_bp.route('/assessments/reviews/<int:review_id>/complete', methods=['POST'])
+def complete_assessment_review(review_id):
+    """Complete the review and calculate final score"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can complete reviews'}), 403
+    
+    review = AssessmentReview.query.get(review_id)
+    if not review or review.recruiter_id != user_id:
+        return jsonify({'error': 'Review not found'}), 404
+    
+    data = request.get_json()
+    overall_feedback = data.get('overall_feedback', '')
+    
+    # Calculate final score
+    review_answers = AssessmentReviewAnswer.query.filter_by(review_id=review_id).all()
+    total_points = 0
+    earned_points = 0
+    
+    for answer in review_answers:
+        total_points += answer.max_points
+        earned_points += answer.manual_score or answer.auto_score or 0
+    
+    final_score = (earned_points / total_points * 100) if total_points > 0 else 0
+    
+    # Update review
+    review.overall_score = final_score
+    review.overall_feedback = overall_feedback
+    review.status = 'completed'
+    review.reviewed_at = datetime.utcnow()
+    
+    # Update attempt with final score
+    attempt = AssessmentAttempt.query.get(review.attempt_id)
+    if attempt:
+        attempt.score = final_score
+        attempt.passed = final_score >= attempt.assessment.passing_score
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Review completed',
+        'final_score': final_score,
+        'passed': attempt.passed if attempt else False
+    }), 200
+
+@auth_bp.route('/assessments/reviews/<int:review_id>/release', methods=['POST'])
+def release_assessment_results(review_id):
+    """Release results to the candidate"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Only recruiters can release results'}), 403
+    
+    review = AssessmentReview.query.get(review_id)
+    if not review or review.recruiter_id != user_id:
+        return jsonify({'error': 'Review not found'}), 404
+    
+    if review.status != 'completed':
+        return jsonify({'error': 'Review must be completed before releasing results'}), 400
+    
+    # Create notification for candidate
+    attempt = AssessmentAttempt.query.get(review.attempt_id)
+    if attempt:
+        notification = Notification(
+            user_id=attempt.interviewee_id,
+            type='assessment',
+            content=f'Your assessment "{attempt.assessment.title}" has been reviewed and scored.',
+            data=json.dumps({
+                'assessment_id': attempt.assessment_id,
+                'attempt_id': attempt.id,
+                'score': review.overall_score,
+                'passed': attempt.passed
+            })
+        )
+        db.session.add(notification)
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Results released to candidate'}), 200
+
+@auth_bp.route('/interviewee/attempts/<int:attempt_id>/review', methods=['GET'])
+def get_interviewee_review(attempt_id):
+    """Get review details for an interviewee's attempt"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Verify the attempt belongs to this user
+    attempt = AssessmentAttempt.query.get(attempt_id)
+    if not attempt or attempt.interviewee_id != user_id:
+        return jsonify({'error': 'Attempt not found'}), 404
+    
+    # Get the review
+    review = AssessmentReview.query.filter_by(attempt_id=attempt_id).first()
+    if not review:
+        return jsonify({'error': 'No review found for this attempt'}), 404
+    
+    # Get assessment details
+    assessment = Assessment.query.get(attempt.assessment_id)
+    if not assessment:
+        return jsonify({'error': 'Assessment not found'}), 404
+    
+    # Get review answers with feedback
+    review_answers = AssessmentReviewAnswer.query.filter_by(review_id=review.id).all()
+    
+    questions_data = []
+    for review_answer in review_answers:
+        question = AssessmentQuestion.query.get(review_answer.question_id)
+        attempt_answer = AssessmentAttemptAnswer.query.get(review_answer.attempt_answer_id)
+        
+        if question:
+            questions_data.append({
+                'question_id': question.id,
+                'question': question.question,
+                'type': question.type,
+                'points': question.points,
+                'options': json.loads(question.options) if question.options else None,
+                'correct_answer': question.correct_answer,
+                'starter_code': question.starter_code,
+                'answer': attempt_answer.answer if attempt_answer else None,
+                'auto_score': review_answer.auto_score,
+                'final_score': review_answer.manual_score or review_answer.auto_score,
+                'auto_is_correct': review_answer.auto_is_correct,
+                'final_is_correct': review_answer.is_correct,
+                'feedback': review_answer.feedback,
+                'review_notes': review_answer.review_notes
+            })
+    
+    # Calculate actual auto-score from individual question auto-scores
+    total_auto_score = sum(review_answer.auto_score for review_answer in review_answers)
+    total_points = sum(question.points for question in [AssessmentQuestion.query.get(ra.question_id) for ra in review_answers] if question)
+    actual_auto_score = (total_auto_score / total_points * 100) if total_points > 0 else 0
+    
+    return jsonify({
+        'attempt_id': attempt.id,
+        'assessment_id': assessment.id,
+        'assessment_title': assessment.title,
+        'auto_score': actual_auto_score,
+        'final_score': review.overall_score,
+        'overall_feedback': review.overall_feedback,
+        'review_status': review.status,
+        'reviewed_at': review.reviewed_at.isoformat() if review.reviewed_at else None,
+        'questions': questions_data
     }), 200
 
 @auth_bp.route('/interviews/candidates', methods=['GET'])
