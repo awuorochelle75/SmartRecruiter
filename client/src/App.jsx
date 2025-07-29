@@ -10,6 +10,9 @@ import { ToastProvider } from "./components/ui/use-toast"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import ForgotPassword from "./pages/ForgotPassword"
+import ResetPassword from "./pages/ResetPassword"
+import VerifyEmail from "./pages/VerifyEmail"
 import Onboarding from "./pages/Onboarding"
 import Pricing from "./pages/Pricing"
 import About from "./pages/About"
@@ -111,6 +114,36 @@ function AppRoutes() {
             <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
           ) : (
             <Signup />
+          )
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <ForgotPassword />
+          )
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <ResetPassword />
+          )
+        }
+      />
+      <Route
+        path="/verify-email"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <VerifyEmail />
           )
         }
       />
