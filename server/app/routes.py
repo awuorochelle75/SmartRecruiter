@@ -11,15 +11,82 @@ from email.mime.text import MIMEText
 from sqlalchemy import func
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import time
 import logging
+import secrets
 
 auth_bp = Blueprint('auth', __name__)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'avatars')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+
+def send_email(to_email, subject, body):
+    """Send email using configured SMTP settings"""
+    try:
+        msg = MIMEText(body)
+        msg['Subject'] = subject
+        msg['From'] = current_app.config['GMAIL_USER']
+        msg['To'] = to_email
+
+        with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
+            server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
+            server.sendmail(current_app.config['GMAIL_USER'], [to_email], msg.as_string())
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send email to {to_email}: {str(e)}")
+        return False
+
+def send_verification_email(user):
+    """Send account verification email"""
+    token = user.generate_verification_token()
+    db.session.commit()
+    
+    verification_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
+    
+    subject = "Verify Your SmartRecruiter Account"
+    body = f"""
+Hello {user.email},
+
+Thank you for creating your SmartRecruiter account! Please verify your email address by clicking the link below:
+
+{verification_url}
+
+This link will expire in 24 hours.
+
+If you didn't create this account, please ignore this email.
+
+Best regards,
+The SmartRecruiter Team
+"""
+    
+    return send_email(user.email, subject, body)
+
+def send_password_reset_email(user):
+    """Send password reset email"""
+    token = user.generate_password_reset_token()
+    db.session.commit()
+    
+    reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
+    
+    subject = "Reset Your SmartRecruiter Password"
+    body = f"""
+Hello {user.email},
+
+You requested a password reset for your SmartRecruiter account. Click the link below to reset your password:
+
+{reset_url}
+
+This link will expire in 24 hours.
+
+If you didn't request this password reset, please ignore this email.
+
+Best regards,
+The SmartRecruiter Team
+"""
+    
+    return send_email(user.email, subject, body)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

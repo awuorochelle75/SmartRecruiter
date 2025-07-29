@@ -13,6 +13,10 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False)
+    email_verified = db.Column(db.Boolean, default=False)
+    email_verification_token = db.Column(db.String(255), unique=True)
+    password_reset_token = db.Column(db.String(255), unique=True)
+    password_reset_expires = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def set_password(self, password):
@@ -20,6 +24,18 @@ class User(db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_verification_token(self):
+        import secrets
+        self.email_verification_token = secrets.token_urlsafe(32)
+        return self.email_verification_token
+    
+    def generate_password_reset_token(self):
+        import secrets
+        from datetime import datetime, timedelta
+        self.password_reset_token = secrets.token_urlsafe(32)
+        self.password_reset_expires = datetime.utcnow() + timedelta(hours=24)
+        return self.password_reset_token
 
 # Profile table specific to interviewees
 class IntervieweeProfile(db.Model):

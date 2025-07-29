@@ -211,9 +211,18 @@ def create_app(config=None):
         else:
             logging.getLogger('werkzeug').setLevel(logging.INFO)
     
-    app.config['GMAIL_USER'] = 'davidwize189@gmail.com'
-    app.config['GMAIL_APP_PASSWORD'] = 'gqslabpcfzrzgvke'
+    # Email configuration - use environment variables for production
+    app.config['GMAIL_USER'] = os.environ.get('GMAIL_USER', 'davidwize189@gmail.com')
+    app.config['GMAIL_APP_PASSWORD'] = os.environ.get('GMAIL_APP_PASSWORD', 'gqslabpcfzrzgvke')
     app.config['GMAIL_SMTP_HOST'] = 'smtp.gmail.com'
     app.config['GMAIL_SMTP_PORT'] = 465
+    
+    # Frontend URL - use environment variable for production
+    if os.environ.get('FLASK_ENV') == 'production':
+        app.config['FRONTEND_URL'] = os.environ.get('FRONTEND_URL', 'https://smart-recruiter-mu.vercel.app')
+    else:
+        app.config['FRONTEND_URL'] = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    
     return app
- 
+
+  
