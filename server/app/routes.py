@@ -4034,3 +4034,299 @@ def get_interview_candidates():
     
     return jsonify({'candidates': candidates}), 200
 
+
+@auth_bp.route('/search/recruiter', methods=['GET'])
+def recruiter_search():
+    """Search functionality for recruiter dashboard"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({'results': []}), 200
+    
+    results = {
+        'assessments': [],
+        'candidates': [],
+        'practice_problems': [],
+        'interviews': [],
+        'categories': []
+    }
+    
+    # Search assessments
+    assessments = Assessment.query.filter(
+        Assessment.recruiter_id == user_id,
+        db.or_(
+            Assessment.title.ilike(f'%{query}%'),
+            Assessment.description.ilike(f'%{query}%'),
+            Assessment.tags.ilike(f'%{query}%'),
+            Assessment.type.ilike(f'%{query}%'),
+            Assessment.difficulty.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for assessment in assessments:
+        category = Category.query.get(assessment.category_id) if assessment.category_id else None
+        results['assessments'].append({
+            'id': assessment.id,
+            'title': assessment.title,
+            'description': assessment.description,
+            'type': assessment.type,
+            'difficulty': assessment.difficulty,
+            'status': assessment.status,
+            'category': category.name if category else None,
+            'created_at': assessment.created_at.isoformat() if assessment.created_at else None,
+            'url': f'/recruiter/assessments/{assessment.id}'
+        })
+    
+    # Search candidates (interviewees who have taken assessments)
+    candidate_attempts = db.session.query(
+        User.id,
+        User.email,
+        IntervieweeProfile.first_name,
+        IntervieweeProfile.last_name,
+        IntervieweeProfile.position,
+        IntervieweeProfile.company,
+        IntervieweeProfile.avatar,
+        Assessment.title.label('assessment_title'),
+        AssessmentAttempt.score,
+        AssessmentAttempt.completed_at
+    ).join(
+        AssessmentAttempt, User.id == AssessmentAttempt.interviewee_id
+    ).join(
+        Assessment, AssessmentAttempt.assessment_id == Assessment.id
+    ).join(
+        IntervieweeProfile, User.id == IntervieweeProfile.user_id
+    ).filter(
+        Assessment.recruiter_id == user_id,
+        db.or_(
+            User.email.ilike(f'%{query}%'),
+            IntervieweeProfile.first_name.ilike(f'%{query}%'),
+            IntervieweeProfile.last_name.ilike(f'%{query}%'),
+            IntervieweeProfile.position.ilike(f'%{query}%'),
+            IntervieweeProfile.company.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for candidate in candidate_attempts:
+        results['candidates'].append({
+            'id': candidate.id,
+            'name': f"{candidate.first_name} {candidate.last_name}",
+            'email': candidate.email,
+            'position': candidate.position,
+            'company': candidate.company,
+            'avatar': candidate.avatar,
+            'assessment_title': candidate.assessment_title,
+            'score': candidate.score,
+            'completed_at': candidate.completed_at.isoformat() if candidate.completed_at else None,
+            'url': f'/recruiter/candidates'
+        })
+    
+    # Search practice problems
+    practice_problems = PracticeProblem.query.filter(
+        PracticeProblem.recruiter_id == user_id,
+        db.or_(
+            PracticeProblem.title.ilike(f'%{query}%'),
+            PracticeProblem.description.ilike(f'%{query}%'),
+            PracticeProblem.tags.ilike(f'%{query}%'),
+            PracticeProblem.difficulty.ilike(f'%{query}%'),
+            PracticeProblem.problem_type.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for problem in practice_problems:
+        category = Category.query.get(problem.category_id) if problem.category_id else None
+        results['practice_problems'].append({
+            'id': problem.id,
+            'title': problem.title,
+            'description': problem.description,
+            'difficulty': problem.difficulty,
+            'problem_type': problem.problem_type,
+            'category': category.name if category else None,
+            'created_at': problem.created_at.isoformat() if problem.created_at else None,
+            'url': f'/recruiter/practice-problems/{problem.id}'
+        })
+    
+    # Search interviews
+    interviews = Interview.query.filter(
+        Interview.recruiter_id == user_id,
+        db.or_(
+            Interview.position.ilike(f'%{query}%'),
+            Interview.type.ilike(f'%{query}%'),
+            Interview.notes.ilike(f'%{query}%'),
+            Interview.feedback.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for interview in interviews:
+        interviewee = User.query.get(interview.interviewee_id)
+        interviewee_profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
+        results['interviews'].append({
+            'id': interview.id,
+            'position': interview.position,
+            'type': interview.type,
+            'scheduled_at': interview.scheduled_at.isoformat() if interview.scheduled_at else None,
+            'status': interview.status,
+            'interviewee_name': f"{interviewee_profile.first_name} {interviewee_profile.last_name}" if interviewee_profile else "Unknown",
+            'interviewee_email': interviewee.email if interviewee else "Unknown",
+            'url': f'/recruiter/interviews/{interview.id}'
+        })
+    
+    # Search categories
+    categories = Category.query.filter(
+        db.or_(
+            Category.name.ilike(f'%{query}%'),
+            Category.description.ilike(f'%{query}%')
+        )
+    ).limit(5).all()
+    
+    for category in categories:
+        results['categories'].append({
+            'id': category.id,
+            'name': category.name,
+            'description': category.description,
+            'url': f'/recruiter/categories/{category.id}'
+        })
+    
+    return jsonify(results), 200
+
+@auth_bp.route('/search/interviewee', methods=['GET'])
+def interviewee_search():
+    """Search functionality for interviewee dashboard"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({'results': []}), 200
+    
+    results = {
+        'assessments': [],
+        'practice_problems': [],
+        'interviews': [],
+        'results': []
+    }
+    
+    # Search available assessments (public test assessments)
+    assessments = Assessment.query.filter(
+        Assessment.is_test == True,
+        Assessment.status == 'active',
+        db.or_(
+            Assessment.title.ilike(f'%{query}%'),
+            Assessment.description.ilike(f'%{query}%'),
+            Assessment.tags.ilike(f'%{query}%'),
+            Assessment.type.ilike(f'%{query}%'),
+            Assessment.difficulty.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for assessment in assessments:
+        category = Category.query.get(assessment.category_id) if assessment.category_id else None
+        results['assessments'].append({
+            'id': assessment.id,
+            'title': assessment.title,
+            'description': assessment.description,
+            'type': assessment.type,
+            'difficulty': assessment.difficulty,
+            'duration': assessment.duration,
+            'category': category.name if category else None,
+            'url': f'/interviewee/assessment/{assessment.id}'
+        })
+    
+    # Search practice problems
+    practice_problems = PracticeProblem.query.filter(
+        PracticeProblem.is_public == True,
+        db.or_(
+            PracticeProblem.title.ilike(f'%{query}%'),
+            PracticeProblem.description.ilike(f'%{query}%'),
+            PracticeProblem.tags.ilike(f'%{query}%'),
+            PracticeProblem.difficulty.ilike(f'%{query}%'),
+            PracticeProblem.problem_type.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for problem in practice_problems:
+        category = Category.query.get(problem.category_id) if problem.category_id else None
+        results['practice_problems'].append({
+            'id': problem.id,
+            'title': problem.title,
+            'description': problem.description,
+            'difficulty': problem.difficulty,
+            'problem_type': problem.problem_type,
+            'estimated_time': problem.estimated_time,
+            'category': category.name if category else None,
+            'url': f'/interviewee/practice-arena/{problem.id}'
+        })
+    
+    # Search interviews
+    interviews = Interview.query.filter(
+        Interview.interviewee_id == user_id,
+        db.or_(
+            Interview.position.ilike(f'%{query}%'),
+            Interview.type.ilike(f'%{query}%'),
+            Interview.notes.ilike(f'%{query}%'),
+            Interview.feedback.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for interview in interviews:
+        recruiter = User.query.get(interview.recruiter_id)
+        recruiter_profile = RecruiterProfile.query.filter_by(user_id=interview.recruiter_id).first()
+        results['interviews'].append({
+            'id': interview.id,
+            'position': interview.position,
+            'type': interview.type,
+            'scheduled_at': interview.scheduled_at.isoformat() if interview.scheduled_at else None,
+            'status': interview.status,
+            'recruiter_name': f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown",
+            'company_name': recruiter_profile.company_name if recruiter_profile else "Unknown",
+            'url': f'/interviewee/scheduled-interviews/{interview.id}'
+        })
+    
+    # Search assessment results
+    attempts = db.session.query(
+        AssessmentAttempt.id,
+        Assessment.title,
+        Assessment.type,
+        AssessmentAttempt.score,
+        AssessmentAttempt.passed,
+        AssessmentAttempt.completed_at,
+        AssessmentReview.overall_score,
+        AssessmentReview.status.label('review_status')
+    ).join(
+        Assessment, AssessmentAttempt.assessment_id == Assessment.id
+    ).outerjoin(
+        AssessmentReview, AssessmentAttempt.id == AssessmentReview.attempt_id
+    ).filter(
+        AssessmentAttempt.interviewee_id == user_id,
+        db.or_(
+            Assessment.title.ilike(f'%{query}%'),
+            Assessment.type.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    for attempt in attempts:
+        results['results'].append({
+            'id': attempt.id,
+            'assessment_title': attempt.title,
+            'type': attempt.type,
+            'score': attempt.score,
+            'final_score': attempt.overall_score,
+            'passed': attempt.passed,
+            'review_status': attempt.review_status,
+            'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None,
+            'url': f'/interviewee/results'
+        })
+    
+    return jsonify(results), 200
+
