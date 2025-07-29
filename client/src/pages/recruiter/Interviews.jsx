@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, Video, Plus, Edit, Trash2, Users, MapPin, Loader2, MoreHorizontal, Eye } from "lucide-react"
+import { Calendar, Clock, Video, Plus, Edit, Trash2, Users, MapPin, Loader2, MoreHorizontal, Eye, XCircle, CheckCircle } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
@@ -37,9 +37,12 @@ export default function Interviews() {
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [completing, setCompleting] = useState(false)
   const [candidates, setCandidates] = useState([])
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
@@ -47,6 +50,8 @@ export default function Interviews() {
   const [editTime, setEditTime] = useState("")
   const [deleteInterviewId, setDeleteInterviewId] = useState(null)
   const [deleteInterviewTitle, setDeleteInterviewTitle] = useState("")
+  const [cancelInterviewId, setCancelInterviewId] = useState(null)
+  const [cancelInterviewTitle, setCancelInterviewTitle] = useState("")
   const { toast } = useToast()
 
   // Form state for scheduling
@@ -224,9 +229,10 @@ export default function Interviews() {
   }
 
   const handleCancelInterview = async (interviewId) => {
+    setCancelling(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}`, {
-        method: "DELETE",
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}/cancel`, {
+        method: "POST",
         credentials: "include",
       })
 
@@ -236,6 +242,9 @@ export default function Interviews() {
           description: "Interview has been cancelled successfully",
         })
         fetchInterviews()
+        setShowCancelDialog(false)
+        setCancelInterviewId(null)
+        setCancelInterviewTitle("")
       } else {
         const error = await response.json()
         toast({
@@ -251,6 +260,48 @@ export default function Interviews() {
         description: "Failed to cancel interview",
         variant: "destructive",
       })
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const handleCompleteInterview = async (interviewId) => {
+    setCompleting(true)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "completed"
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Interview Completed",
+          description: "Interview has been marked as completed",
+        })
+        fetchInterviews()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to complete interview",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error completing interview:", error)
+      toast({
+        title: "Error",
+        description: "Failed to complete interview",
+        variant: "destructive",
+      })
+    } finally {
+      setCompleting(false)
     }
   }
 
@@ -337,6 +388,12 @@ export default function Interviews() {
     setShowDeleteDialog(true)
   }
 
+  const openCancelDialog = (interview) => {
+    setCancelInterviewId(interview.id)
+    setCancelInterviewTitle(`${interview.interviewee.name} - ${interview.position}`)
+    setShowCancelDialog(true)
+  }
+
   const confirmDelete = async () => {
     setDeleting(true)
     try {
@@ -405,7 +462,6 @@ export default function Interviews() {
     }
   }
 
-  
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString()
@@ -592,6 +648,16 @@ export default function Interviews() {
                                 Confirm
                               </Button>
                             )}
+                            {interview.status === "scheduled" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openCancelDialog(interview)}
+                                className="text-orange-600 hover:text-orange-700"
+                              >
+                                Cancel
+                              </Button>
+                            )}
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -608,6 +674,18 @@ export default function Interviews() {
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit Interview
                               </DropdownMenuItem>
+                              {(interview.status === "scheduled" || interview.status === "confirmed") && new Date(interview.scheduled_at) < new Date() && (
+                                <DropdownMenuItem onClick={() => handleCompleteInterview(interview.id)} className="text-green-600">
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Mark as Completed
+                                </DropdownMenuItem>
+                              )}
+                              {interview.status !== "cancelled" && interview.status !== "completed" && (
+                                <DropdownMenuItem onClick={() => openCancelDialog(interview)} className="text-orange-600">
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Cancel Interview
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => openDeleteDialog(interview)} className="text-destructive">
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete Interview
@@ -694,31 +772,31 @@ export default function Interviews() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                            <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>
                     <Input
                       id="date"
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                                className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
                       min={new Date().toISOString().split('T')[0]}
-                      required
+                                required
                     />
                   </div>
-                  <div className="space-y-2">
+                            <div className="space-y-2">
                     <Label htmlFor="time">Time</Label>
                     <Input
                       id="time"
                       type="time"
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
-                      className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                      required
+                                className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                                required
                     />
                   </div>
                 </div>
-              <div>
+                <div>
                   <Label htmlFor="location">Location</Label>
                   <Input
                     id="location"
@@ -955,15 +1033,38 @@ export default function Interviews() {
             </DialogContent>
           </Dialog>
 
+          {/* Cancel Interview Confirmation Dialog */}
+          <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cancel Interview?</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to cancel the interview for <b>{cancelInterviewTitle}</b>?
+                  <br />
+                  This will mark the interview as cancelled and notify the candidate. The interview record will be kept for reference.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setShowCancelDialog(false)} disabled={cancelling}>
+                  Keep Interview
+                </Button>
+                <Button variant="outline" onClick={() => handleCancelInterview(cancelInterviewId)} disabled={cancelling} className="text-orange-600 hover:text-orange-700">
+                  {cancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {cancelling ? "Cancelling..." : "Cancel Interview"}
+                </Button>
+          </div>
+            </DialogContent>
+          </Dialog>
+
           {/* Delete Interview Confirmation Dialog */}
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Delete Interview?</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete the interview for <b>{deleteInterviewTitle}</b>?
+                  Are you sure you want to permanently delete the interview for <b>{deleteInterviewTitle}</b>?
                   <br />
-                  This action cannot be undone.
+                  This will completely remove the interview from the system and cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex justify-end gap-2 mt-4">

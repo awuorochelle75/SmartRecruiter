@@ -2594,7 +2594,7 @@ def update_interview(interview_id):
     
     return jsonify({'message': 'Interview updated successfully'}), 200
 
-@auth_bp.route('/interviews/<int:interview_id>', methods=['DELETE'])
+@auth_bp.route('/interviews/<int:interview_id>/cancel', methods=['POST'])
 def cancel_interview(interview_id):
     user_id = session.get('user_id')
     if not user_id:
@@ -2616,6 +2616,31 @@ def cancel_interview(interview_id):
     db.session.commit()
     
     return jsonify({'message': 'Interview cancelled successfully'}), 200
+
+@auth_bp.route('/interviews/<int:interview_id>', methods=['DELETE'])
+def delete_interview(interview_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({'error': 'Interview not found'}), 404
+    
+    # Check if user is authorized to delete this interview
+    if user.role == 'recruiter' and interview.recruiter_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    elif user.role == 'interviewee' and interview.interviewee_id != user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Actually delete the interview record
+    db.session.delete(interview)
+    db.session.commit()
+    
+    return jsonify({'message': 'Interview deleted successfully'}), 200
 
 @auth_bp.route('/candidates', methods=['GET'])
 def get_candidates():
