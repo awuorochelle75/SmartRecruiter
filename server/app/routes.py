@@ -3695,13 +3695,22 @@ def get_assessment_submissions(assessment_id):
         # Get review status
         review = AssessmentReview.query.filter_by(attempt_id=attempt.id).first()
         
+        actual_auto_score = attempt.score  # Default to attempt score
+        if review:
+            review_answers = AssessmentReviewAnswer.query.filter_by(review_id=review.id).all()
+            if review_answers:
+                total_auto_score = sum(review_answer.auto_score for review_answer in review_answers)
+                total_points = sum(question.points for question in [AssessmentQuestion.query.get(ra.question_id) for ra in review_answers] if question)
+                if total_points > 0:
+                    actual_auto_score = (total_auto_score / total_points * 100)
+        
         submissions.append({
             'attempt_id': attempt.id,
             'candidate_name': f"{profile.first_name} {profile.last_name}" if profile else "Unknown",
             'candidate_email': interviewee.email if interviewee else "Unknown",
             'avatar': profile.avatar if profile else None,
             'status': attempt.status,
-            'auto_score': attempt.score,
+            'auto_score': actual_auto_score,
             'final_score': review.overall_score if review else attempt.score,
             'time_spent': attempt.time_spent,
             'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None,

@@ -48,7 +48,7 @@ export default function AssessmentDetails() {
         setLoading(false);
       });
     setSubmissionsLoading(true)
-    fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/submissions`, { credentials: 'include' })
+    fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/submissions?t=${Date.now()}`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : [])
       .then(data => setSubmissions(data))
       .catch(() => setSubmissions([]))
@@ -341,10 +341,29 @@ export default function AssessmentDetails() {
 
             <Card className="shadow-md mb-10">
               <CardHeader>
-                <CardTitle>Candidate Submissions</CardTitle>
-                <CardDescription>
-                  Overview of candidates who have taken or been invited to this assessment.
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Candidate Submissions</CardTitle>
+                    <CardDescription>
+                      Overview of candidates who have taken or been invited to this assessment.
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setSubmissionsLoading(true);
+                      fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/submissions?t=${Date.now()}`, { credentials: 'include' })
+                        .then(res => res.ok ? res.json() : [])
+                        .then(data => setSubmissions(data))
+                        .catch(() => setSubmissions([]))
+                        .finally(() => setSubmissionsLoading(false));
+                    }}
+                    disabled={submissionsLoading}
+                  >
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {submissionsLoading ? (
