@@ -109,6 +109,7 @@ export default function Candidates() {
 
   const handleMessageCandidate = async (candidateId) => {
     try {
+      // Find the candidate in available candidates
       const candidate = availableCandidates.find(c => c.id === candidateId)
       if (!candidate) {
         toast({
@@ -199,6 +200,43 @@ export default function Candidates() {
     return "text-red-600"
   }
 
+  const handleExportCandidates = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export/recruiter/candidates`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'candidates.csv'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        toast({
+          title: "Success",
+          description: "Candidates exported successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to export candidates",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export candidates",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen bg-background">
@@ -212,8 +250,6 @@ export default function Candidates() {
       </div>
     )
   }
-
-
 
   const stats = {
     total: candidates.length,
@@ -230,17 +266,19 @@ export default function Candidates() {
         <DashboardNavbar />
         <main className="flex-1 p-6 overflow-auto">
           <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Candidates</h1>
                 <p className="text-muted-foreground">Manage and evaluate your candidate pipeline</p>
               </div>
-              <Button>
+              <Button onClick={handleExportCandidates}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Candidates
               </Button>
             </div>
 
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardContent className="p-6">
@@ -255,9 +293,6 @@ export default function Candidates() {
                   </div>
                 </CardContent>
               </Card>
-
-
-
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -301,7 +336,7 @@ export default function Candidates() {
               </Card>
             </div>
 
-
+            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -335,9 +370,9 @@ export default function Candidates() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
                         <TableHead className="w-[140px] lg:w-[160px]">Candidate</TableHead>
                         <TableHead className="w-[160px] lg:w-[200px]">Position & Skills</TableHead>
                         <TableHead className="w-[80px] lg:w-[100px]">Assessments</TableHead>
@@ -346,151 +381,151 @@ export default function Candidates() {
                         <TableHead className="w-[70px] lg:w-[90px]">Status</TableHead>
                         <TableHead className="w-[80px] lg:w-[100px]">Last Activity</TableHead>
                         <TableHead className="w-[80px] lg:w-[100px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCandidates.map((candidate) => (
-                        <TableRow key={candidate.id}>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCandidates.map((candidate) => (
+                      <TableRow key={candidate.id}>
                           <TableCell className="w-[140px] lg:w-[160px]">
                             <div className="flex items-center space-x-2">
                               <Avatar className="h-8 w-8 flex-shrink-0">
-                                <AvatarImage 
-                                  src={candidate.avatar ? `${import.meta.env.VITE_API_URL}/uploads/avatars/${candidate.avatar}` : "/placeholder.svg"} 
-                                  alt={candidate.full_name} 
-                                />
+                              <AvatarImage 
+                                src={candidate.avatar ? `${import.meta.env.VITE_API_URL}/uploads/avatars/${candidate.avatar}` : "/placeholder.svg"} 
+                                alt={candidate.full_name} 
+                              />
                                 <AvatarFallback className="text-xs">
-                                  {candidate.full_name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
+                                {candidate.full_name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
                               <div className="min-w-0 flex-1">
                                 <div className="font-medium truncate text-sm">{candidate.full_name}</div>
                                 <div className="text-xs text-muted-foreground truncate">{candidate.email}</div>
-                                {candidate.location && (
+                              {candidate.location && (
                                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                                     <MapPin className="h-3 w-3 flex-shrink-0" />
                                     <span className="truncate max-w-[80px] lg:max-w-[100px]">{candidate.location}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-[160px] lg:w-[200px]">
-                            <div>
-                              <div className="font-medium truncate text-sm">{candidate.position || 'Not specified'}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {candidate.position && candidate.position.includes('Senior') ? '5+ years' : 
-                                 candidate.position && candidate.position.includes('Junior') ? '1-3 years' : 
-                                 '3-5 years'} experience
-                              </div>
-                              <div className="flex flex-wrap gap-1 mt-1 max-w-full">
-                                {(candidate.skills || []).slice(0, 1).map((skill, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs truncate max-w-[50px]">
-                                    {(skill || '').trim()}
-                                  </Badge>
-                                ))}
-                                {(candidate.skills || []).length > 1 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    +{(candidate.skills || []).length - 1}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-[80px] lg:w-[100px]">
-                            <div className="space-y-1">
-                              <div className="text-xs">
-                                <span className="font-medium">{candidate.assessments.completed}</span>
-                                <span className="text-muted-foreground">/{candidate.assessments.total}</span>
-                                <span className="text-muted-foreground"> reg</span>
-                              </div>
-                              <div className="text-xs">
-                                <span className="font-medium">{candidate.test_assessments.completed}</span>
-                                <span className="text-muted-foreground">/{candidate.test_assessments.total}</span>
-                                <span className="text-muted-foreground"> test</span>
-                              </div>
-                              <div className="text-xs">
-                                <span className="font-medium">{candidate.practice_problems.completed}</span>
-                                <span className="text-muted-foreground"> prac</span>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-[80px] lg:w-[100px]">
-                            <div className="space-y-1">
-                              <div className="text-xs">
-                                <span className="font-medium">{candidate.interviews.total}</span>
-                                <span className="text-muted-foreground"> tot</span>
-                              </div>
-                              <div className="text-xs">
-                                <span className="font-medium">{candidate.interviews.completed}</span>
-                                <span className="text-muted-foreground"> comp</span>
-                              </div>
-                              {candidate.interviews.scheduled > 0 && (
-                                <div className="text-xs">
-                                  <span className="font-medium">{candidate.interviews.scheduled}</span>
-                                  <span className="text-muted-foreground"> sched</span>
                                 </div>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell className="w-[60px] lg:w-[80px]">
-                            <div className="flex items-center space-x-2">
-                              <span className={`font-medium ${getOverallScoreColor(candidate.overall_score)}`}>
-                                {Math.round(candidate.overall_score)}%
-                              </span>
-                              <Progress value={candidate.overall_score} className="w-16 h-2" />
+                          </div>
+                        </TableCell>
+                          <TableCell className="w-[160px] lg:w-[200px]">
+                          <div>
+                              <div className="font-medium truncate text-sm">{candidate.position || 'Not specified'}</div>
+                              <div className="text-xs text-muted-foreground">
+                              {candidate.position && candidate.position.includes('Senior') ? '5+ years' : 
+                               candidate.position && candidate.position.includes('Junior') ? '1-3 years' : 
+                               '3-5 years'} experience
                             </div>
-                          </TableCell>
-                          <TableCell className="w-[70px] lg:w-[90px]">
-                            <Badge className={getStatusColor(candidate.status)}>
-                              <div className="flex items-center gap-1">
-                                {getStatusIcon(candidate.status)}
-                                <span className="truncate">{candidate.status.replace("-", " ")}</span>
+                              <div className="flex flex-wrap gap-1 mt-1 max-w-full">
+                                {(candidate.skills || []).slice(0, 1).map((skill, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs truncate max-w-[50px]">
+                                  {(skill || '').trim()}
+                                </Badge>
+                              ))}
+                                {(candidate.skills || []).length > 1 && (
+                                <Badge variant="secondary" className="text-xs">
+                                    +{(candidate.skills || []).length - 1}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                          <TableCell className="w-[80px] lg:w-[100px]">
+                          <div className="space-y-1">
+                              <div className="text-xs">
+                              <span className="font-medium">{candidate.assessments.completed}</span>
+                              <span className="text-muted-foreground">/{candidate.assessments.total}</span>
+                                <span className="text-muted-foreground"> reg</span>
+                            </div>
+                              <div className="text-xs">
+                              <span className="font-medium">{candidate.test_assessments.completed}</span>
+                              <span className="text-muted-foreground">/{candidate.test_assessments.total}</span>
+                              <span className="text-muted-foreground"> test</span>
+                            </div>
+                              <div className="text-xs">
+                              <span className="font-medium">{candidate.practice_problems.completed}</span>
+                                <span className="text-muted-foreground"> prac</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                          <TableCell className="w-[80px] lg:w-[100px]">
+                          <div className="space-y-1">
+                              <div className="text-xs">
+                              <span className="font-medium">{candidate.interviews.total}</span>
+                                <span className="text-muted-foreground"> tot</span>
+                            </div>
+                              <div className="text-xs">
+                              <span className="font-medium">{candidate.interviews.completed}</span>
+                                <span className="text-muted-foreground"> comp</span>
+                            </div>
+                            {candidate.interviews.scheduled > 0 && (
+                                <div className="text-xs">
+                                <span className="font-medium">{candidate.interviews.scheduled}</span>
+                                  <span className="text-muted-foreground"> sched</span>
                               </div>
-                            </Badge>
-                          </TableCell>
+                            )}
+                          </div>
+                        </TableCell>
+                          <TableCell className="w-[60px] lg:w-[80px]">
+                          <div className="flex items-center space-x-2">
+                            <span className={`font-medium ${getOverallScoreColor(candidate.overall_score)}`}>
+                              {Math.round(candidate.overall_score)}%
+                            </span>
+                            <Progress value={candidate.overall_score} className="w-16 h-2" />
+                          </div>
+                        </TableCell>
+                          <TableCell className="w-[70px] lg:w-[90px]">
+                          <Badge className={getStatusColor(candidate.status)}>
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(candidate.status)}
+                                <span className="truncate">{candidate.status.replace("-", " ")}</span>
+                            </div>
+                          </Badge>
+                        </TableCell>
                           <TableCell className="w-[80px] lg:w-[100px]">
                             <div className="text-xs">
                               <div className="truncate">{formatDate(candidate.last_activity)}</div>
                               <div className="text-muted-foreground truncate">{formatTimeAgo(candidate.last_activity)}</div>
-                            </div>
-                          </TableCell>
+                          </div>
+                        </TableCell>
                           <TableCell className="w-[80px] lg:w-[100px]">
                             <div className="flex items-center space-x-1">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
                                     className="h-8 w-8 p-0"
-                                    onClick={() => {
-                                      setSelectedCandidate(candidate)
-                                      setShowCandidateDialog(true)
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                              </Dialog>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
+                                  onClick={() => {
+                                    setSelectedCandidate(candidate)
+                                    setShowCandidateDialog(true)
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                            </Dialog>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
                                 className="h-8 w-8 p-0"
-                                onClick={() => handleMessageCandidate(candidate.id)}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                              </Button>
+                              onClick={() => handleMessageCandidate(candidate.id)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
                 </div>
               </CardContent>
             </Card>

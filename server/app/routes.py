@@ -4330,3 +4330,364 @@ def interviewee_search():
     
     return jsonify(results), 200
 
+
+@auth_bp.route('/export/interviewee/results', methods=['GET'])
+def export_interviewee_results():
+    """Export interviewee's assessment results"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get all attempts for this interviewee
+    attempts = db.session.query(
+        AssessmentAttempt.id,
+        Assessment.title,
+        Assessment.type,
+        Assessment.difficulty,
+        AssessmentAttempt.score,
+        AssessmentAttempt.passed,
+        AssessmentAttempt.status,
+        AssessmentAttempt.completed_at,
+        AssessmentAttempt.time_spent,
+        AssessmentReview.overall_score,
+        AssessmentReview.status.label('review_status')
+    ).join(
+        Assessment, AssessmentAttempt.assessment_id == Assessment.id
+    ).outerjoin(
+        AssessmentReview, AssessmentAttempt.id == AssessmentReview.attempt_id
+    ).filter(
+        AssessmentAttempt.interviewee_id == user_id
+    ).all()
+    
+    # Prepare CSV data
+    csv_data = []
+    csv_data.append([
+        'Assessment Title',
+        'Type',
+        'Difficulty',
+        'Score (%)',
+        'Final Score (%)',
+        'Status',
+        'Review Status',
+        'Passed',
+        'Time Spent (minutes)',
+        'Completed Date'
+    ])
+    
+    for attempt in attempts:
+        csv_data.append([
+            attempt.title,
+            attempt.type,
+            attempt.difficulty,
+            f"{attempt.score:.1f}" if attempt.score else "N/A",
+            f"{attempt.overall_score:.1f}" if attempt.overall_score else "N/A",
+            attempt.status,
+            attempt.review_status or "Not reviewed",
+            "Yes" if attempt.passed else "No",
+            f"{attempt.time_spent // 60}" if attempt.time_spent else "N/A",
+            attempt.completed_at.strftime("%Y-%m-%d %H:%M") if attempt.completed_at else "N/A"
+        ])
+    
+    # Create CSV string
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(csv_data)
+    
+    from flask import Response
+    response = Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=assessment_results.csv'}
+    )
+    
+    return response
+
+@auth_bp.route('/export/recruiter/results', methods=['GET'])
+def export_recruiter_results():
+    """Export recruiter's assessment results"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get all assessment attempts for recruiter's assessments
+    attempts = db.session.query(
+        AssessmentAttempt.id,
+        User.email,
+        IntervieweeProfile.first_name,
+        IntervieweeProfile.last_name,
+        IntervieweeProfile.position,
+        IntervieweeProfile.company,
+        Assessment.title,
+        Assessment.type,
+        Assessment.difficulty,
+        AssessmentAttempt.score,
+        AssessmentAttempt.passed,
+        AssessmentAttempt.status,
+        AssessmentAttempt.completed_at,
+        AssessmentAttempt.time_spent,
+        AssessmentReview.overall_score,
+        AssessmentReview.status.label('review_status')
+    ).join(
+        Assessment, AssessmentAttempt.assessment_id == Assessment.id
+    ).join(
+        User, AssessmentAttempt.interviewee_id == User.id
+    ).join(
+        IntervieweeProfile, User.id == IntervieweeProfile.user_id
+    ).outerjoin(
+        AssessmentReview, AssessmentAttempt.id == AssessmentReview.attempt_id
+    ).filter(
+        Assessment.recruiter_id == user_id
+    ).all()
+    
+    # Prepare CSV data
+    csv_data = []
+    csv_data.append([
+        'Candidate Name',
+        'Email',
+        'Position',
+        'Company',
+        'Assessment Title',
+        'Type',
+        'Difficulty',
+        'Score (%)',
+        'Final Score (%)',
+        'Status',
+        'Review Status',
+        'Passed',
+        'Time Spent (minutes)',
+        'Completed Date'
+    ])
+    
+    for attempt in attempts:
+        candidate_name = f"{attempt.first_name} {attempt.last_name}"
+        csv_data.append([
+            candidate_name,
+            attempt.email,
+            attempt.position or "N/A",
+            attempt.company or "N/A",
+            attempt.title,
+            attempt.type,
+            attempt.difficulty,
+            f"{attempt.score:.1f}" if attempt.score else "N/A",
+            f"{attempt.overall_score:.1f}" if attempt.overall_score else "N/A",
+            attempt.status,
+            attempt.review_status or "Not reviewed",
+            "Yes" if attempt.passed else "No",
+            f"{attempt.time_spent // 60}" if attempt.time_spent else "N/A",
+            attempt.completed_at.strftime("%Y-%m-%d %H:%M") if attempt.completed_at else "N/A"
+        ])
+    
+    # Create CSV string
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(csv_data)
+    
+    from flask import Response
+    response = Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=candidate_results.csv'}
+    )
+    
+    return response
+
+@auth_bp.route('/export/recruiter/candidates', methods=['GET'])
+def export_recruiter_candidates():
+    """Export recruiter's candidates"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get all candidates who have taken assessments for this recruiter
+    candidates = db.session.query(
+        User.id,
+        User.email,
+        IntervieweeProfile.first_name,
+        IntervieweeProfile.last_name,
+        IntervieweeProfile.position,
+        IntervieweeProfile.company,
+        IntervieweeProfile.phone,
+        IntervieweeProfile.location,
+        IntervieweeProfile.skills,
+        IntervieweeProfile.avatar,
+        db.func.count(AssessmentAttempt.id).label('total_attempts'),
+        db.func.avg(AssessmentAttempt.score).label('average_score'),
+        db.func.max(AssessmentAttempt.completed_at).label('last_activity')
+    ).join(
+        AssessmentAttempt, User.id == AssessmentAttempt.interviewee_id
+    ).join(
+        Assessment, AssessmentAttempt.assessment_id == Assessment.id
+    ).join(
+        IntervieweeProfile, User.id == IntervieweeProfile.user_id
+    ).filter(
+        Assessment.recruiter_id == user_id
+    ).group_by(
+        User.id, User.email, IntervieweeProfile.first_name, IntervieweeProfile.last_name,
+        IntervieweeProfile.position, IntervieweeProfile.company, IntervieweeProfile.phone,
+        IntervieweeProfile.location, IntervieweeProfile.skills, IntervieweeProfile.avatar
+    ).all()
+    
+    # Prepare CSV data
+    csv_data = []
+    csv_data.append([
+        'Name',
+        'Email',
+        'Position',
+        'Company',
+        'Phone',
+        'Location',
+        'Skills',
+        'Total Attempts',
+        'Average Score (%)',
+        'Last Activity'
+    ])
+    
+    for candidate in candidates:
+        csv_data.append([
+            f"{candidate.first_name} {candidate.last_name}",
+            candidate.email,
+            candidate.position or "N/A",
+            candidate.company or "N/A",
+            candidate.phone or "N/A",
+            candidate.location or "N/A",
+            candidate.skills or "N/A",
+            candidate.total_attempts,
+            f"{candidate.average_score:.1f}" if candidate.average_score else "N/A",
+            candidate.last_activity.strftime("%Y-%m-%d %H:%M") if candidate.last_activity else "N/A"
+        ])
+    
+    # Create CSV string
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(csv_data)
+    
+    from flask import Response
+    response = Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=candidates.csv'}
+    )
+    
+    return response
+
+@auth_bp.route('/export/recruiter/analytics', methods=['GET'])
+def export_recruiter_analytics():
+    """Export recruiter's analytics report"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get analytics data
+    total_assessments = Assessment.query.filter_by(recruiter_id=user_id).count()
+    total_attempts = db.session.query(AssessmentAttempt).join(Assessment).filter(Assessment.recruiter_id == user_id).count()
+    total_candidates = db.session.query(User).join(AssessmentAttempt).join(Assessment).filter(Assessment.recruiter_id == user_id).distinct().count()
+    
+    # Get average scores
+    avg_score_result = db.session.query(db.func.avg(AssessmentAttempt.score)).join(Assessment).filter(
+        Assessment.recruiter_id == user_id,
+        AssessmentAttempt.score.isnot(None)
+    ).scalar()
+    average_score = f"{avg_score_result:.1f}" if avg_score_result else "0.0"
+    
+    # Get completion rate
+    completed_attempts = db.session.query(AssessmentAttempt).join(Assessment).filter(
+        Assessment.recruiter_id == user_id,
+        AssessmentAttempt.status == 'completed'
+    ).count()
+    completion_rate = f"{(completed_attempts / total_attempts * 100):.1f}" if total_attempts > 0 else "0.0"
+    
+    # Get interview data
+    total_interviews = Interview.query.filter_by(recruiter_id=user_id).count()
+    completed_interviews = Interview.query.filter_by(recruiter_id=user_id, status='completed').count()
+    interview_success_rate = f"{(completed_interviews / total_interviews * 100):.1f}" if total_interviews > 0 else "0.0"
+    
+    # Prepare CSV data
+    csv_data = []
+    csv_data.append(['Analytics Report', ''])
+    csv_data.append(['Generated Date', datetime.utcnow().strftime("%Y-%m-%d %H:%M")])
+    csv_data.append(['', ''])
+    
+    csv_data.append(['Overview Statistics', ''])
+    csv_data.append(['Total Assessments', total_assessments])
+    csv_data.append(['Total Attempts', total_attempts])
+    csv_data.append(['Total Candidates', total_candidates])
+    csv_data.append(['Average Score (%)', average_score])
+    csv_data.append(['Completion Rate (%)', completion_rate])
+    csv_data.append(['Total Interviews', total_interviews])
+    csv_data.append(['Completed Interviews', completed_interviews])
+    csv_data.append(['Interview Success Rate (%)', interview_success_rate])
+    csv_data.append(['', ''])
+    
+    # Add detailed assessment data
+    csv_data.append(['Assessment Details', ''])
+    csv_data.append(['Assessment Title', 'Type', 'Difficulty', 'Total Attempts', 'Average Score', 'Completion Rate'])
+    
+    assessments = db.session.query(
+        Assessment.title,
+        Assessment.type,
+        Assessment.difficulty,
+        db.func.count(AssessmentAttempt.id).label('attempts'),
+        db.func.avg(AssessmentAttempt.score).label('avg_score'),
+        db.func.sum(db.case((AssessmentAttempt.status == 'completed', 1), else_=0)).label('completed')
+    ).outerjoin(
+        AssessmentAttempt, Assessment.id == AssessmentAttempt.assessment_id
+    ).filter(
+        Assessment.recruiter_id == user_id
+    ).group_by(
+        Assessment.id, Assessment.title, Assessment.type, Assessment.difficulty
+    ).all()
+    
+    for assessment in assessments:
+        completion_rate = f"{(assessment.completed / assessment.attempts * 100):.1f}" if assessment.attempts > 0 else "0.0"
+        avg_score = f"{assessment.avg_score:.1f}" if assessment.avg_score else "N/A"
+        csv_data.append([
+            assessment.title,
+            assessment.type,
+            assessment.difficulty,
+            assessment.attempts,
+            avg_score,
+            f"{completion_rate}%"
+        ])
+    
+    # Create CSV string
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(csv_data)
+    
+    from flask import Response
+    response = Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=analytics_report.csv'}
+    )
+    
+    return response
+

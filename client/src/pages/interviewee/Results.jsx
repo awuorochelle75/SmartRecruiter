@@ -217,6 +217,43 @@ export default function Results() {
     }
   }
 
+  const handleExportResults = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export/interviewee/results`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'assessment_results.csv'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        toast({
+          title: "Success",
+          description: "Results exported successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to export results",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export results",
+        variant: "destructive",
+      })
+    }
+  }
+
   const filteredResults = results.filter(result => {
     const matchesSearch = result.assessment_title?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === "all" || result.status === filterStatus
@@ -301,7 +338,7 @@ export default function Results() {
                 <h1 className="text-3xl font-bold text-foreground">My Results</h1>
                 <p className="text-muted-foreground">View and analyze your assessment results and performance</p>
               </div>
-              <Button>
+              <Button onClick={handleExportResults}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Results
               </Button>

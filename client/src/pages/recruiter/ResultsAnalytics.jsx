@@ -69,8 +69,6 @@ export default function ResultsAnalytics() {
     }
   }
 
-
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -78,9 +76,6 @@ export default function ResultsAnalytics() {
       day: 'numeric'
     })
   }
-
-
-
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -107,8 +102,42 @@ export default function ResultsAnalytics() {
     return <TrendingUp className="h-4 w-4 text-gray-600" />
   }
 
-
-
+  const handleExportAnalytics = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export/recruiter/analytics`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'analytics_report.csv'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        toast({
+          title: "Success",
+          description: "Analytics report exported successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to export analytics report",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export analytics report",
+        variant: "destructive",
+      })
+    }
+  }
 
   if (loading) {
     return (
@@ -168,7 +197,7 @@ export default function ResultsAnalytics() {
                 <h1 className="text-3xl font-bold text-foreground">Results & Analytics</h1>
                 <p className="text-muted-foreground">Comprehensive insights into your recruitment performance</p>
               </div>
-              <Button>
+              <Button onClick={handleExportAnalytics}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
               </Button>
