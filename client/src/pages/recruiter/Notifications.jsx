@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, CheckCircle, XCircle, Info, MessageSquare, UserPlus, Calendar, Settings } from "lucide-react"
+import { Bell, CheckCircle, XCircle, Info, MessageSquare, UserPlus, Calendar, Settings, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Switch } from "../../components/ui/switch"
@@ -25,13 +25,12 @@ export default function RecruiterNotifications() {
     weekly_reports: true,
   })
   const { toast } = useToast()
-  const { notifications, markAsRead, markAllAsRead, clearAllNotifications, loading: notificationsLoading } = useNotifications()
-
-
-
+  const { notifications, markAsRead, markAllAsRead, clearAllNotifications, fetchNotifications, loading: notificationsLoading } = useNotifications()
 
   useEffect(() => {
     fetchNotificationSettings()
+    // Refresh notifications when component mounts
+    fetchNotifications()
     const timer = setTimeout(() => {
       setLoading(false)
     }, 1000)
@@ -178,8 +177,18 @@ export default function RecruiterNotifications() {
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
           <div className="flex-1 p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold">Notifications</h1>
+                  <p className="text-muted-foreground">
+                    Loading notifications...
+                  </p>
+                </div>
+              </div>
               <CardSkeleton />
             </div>
+          </div>
         </div>
       </div>
     )
@@ -203,6 +212,19 @@ export default function RecruiterNotifications() {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    fetchNotifications()
+                    toast({
+                      title: "Refreshed",
+                      description: "Notifications have been refreshed",
+                    })
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
                 <Button variant="outline" onClick={handleMarkAllAsRead}>
                   Mark all as read
                 </Button>
@@ -213,6 +235,7 @@ export default function RecruiterNotifications() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Notifications List */}
               <div className="lg:col-span-2 space-y-4">
                 <Card>
                 <CardHeader>
@@ -268,6 +291,7 @@ export default function RecruiterNotifications() {
               </Card>
               </div>
 
+              {/* Notification Settings */}
               <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -277,6 +301,7 @@ export default function RecruiterNotifications() {
                     </CardDescription>
                 </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Email Notifications */}
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium">Email Notifications</h3>
                       <div className="space-y-3">
