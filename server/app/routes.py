@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, Message, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, Message, MessageAttachment, Conversation, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -20,7 +20,13 @@ auth_bp = Blueprint('auth', __name__)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'avatars')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_ATTACHMENT_EXTENSIONS = {
+    'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt', 'rtf',
+    'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z', 'mp3', 'mp4',
+    'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'
+}
 MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10MB
 
 def send_email(to_email, subject, body):
     """Send email using configured SMTP settings"""
@@ -2036,15 +2042,26 @@ def get_conversations():
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    # Get all unique conversation_ids for this user
+    # Get all unique conversation_ids for this user, excluding archived ones
     conversations = (
         db.session.query(Message.conversation_id)
         .filter((Message.sender_id == user_id) | (Message.receiver_id == user_id))
         .distinct()
         .all()
     )
-    conversation_list = []
+    
+    # Filter out archived conversations
+    filtered_conversations = []
     for (conv_id,) in conversations:
+        # Check if conversation is archived for this user
+        conversation = Conversation.query.filter_by(conversation_id=conv_id).first()
+        if conversation:
+            if (conversation.user1_id == user_id and conversation.archived_by_user1) or \
+               (conversation.user2_id == user_id and conversation.archived_by_user2):
+                continue  # Skip archived conversations
+        filtered_conversations.append(conv_id)
+    conversation_list = []
+    for conv_id in filtered_conversations:
         # Get the latest message in this conversation
         last_message = (
             Message.query.filter_by(conversation_id=conv_id)
@@ -2100,17 +2117,28 @@ def get_messages(conversation_id):
     messages = Message.query.filter_by(conversation_id=conversation_id).order_by(Message.timestamp).all()
     if not messages or (messages[0].sender_id != user_id and messages[0].receiver_id != user_id):
         return jsonify({'error': 'Unauthorized or conversation not found'}), 403
-    message_list = [
-        {
+    message_list = []
+    for m in messages:
+        # Get attachments for this message
+        attachments = []
+        for attachment in m.attachments:
+            attachments.append({
+                'id': attachment.id,
+                'filename': attachment.filename,
+                'original_filename': attachment.original_filename,
+                'file_size': attachment.file_size,
+                'mime_type': attachment.mime_type
+            })
+        
+        message_list.append({
             'id': m.id,
             'sender_id': m.sender_id,
             'receiver_id': m.receiver_id,
             'content': m.content,
             'created_at': m.timestamp.isoformat(),
-            'read': m.read
-        }
-        for m in messages
-    ]
+            'read': m.read,
+            'attachments': attachments
+        })
     return jsonify({'messages': message_list}), 200
 
 @auth_bp.route('/messages/send', methods=['POST'])
@@ -2243,6 +2271,338 @@ def mark_conversation_read(conversation_id):
     
     db.session.commit()
     return jsonify({'message': 'Messages marked as read'}), 200
+
+# --- MESSAGE ATTACHMENT ENDPOINTS ---
+@auth_bp.route('/messages/<int:message_id>/attachments', methods=['POST'])
+def upload_message_attachment(message_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    message = Message.query.get(message_id)
+    if not message or message.sender_id != user_id:
+        return jsonify({'error': 'Message not found or unauthorized'}), 404
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if file and '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_ATTACHMENT_EXTENSIONS:
+        # Check file size
+        file.seek(0, 2)  # Seek to end
+        file_size_check = file.tell()
+        file.seek(0)  # Reset to beginning
+        
+        if file_size_check > MAX_ATTACHMENT_SIZE:
+            return jsonify({'error': f'File size exceeds maximum allowed size of {MAX_ATTACHMENT_SIZE // (1024 * 1024)}MB'}), 400
+        # Generate unique filename
+        import uuid
+        import os
+        from werkzeug.utils import secure_filename
+        
+        original_filename = secure_filename(file.filename)
+        file_extension = os.path.splitext(original_filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        
+        # Create uploads/attachments directory if it doesn't exist
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'attachments')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+        
+        # Get file size
+        file_size = os.path.getsize(file_path)
+        
+        # Determine MIME type
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(original_filename)
+        if mime_type is None:
+            mime_type = 'application/octet-stream'
+        
+        # Create attachment record
+        attachment = MessageAttachment(
+            message_id=message_id,
+            filename=unique_filename,
+            original_filename=original_filename,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=mime_type
+        )
+        
+        db.session.add(attachment)
+        db.session.commit()
+        
+        return jsonify({
+            'id': attachment.id,
+            'filename': attachment.filename,
+            'original_filename': attachment.original_filename,
+            'file_size': attachment.file_size,
+            'mime_type': attachment.mime_type
+        }), 201
+    
+    return jsonify({'error': 'File type not allowed'}), 400
+
+@auth_bp.route('/messages/attachments/<int:attachment_id>', methods=['DELETE'])
+def delete_message_attachment(attachment_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    attachment = MessageAttachment.query.get(attachment_id)
+    if not attachment:
+        return jsonify({'error': 'Attachment not found'}), 404
+    
+    # Check if user owns the message
+    if attachment.message.sender_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Delete file from filesystem
+    import os
+    if os.path.exists(attachment.file_path):
+        os.remove(attachment.file_path)
+    
+    # Delete from database
+    db.session.delete(attachment)
+    db.session.commit()
+    
+    return jsonify({'message': 'Attachment deleted successfully'}), 200
+
+@auth_bp.route('/messages/attachments/<int:attachment_id>', methods=['GET'])
+def download_message_attachment(attachment_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    attachment = MessageAttachment.query.get(attachment_id)
+    if not attachment:
+        return jsonify({'error': 'Attachment not found'}), 404
+    
+    # Check if user is part of the conversation
+    message = attachment.message
+    if message.sender_id != user_id and message.receiver_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    import os
+    if not os.path.exists(attachment.file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
+    from flask import send_file
+    return send_file(
+        attachment.file_path,
+        as_attachment=True,
+        download_name=attachment.original_filename,
+        mimetype=attachment.mime_type
+    )
+
+# --- CONVERSATION ARCHIVE ENDPOINTS ---
+@auth_bp.route('/messages/conversations/<conversation_id>/archive', methods=['POST'])
+def archive_conversation(conversation_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Check if user is part of the conversation
+    messages = Message.query.filter_by(conversation_id=conversation_id).all()
+    if not messages:
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    # Verify user is part of this conversation
+    user_in_conversation = False
+    for message in messages:
+        if message.sender_id == user_id or message.receiver_id == user_id:
+            user_in_conversation = True
+            break
+    
+    if not user_in_conversation:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get or create conversation record
+    conversation = Conversation.query.filter_by(conversation_id=conversation_id).first()
+    if not conversation:
+        # Create conversation record
+        other_user_id = None
+        for message in messages:
+            if message.sender_id != user_id:
+                other_user_id = message.sender_id
+                break
+            elif message.receiver_id != user_id:
+                other_user_id = message.receiver_id
+                break
+        
+        if not other_user_id:
+            return jsonify({'error': 'Invalid conversation'}), 400
+        
+        conversation = Conversation(
+            conversation_id=conversation_id,
+            user1_id=min(user_id, other_user_id),
+            user2_id=max(user_id, other_user_id)
+        )
+        db.session.add(conversation)
+    
+    # Archive for the current user
+    if conversation.user1_id == user_id:
+        conversation.archived_by_user1 = True
+    else:
+        conversation.archived_by_user2 = True
+    
+    db.session.commit()
+    return jsonify({'message': 'Conversation archived successfully'}), 200
+
+@auth_bp.route('/messages/conversations/<conversation_id>/unarchive', methods=['POST'])
+def unarchive_conversation(conversation_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conversation = Conversation.query.filter_by(conversation_id=conversation_id).first()
+    if not conversation:
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    # Unarchive for the current user
+    if conversation.user1_id == user_id:
+        conversation.archived_by_user1 = False
+    elif conversation.user2_id == user_id:
+        conversation.archived_by_user2 = False
+    else:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    db.session.commit()
+    return jsonify({'message': 'Conversation unarchived successfully'}), 200
+
+@auth_bp.route('/messages/conversations/archived', methods=['GET'])
+def get_archived_conversations():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Get archived conversations for this user
+    archived_conversations = Conversation.query.filter(
+        ((Conversation.user1_id == user_id) & (Conversation.archived_by_user1 == True)) |
+        ((Conversation.user2_id == user_id) & (Conversation.archived_by_user2 == True))
+    ).all()
+    
+    conversation_list = []
+    for conversation in archived_conversations:
+        # Get the latest message in this conversation
+        last_message = (
+            Message.query.filter_by(conversation_id=conversation.conversation_id)
+            .order_by(Message.timestamp.desc())
+            .first()
+        )
+        
+        if last_message:
+            # Get the other user in the conversation
+            if last_message.sender_id == user_id:
+                other_user = User.query.get(last_message.receiver_id)
+            else:
+                other_user = User.query.get(last_message.sender_id)
+            
+            # Get unread count for this conversation
+            unread_count = Message.query.filter_by(
+                conversation_id=conversation.conversation_id,
+                receiver_id=user_id,
+                read=False
+            ).count()
+            
+            # Get company info for recruiters
+            company = None
+            if other_user.role == 'recruiter' and other_user.recruiter_profile:
+                company = other_user.recruiter_profile.company_name
+            
+            conversation_list.append({
+                'conversation_id': conversation.conversation_id,
+                'last_message': last_message.content,
+                'last_message_at': last_message.timestamp.isoformat() + 'Z',
+                'unread_count': unread_count,
+                'other_user': {
+                    'id': other_user.id,
+                    'email': other_user.email,
+                    'role': other_user.role,
+                    'first_name': getattr(other_user.interviewee_profile, 'first_name', None) or getattr(other_user.recruiter_profile, 'first_name', None),
+                    'last_name': getattr(other_user.interviewee_profile, 'last_name', None) or getattr(other_user.recruiter_profile, 'last_name', None),
+                    'avatar': getattr(other_user.interviewee_profile, 'avatar', None) or getattr(other_user.recruiter_profile, 'avatar', None),
+                    'company': company,
+                    'status': 'online'
+                }
+            })
+    
+    # Sort by latest message timestamp
+    conversation_list.sort(key=lambda c: c['last_message_at'], reverse=True)
+    return jsonify({'conversations': conversation_list}), 200
+
+# --- USER PROFILE ENDPOINTS ---
+@auth_bp.route('/users/<int:user_id>/profile', methods=['GET'])
+def get_user_profile(user_id):
+    current_user_id = session.get('user_id')
+    if not current_user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Check if current user is a recruiter (only recruiters can view profiles)
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized - only recruiters can view profiles'}), 403
+    
+    # Get profile data
+    if user.role == 'interviewee':
+        profile = IntervieweeProfile.query.filter_by(user_id=user_id).first()
+        if profile:
+            return jsonify({
+                'id': user.id,
+                'email': user.email,
+                'role': user.role,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'phone': profile.phone,
+                'location': profile.location,
+                'position': profile.position,
+                'company': profile.company,
+                'bio': profile.bio,
+                'skills': profile.skills,
+                'avatar': profile.avatar,
+                'title': profile.title,
+                'website': profile.website,
+                'linkedin': profile.linkedin,
+                'github': profile.github,
+                'timezone': profile.timezone,
+                'availability': profile.availability,
+                'salary_expectation': profile.salary_expectation,
+                'work_type': profile.work_type
+            }), 200
+    elif user.role == 'recruiter':
+        profile = RecruiterProfile.query.filter_by(user_id=user_id).first()
+        if profile:
+            return jsonify({
+                'id': user.id,
+                'email': user.email,
+                'role': user.role,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'phone': profile.phone,
+                'location': profile.location,
+                'company_name': profile.company_name,
+                'company_website': profile.company_website,
+                'bio': profile.bio,
+                'avatar': profile.avatar,
+                'industry': profile.industry,
+                'company_size': profile.company_size,
+                'company_description': profile.company_description,
+                'company_logo': profile.company_logo,
+                'timezone': profile.timezone,
+                'position': profile.position
+            }), 200
+    
+    return jsonify({'error': 'Profile not found'}), 404
 
 # --- NOTIFICATION ENDPOINTS ---
 @auth_bp.route('/notifications', methods=['GET'])

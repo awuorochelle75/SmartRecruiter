@@ -358,8 +358,35 @@ class Message(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.now)
     read = db.Column(db.Boolean, default=False)
     conversation_id = db.Column(db.String(64), nullable=False)  # e.g., "recruiterId-intervieweeId"
+    attachments = db.relationship('MessageAttachment', backref='message', cascade='all, delete-orphan')
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+    
+class MessageAttachment(db.Model):
+    __tablename__ = 'message_attachment'
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)  # in bytes
+    mime_type = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+class Conversation(db.Model):
+    __tablename__ = 'conversation'
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.String(64), unique=True, nullable=False)  # e.g., "recruiterId-intervieweeId"
+    user1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    archived_by_user1 = db.Column(db.Boolean, default=False)
+    archived_by_user2 = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationships
+    user1 = db.relationship('User', foreign_keys=[user1_id], backref='conversations_as_user1')
+    user2 = db.relationship('User', foreign_keys=[user2_id], backref='conversations_as_user2')
 
 class Notification(db.Model):
     __tablename__ = 'notification'
