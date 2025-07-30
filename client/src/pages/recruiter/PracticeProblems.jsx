@@ -84,15 +84,34 @@ export default function PracticeProblems() {
     const problem = problemToDelete
     setShowDeleteDialog(false)
     setProblemToDelete(null)
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/practice-problems/${problem.id}`, {
-      method: "DELETE",
-      credentials: "include"
-    })
-    if (res.ok) {
-      toast({ title: "Deleted", description: `Problem '${problem.title}' deleted.` })
-      fetchProblems()
-    } else {
-      toast({ title: "Error", description: "Failed to delete problem", variant: "destructive" })
+    
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/practice-problems/${problem.id}`, {
+        method: "DELETE",
+        credentials: "include"
+      })
+      
+      if (res.ok) {
+        toast({ 
+          title: "Success", 
+          description: `Problem '${problem.title}' and all its attempts have been deleted successfully.` 
+        })
+        fetchProblems()
+      } else {
+        const errorData = await res.json()
+        toast({ 
+          title: "Error", 
+          description: errorData.error || "Failed to delete problem", 
+          variant: "destructive" 
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting problem:', error)
+      toast({ 
+        title: "Error", 
+        description: "Network error occurred while deleting the problem", 
+        variant: "destructive" 
+      })
     }
   }
 
@@ -219,10 +238,14 @@ export default function PracticeProblems() {
           <DialogHeader>
             <DialogTitle>Delete Practice Problem</DialogTitle>
           </DialogHeader>
-          <div>Are you sure you want to delete <span className="font-semibold">{problemToDelete?.title}</span>? This action cannot be undone.</div>
+          <div>
+            Are you sure you want to delete <span className="font-semibold">{problemToDelete?.title}</span>? 
+            <br /><br />
+            This will permanently delete the problem and all associated attempts from both the Problems tab and Categories sessions. This action cannot be undone.
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete Problem</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -14,7 +14,7 @@ function Spinner({ className }) {
   )
 }
 
-export default function MultipleChoiceProblem({ problem, onExit }) {
+export default function MultipleChoiceProblem({ problem, onExit, onSubmit, isCategorySession = false }) {
   const storageKey = `practice_mc_${problem.id}`
   const [selected, setSelected] = useState(null)
   const [submitted, setSubmitted] = useState(false)
@@ -49,8 +49,15 @@ export default function MultipleChoiceProblem({ problem, onExit }) {
     
     setLoading(true)
     const startTime = Date.now() / 1000
+    const timeTaken = Math.floor((Date.now() / 1000) - startTime)
     
     try {
+      if (isCategorySession && onSubmit) {
+        const answerData = {
+          selected_option: selected
+        }
+        await onSubmit(answerData, timeTaken)
+      } else {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/practice-problems/${problem.id}/attempt`, {
         method: 'POST',
         headers: {
@@ -87,6 +94,7 @@ export default function MultipleChoiceProblem({ problem, onExit }) {
           description: data.error || 'Failed to submit answer',
           variant: 'destructive',
         })
+        }
       }
     } catch (error) {
       console.error('Error submitting answer:', error)

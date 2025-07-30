@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, Message, MessageAttachment, Conversation, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, PracticeCategorySession, PracticeCategorySessionAttempt, Message, MessageAttachment, Conversation, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -1785,9 +1785,18 @@ def practice_problem_detail(problem_id):
         db.session.commit()
         return jsonify({'message': 'Practice problem updated'}), 200
     elif request.method == 'DELETE':
-        db.session.delete(problem)
-        db.session.commit()
-        return jsonify({'message': 'Practice problem deleted'}), 200
+        try:
+            PracticeProblemAttempt.query.filter_by(problem_id=problem_id).delete()
+            PracticeCategorySessionAttempt.query.filter_by(problem_id=problem_id).delete()
+            
+            # Delete the problem itself
+            db.session.delete(problem)
+            db.session.commit()
+            
+            return jsonify({'message': 'Practice problem and all its attempts deleted successfully'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Failed to delete problem: {str(e)}'}), 500
 
 # --- Public endpoint for interviewees to list practice problems by category ---
 @auth_bp.route('/public/practice-problems', methods=['GET'])
@@ -2055,6 +2064,316 @@ def practice_problem_to_dict(problem):
         'created_at': problem.created_at.isoformat() if problem.created_at else None,
         'updated_at': problem.updated_at.isoformat() if problem.updated_at else None,
     }
+    
+# Category Session Endpoints
+@auth_bp.route('/practice-categories', methods=['GET'])
+def get_practice_categories():
+    """Get all categories with practice problems for category sessions"""
+    try:
+        categories = Category.query.join(PracticeProblem).filter(
+            PracticeProblem.is_public == True
+        ).distinct().all()
+        
+        result = []
+        for category in categories:
+            problems_count = PracticeProblem.query.filter_by(
+                category_id=category.id, 
+                is_public=True
+            ).count()
+            
+            if problems_count > 0:
+                result.append({
+                    'id': category.id,
+                    'name': category.name,
+                    'description': category.description,
+                    'problems_count': problems_count,
+                    'estimated_time': f"{problems_count * 5} min"
+                })
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/practice-categories/<int:category_id>/start-session', methods=['POST'])
+def start_category_session(category_id):
+    """Start a new category practice session"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        problems = PracticeProblem.query.filter_by(
+            category_id=category_id, 
+            is_public=True
+        ).all()
+        
+        if not problems:
+            return jsonify({'error': 'No problems found for this category'}), 404
+        
+        # Calculate total time limit using actual problem time limits
+        total_time_limit = sum(p.time_limit or 300 for p in problems)
+        total_max_score = sum(p.points for p in problems)
+        
+        # Create category session
+        category_session = PracticeCategorySession(
+            user_id=user_id,
+            category_id=category_id,
+            title=f"{problems[0].category.name} Challenge",
+            description=f"Complete {len(problems)} problems in {total_time_limit // 60} minutes",
+            total_problems=len(problems),
+            max_score=total_max_score,
+            time_limit=total_time_limit
+        )
+        
+        db.session.add(category_session)
+        db.session.commit()
+        
+        # Return session info with problems
+        problems_data = []
+        for problem in problems:
+            problems_data.append({
+                'id': problem.id,
+                'title': problem.title,
+                'description': problem.description,
+                'difficulty': problem.difficulty,
+                'problem_type': problem.problem_type,
+                'points': problem.points,
+                'max_attempts': problem.max_attempts,
+                'estimated_time': problem.estimated_time,
+                'time_limit': problem.time_limit,
+                'starter_code': problem.starter_code,
+                'options': json.loads(problem.options) if problem.options else [],
+                'correct_answer': problem.correct_answer,
+                'visible_test_cases': json.loads(problem.visible_test_cases) if problem.visible_test_cases else [],
+                'hidden_test_cases': json.loads(problem.hidden_test_cases) if problem.hidden_test_cases else [],
+                'answer_template': problem.answer_template,
+                'keywords': problem.keywords
+            })
+        
+        return jsonify({
+            'session_id': category_session.id,
+            'title': category_session.title,
+            'description': category_session.description,
+            'total_problems': category_session.total_problems,
+            'time_limit': category_session.time_limit,
+            'max_score': category_session.max_score,
+            'problems': problems_data
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/practice-categories/sessions/<int:session_id>/submit-problem', methods=['POST'])
+def submit_category_session_problem(session_id):
+    """Submit an answer for a problem in a category session"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        problem_id = data.get('problem_id')
+        answer_data = data.get('answer')
+        time_taken = data.get('time_taken', 0)
+        
+        # Get the category session
+        category_session = PracticeCategorySession.query.get(session_id)
+        if not category_session or category_session.user_id != user_id:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        if category_session.status != 'in_progress':
+            return jsonify({'error': 'Session is not in progress'}), 400
+        
+        # Get the problem
+        problem = PracticeProblem.query.get(problem_id)
+        if not problem:
+            return jsonify({'error': 'Problem not found'}), 404
+        
+        # Check if already attempted and if retakes are allowed
+        existing_attempts = PracticeCategorySessionAttempt.query.filter_by(
+            session_id=session_id,
+            problem_id=problem_id
+        ).count()
+        
+        if existing_attempts >= problem.max_attempts:
+            return jsonify({'error': f'Maximum attempts ({problem.max_attempts}) reached for this problem'}), 400
+        
+        # Evaluate the answer based on problem type
+        score = 0
+        passed = False
+        
+        if problem.problem_type == 'multiple-choice':
+            selected_option = answer_data.get('selected_option')
+            passed = selected_option == problem.correct_answer
+            score = problem.points if passed else 0
+            
+        elif problem.problem_type == 'coding':
+            code_submission = answer_data.get('code_submission', '')
+            score = min(problem.points, len(code_submission) / 10)
+            passed = score >= problem.points * 0.7
+            
+        elif problem.problem_type == 'short-answer':
+            answer = answer_data.get('answer', '')
+            keywords = problem.keywords.split(',') if problem.keywords else []
+            if keywords:
+                answer_lower = answer.lower()
+                matched_keywords = sum(1 for keyword in keywords if keyword.strip().lower() in answer_lower)
+                score = (matched_keywords / len(keywords)) * problem.points
+                passed = score >= problem.points * 0.6
+            else:
+                score = problem.points if answer.strip() else 0
+                passed = score > 0
+        
+        # Create the attempt
+        attempt = PracticeCategorySessionAttempt(
+            session_id=session_id,
+            problem_id=problem_id,
+            problem_type=problem.problem_type,
+            answer=answer_data.get('answer'),
+            selected_option=answer_data.get('selected_option'),
+            code_submission=answer_data.get('code_submission'),
+            test_case_results=json.dumps(answer_data.get('test_case_results', [])),
+            score=score,
+            max_score=problem.points,
+            passed=passed,
+            time_taken=time_taken,
+            completed_at=datetime.utcnow()
+        )
+        
+        db.session.add(attempt)
+        
+        # Also create a regular practice problem attempt for integration
+        from app.models import PracticeProblemAttempt
+        regular_attempt = PracticeProblemAttempt(
+            problem_id=problem_id,
+            user_id=user_id,
+            problem_type=problem.problem_type,
+            selected_option=answer_data.get('selected_option'),
+            answer=answer_data.get('answer'),
+            code_submission=answer_data.get('code_submission'),
+            test_case_results=json.dumps(answer_data.get('test_case_results', [])),
+            score=score,
+            max_score=problem.points,
+            passed=passed,
+            time_taken=time_taken,
+            points_earned=score
+        )
+        db.session.add(regular_attempt)
+        
+        # Update session progress
+        category_session.problems_completed += 1
+        category_session.total_score += score
+        category_session.time_spent += time_taken
+        
+        # Check if session is complete
+        if category_session.problems_completed >= category_session.total_problems:
+            category_session.status = 'completed'
+            category_session.completed_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'attempt_id': attempt.id,
+            'score': score,
+            'max_score': problem.points,
+            'passed': passed,
+            'session_progress': {
+                'problems_completed': category_session.problems_completed,
+                'total_problems': category_session.total_problems,
+                'total_score': category_session.total_score,
+                'max_score': category_session.max_score,
+                'time_spent': category_session.time_spent,
+                'status': category_session.status
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/practice-categories/sessions/<int:session_id>', methods=['GET'])
+def get_category_session(session_id):
+    """Get details of a category session"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        category_session = PracticeCategorySession.query.get(session_id)
+        if not category_session or category_session.user_id != user_id:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        # Get attempts for this session
+        attempts = PracticeCategorySessionAttempt.query.filter_by(session_id=session_id).all()
+        
+        attempts_data = []
+        for attempt in attempts:
+            attempts_data.append({
+                'problem_id': attempt.problem_id,
+                'problem_title': attempt.problem.title,
+                'score': attempt.score,
+                'max_score': attempt.max_score,
+                'passed': attempt.passed,
+                'time_taken': attempt.time_taken,
+                'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None
+            })
+        
+        return jsonify({
+            'id': category_session.id,
+            'title': category_session.title,
+            'description': category_session.description,
+            'total_problems': category_session.total_problems,
+            'problems_completed': category_session.problems_completed,
+            'total_score': category_session.total_score,
+            'max_score': category_session.max_score,
+            'time_limit': category_session.time_limit,
+            'time_spent': category_session.time_spent,
+            'status': category_session.status,
+            'started_at': category_session.started_at.isoformat(),
+            'completed_at': category_session.completed_at.isoformat() if category_session.completed_at else None,
+            'attempts': attempts_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/practice-categories/sessions', methods=['GET'])
+def get_user_category_sessions():
+    """Get all category sessions for the current user"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        category_sessions = PracticeCategorySession.query.filter_by(user_id=user_id).order_by(
+            PracticeCategorySession.created_at.desc()
+        ).all()
+        
+        result = []
+        for category_session in category_sessions:
+            result.append({
+                'id': category_session.id,
+                'title': category_session.title,
+                'category_name': category_session.category.name,
+                'total_problems': category_session.total_problems,
+                'problems_completed': category_session.problems_completed,
+                'total_score': category_session.total_score,
+                'max_score': category_session.max_score,
+                'status': category_session.status,
+                'started_at': category_session.started_at.isoformat(),
+                'completed_at': category_session.completed_at.isoformat() if category_session.completed_at else None
+            })
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # --- MESSAGING ENDPOINTS ---
 @auth_bp.route('/messages/conversations', methods=['GET'])

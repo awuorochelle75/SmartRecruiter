@@ -11,9 +11,7 @@ import { useToast } from "../../../components/ui/use-toast"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs"
 import { CheckCircle, XCircle } from "lucide-react"
 
-
-
-
+// Resizable panel logic
 function useResizablePanels(defaults) {
   const [sizes, setSizes] = useState(defaults)
   const dragging = useRef(null)
@@ -21,28 +19,28 @@ function useResizablePanels(defaults) {
   useEffect(() => {
     function onMove(e) {
       if (!dragging.current) return
-      // e.preventDefault()
-      // e.stopPropagation()
-      // if (e.touches && e.touches.length > 1) return // Ignore multi-touch events
-
       const { panel, startX, startSizes } = dragging.current
       const dx = (e.touches ? e.touches[0].clientX : e.clientX) - startX
+      // Get total available width for panels
       const totalWidth = window.innerWidth
+      // Panel limits
       const minProblem = 180, maxProblem = 600
       const minEditor = 250, maxEditor = Math.max(600, totalWidth - minProblem * 2)
       const minTerminal = 180, maxTerminal = 600
       if (panel === 0) {
+        // Left resizer
         let newLeft = Math.max(minProblem, Math.min(maxProblem, startSizes[0] + dx))
         let newCenter = Math.max(minEditor, Math.min(maxEditor, startSizes[1] - dx))
-        
+        // Prevent overlap
         if (newLeft + newCenter + startSizes[2] > totalWidth) {
           newCenter = totalWidth - newLeft - startSizes[2]
         }
         setSizes([newLeft, newCenter, startSizes[2]])
       } else if (panel === 1) {
+        // Right resizer
         let newCenter = Math.max(minEditor, Math.min(maxEditor, startSizes[1] + dx))
         let newRight = Math.max(minTerminal, Math.min(maxTerminal, startSizes[2] - dx))
-        
+        // Prevent overlap
         if (startSizes[0] + newCenter + newRight > totalWidth) {
           newCenter = totalWidth - startSizes[0] - newRight
         }
@@ -72,7 +70,7 @@ function useResizablePanels(defaults) {
   return [sizes, startDrag]
 }
 
-
+// Spinner component for loading states
 function Spinner({ className }) {
   return (
     <svg className={className || "animate-spin h-4 w-4 mr-2 text-primary"} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -82,7 +80,7 @@ function Spinner({ className }) {
   )
 }
 
-export default function CodingProblem({ problem, onExit }) {
+export default function CodingProblem({ problem, onExit, onSubmit, isCategorySession = false }) {
   const [code, setCode] = useState("")
   const [selectedLanguage, setSelectedLanguage] = useState("")
   const [userInput, setUserInput] = useState("")
@@ -106,10 +104,10 @@ export default function CodingProblem({ problem, onExit }) {
   
   const [panelSizes, startPanelDrag] = useResizablePanels([400, 600, 360])
 
-  
-  const [lastAction, setLastAction] = useState(null)
 
+  const [lastAction, setLastAction] = useState(null)
   
+
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem(storageKey) || "null")
     let lang = (problem.allowed_languages && problem.allowed_languages.length) ? problem.allowed_languages[0] : "javascript"
@@ -124,15 +122,14 @@ export default function CodingProblem({ problem, onExit }) {
     }
   }, [problem])
 
-  
-
+  // Persist timer, code, and language to localStorage
   useEffect(() => {
     if (timeLeft !== null && code !== undefined && selectedLanguage) {
       localStorage.setItem(storageKey, JSON.stringify({ code, timeLeft, selectedLanguage }))
     }
   }, [code, timeLeft, selectedLanguage])
 
-  
+  // Timer logic
   useEffect(() => {
     if (!timeLeft) return
     if (timeLeft <= 0) {
@@ -215,6 +212,7 @@ export default function CodingProblem({ problem, onExit }) {
     setCodeRunning(true)
     setTestResults([])
     setLastAction('testcases')
+    // Prepare test cases, wrapping input in quotes for Python string args
     let testCases = (problem.visible_test_cases || []).map(tc => ({ ...tc, expectedOutput: tc.expectedOutput }))
     if (selectedLanguage === 'python') {
       const funcMatch = code.match(/def\s+\w+\(([^)]*)\)/)
@@ -276,7 +274,19 @@ export default function CodingProblem({ problem, onExit }) {
     setShowSubmitDialog(false)
     setCodeRunning(true)
     const startTime = Date.now() / 1000
+    const timeTaken = Math.floor((Date.now() / 1000) - startTime)
+    
     try {
+      if (isCategorySession && onSubmit) {
+        // For category sessions, use the onSubmit callback
+        const answerData = {
+          code_submission: code,
+          language: selectedLanguage.toLowerCase(),
+          test_case_results: testResults
+        }
+        await onSubmit(answerData, timeTaken)
+      } else {
+        // For individual problems, use the original API
       const res = await fetch(`${import.meta.env.VITE_API_URL}/practice-problems/${problem.id}/attempt`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -313,6 +323,7 @@ export default function CodingProblem({ problem, onExit }) {
         setTimeLeft((problem.time_limit || 30) * 60)
         onExit()
       }, 1200)
+      }
     } catch (err) {
       setCodeRunning(false)
       toast({

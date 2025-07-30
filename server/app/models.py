@@ -333,10 +333,10 @@ class PracticeProblemAttempt(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     problem_id = db.Column(db.Integer, db.ForeignKey('practice_problem.id'), nullable=False)
     problem_type = db.Column(db.String(50), nullable=False)
-    answer = db.Column(db.Text)  # For short answer
-    selected_option = db.Column(db.Integer)  # For multiple choice
-    code_submission = db.Column(db.Text)  # For coding
-    test_case_results = db.Column(db.Text)  # JSON: [{input, expected, output, passed}]
+    answer = db.Column(db.Text)
+    selected_option = db.Column(db.Integer)
+    code_submission = db.Column(db.Text)
+    test_case_results = db.Column(db.Text)
     score = db.Column(db.Float, nullable=False, default=0)
     max_score = db.Column(db.Float, nullable=False, default=0)
     passed = db.Column(db.Boolean, default=False)
@@ -349,6 +349,53 @@ class PracticeProblemAttempt(db.Model):
     user = db.relationship('User', backref=db.backref('practice_problem_attempts', lazy='dynamic'))
     problem = db.relationship('PracticeProblem', backref=db.backref('attempts', lazy='dynamic'))
     
+
+class PracticeCategorySession(db.Model):
+    __tablename__ = 'practice_category_session'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    total_problems = db.Column(db.Integer, nullable=False, default=0)
+    problems_completed = db.Column(db.Integer, nullable=False, default=0)
+    total_score = db.Column(db.Float, nullable=False, default=0)
+    max_score = db.Column(db.Float, nullable=False, default=0)
+    time_limit = db.Column(db.Integer)
+    time_spent = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(20), default='in_progress')
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('practice_category_sessions', lazy='dynamic'))
+    category = db.relationship('Category', backref=db.backref('practice_sessions', lazy='dynamic'))
+    problem_attempts = db.relationship('PracticeCategorySessionAttempt', backref='session', cascade='all, delete-orphan')
+
+
+class PracticeCategorySessionAttempt(db.Model):
+    __tablename__ = 'practice_category_session_attempt'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('practice_category_session.id'), nullable=False)
+    problem_id = db.Column(db.Integer, db.ForeignKey('practice_problem.id'), nullable=False)
+    problem_type = db.Column(db.String(50), nullable=False)
+    answer = db.Column(db.Text)
+    selected_option = db.Column(db.Integer)
+    code_submission = db.Column(db.Text)
+    test_case_results = db.Column(db.Text)
+    score = db.Column(db.Float, nullable=False, default=0)
+    max_score = db.Column(db.Float, nullable=False, default=0)
+    passed = db.Column(db.Boolean, default=False)
+    time_taken = db.Column(db.Integer)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    problem = db.relationship('PracticeProblem')
+    
 class Message(db.Model):
     __tablename__ = 'message'
     id = db.Column(db.Integer, primary_key=True)
@@ -357,7 +404,7 @@ class Message(db.Model):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
     read = db.Column(db.Boolean, default=False)
-    conversation_id = db.Column(db.String(64), nullable=False)  # e.g., "recruiterId-intervieweeId"
+    conversation_id = db.Column(db.String(64), nullable=False)
     attachments = db.relationship('MessageAttachment', backref='message', cascade='all, delete-orphan')
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
@@ -376,7 +423,7 @@ class MessageAttachment(db.Model):
 class Conversation(db.Model):
     __tablename__ = 'conversation'
     id = db.Column(db.Integer, primary_key=True)
-    conversation_id = db.Column(db.String(64), unique=True, nullable=False)  # e.g., "recruiterId-intervieweeId"
+    conversation_id = db.Column(db.String(64), unique=True, nullable=False)
     user1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     archived_by_user1 = db.Column(db.Boolean, default=False)
