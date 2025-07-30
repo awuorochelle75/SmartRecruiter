@@ -4,6 +4,8 @@ from app.models import db
 import os
 import time
 import sys
+from alembic import command
+from alembic.config import Config
 
 app = create_app(ProductionConfig)
 
@@ -25,8 +27,21 @@ def setup_database():
                 connection.close()
                 print(f"Database connection successful!")
                 
-                # Create all tables if they don't exist
-                print("Creating database tables...")
+                # Run Alembic migrations to ensure schema is up to date
+                print("Running database migrations...")
+                database_url = app.config.get('SQLALCHEMY_DATABASE_URI')
+                
+                # Set up Alembic configuration
+                alembic_cfg = Config()
+                alembic_cfg.set_main_option("script_location", "migrations")
+                alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+                
+                # Run migrations to latest version
+                command.upgrade(alembic_cfg, "head")
+                print("Database migrations completed successfully!")
+                
+                # Create any missing tables (for new models not yet migrated)
+                print("Creating any missing tables...")
                 db.create_all()
                 print("Database tables created successfully!")
                 
@@ -43,6 +58,18 @@ def setup_database():
                     result = db.session.execute(text("SELECT COUNT(*) FROM \"user\""))
                     count = result.scalar()
                     print(f"User table has {count} records")
+                    
+                    # Check if email_verified column exists
+                    result = db.session.execute(text("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'user' AND column_name = 'email_verified'
+                    """))
+                    if result.fetchone():
+                        print("✓ email_verified column exists")
+                    else:
+                        print("⚠ email_verified column missing - this may cause issues")
+                    
                     return True
                 else:
                     print("ERROR: User table was not created!")
