@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify, session, current_app, g
-from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, PracticeCategorySession, PracticeCategorySessionAttempt, Message, MessageAttachment, Conversation, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback
+from .models import db, User, IntervieweeProfile, RecruiterProfile, Assessment, AssessmentQuestion, AssessmentAttempt, AssessmentAttemptAnswer, AssessmentFeedback, CandidateFeedback, CodeEvaluationResult, AssessmentReview, AssessmentReviewAnswer, Category, PracticeProblem, PracticeProblemAttempt, PracticeCategorySession, PracticeCategorySessionAttempt, Message, MessageAttachment, Conversation, Notification, RecruiterNotificationSettings, IntervieweeNotificationSettings, Interview, Feedback, AssessmentInvitation
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.utils import secure_filename
@@ -824,6 +824,7 @@ def assessment_operations(assessment_id):
             AssessmentAttempt.query.filter_by(assessment_id=assessment.id).delete()
             AssessmentFeedback.query.filter_by(assessment_id=assessment.id).delete()
             Interview.query.filter_by(assessment_id=assessment.id).update({Interview.assessment_id: None})
+            AssessmentInvitation.query.filter_by(assessment_id=assessment.id).delete()
             
             db.session.delete(assessment)
             db.session.commit()
@@ -853,6 +854,28 @@ def list_assessments():
     assessments = query.order_by(Assessment.created_at.desc()).all()
     result = []
     for a in assessments:
+        # Get attempt statistics
+        total_attempts = AssessmentAttempt.query.filter_by(assessment_id=a.id).count()
+        completed_attempts = AssessmentAttempt.query.filter_by(assessment_id=a.id, status='completed').count()
+        
+        invitation_stats = {}
+        if not a.is_test:
+            total_invitations = AssessmentInvitation.query.filter_by(assessment_id=a.id).count()
+            accepted_invitations = AssessmentInvitation.query.filter_by(
+                assessment_id=a.id, 
+                status='accepted'
+            ).count()
+            pending_invitations = AssessmentInvitation.query.filter_by(
+                assessment_id=a.id, 
+                status='sent'
+            ).filter(AssessmentInvitation.expires_at > datetime.utcnow()).count()
+            
+            invitation_stats = {
+                'total_invitations': total_invitations,
+                'accepted_invitations': accepted_invitations,
+                'pending_invitations': pending_invitations
+            }
+            
         result.append({
             'id': a.id,
             'title': a.title,
@@ -868,6 +891,9 @@ def list_assessments():
             'deadline': a.deadline if hasattr(a, 'deadline') else None,
             'updated_at': a.updated_at.isoformat(),
             'is_test': a.is_test,
+            'total_attempts': total_attempts,
+            'completed_attempts': completed_attempts,
+            'invitation_stats': invitation_stats,
             'questions': [
                 {
                     'id': q.id,
@@ -935,25 +961,85 @@ def send_invite():
     subject = data.get('subject', 'You are invited to an assessment')
     message = data.get('message')
     assessment_title = data.get('assessment_title')
+    assessment_id = data.get('assessment_id')
 
-    if not recipients or not message or not assessment_title:
+    if not recipients or not message or not assessment_title or not assessment_id:
         return jsonify({'error': 'Missing required fields'}), 400
 
     if isinstance(recipients, str):
         recipients = [recipients]
 
-    body = f"{message}\n\nAssessment: {assessment_title}"
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = current_app.config['GMAIL_USER']
-    msg['To'] = ", ".join(recipients)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
 
+    # Verify assessment exists and belongs to recruiter
+    assessment = Assessment.query.filter_by(id=assessment_id, recruiter_id=user_id).first()
+    if not assessment:
+        return jsonify({'error': 'Assessment not found'}), 404
+
+    created_invitations = []
+    
     try:
-        with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
-            server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
-            server.sendmail(current_app.config['GMAIL_USER'], recipients, msg.as_string())
-        return jsonify({'message': 'Invitation sent successfully'}), 200
+        for recipient in recipients:
+            recipient_email = recipient.strip()
+            
+            # Check if user exists in database
+            existing_user = User.query.filter_by(email=recipient_email).first()
+            
+            # Generate unique token for this invitation
+            import secrets
+            token = secrets.token_urlsafe(32)
+            
+            # Create invitation record
+            invitation = AssessmentInvitation(
+                assessment_id=assessment_id,
+                recruiter_id=user_id,
+                interviewee_email=recipient_email,
+                message=message,
+                invitation_token=token,
+                expires_at=datetime.utcnow() + timedelta(days=30)  # 30 days expiry
+            )
+            db.session.add(invitation)
+            
+            invitation_link = f"{current_app.config['FRONTEND_URL']}/interviewee/assessment/{assessment_id}?invitation={token}"
+            body = f"{message}\n\nAssessment: {assessment_title}\n\nClick here to take the assessment: {invitation_link}\n\nThis invitation expires in 30 days."
+            
+            msg = MIMEText(body)
+            msg['Subject'] = subject
+            msg['From'] = current_app.config['GMAIL_USER']
+            msg['To'] = recipient_email
+
+            with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
+                server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
+                server.sendmail(current_app.config['GMAIL_USER'], [recipient_email], msg.as_string())
+            
+            # If user exists in database, also send a notification
+            if existing_user:
+                notification = Notification(
+                    user_id=existing_user.id,
+                    type='assessment',
+                    content=f'You have been invited to take the assessment "{assessment_title}"',
+                    data=json.dumps({
+                        'assessment_id': assessment_id,
+                        'invitation_id': invitation.id,
+                        'invitation_token': token,
+                        'recruiter_id': user_id
+                    }),
+                    read=False
+                )
+                db.session.add(notification)
+            
+            created_invitations.append(invitation)
+        
+        db.session.commit()
+        return jsonify({'message': f'Invitations sent successfully to {len(created_invitations)} recipients'}), 200
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 
@@ -1087,6 +1173,10 @@ def submit_answer(attempt_id):
     data = request.get_json()
     question_id = data.get('question_id')
     answer = data.get('answer')
+    if not question_id:
+        return jsonify({'error': 'Missing question_id'}), 400
+    if answer is None:
+        return jsonify({'error': 'Missing answer'}), 400
     question = AssessmentQuestion.query.get(question_id)
     if not question or question.assessment_id != attempt.assessment_id:
         return jsonify({'error': 'Invalid question'}), 400
@@ -3562,6 +3652,7 @@ def get_recruiter_dashboard():
                 'name': f"{profile.first_name} {profile.last_name}",
                 'email': interviewee.email,
                 'assessment': attempt.assessment.title,
+                'assessment_id': attempt.assessment_id,
                 'status': attempt.status,
                 'score': round(attempt.score, 0) if attempt.score is not None else None,
                 'submitted_at': attempt.started_at.isoformat(),
@@ -3851,7 +3942,7 @@ def get_interviewee_dashboard():
             })
     
     recent_results = []
-    for attempt in sorted(assessment_attempts, key=lambda x: x.completed_at, reverse=True)[:5]:
+    for attempt in sorted(assessment_attempts, key=lambda x: x.completed_at or datetime.min, reverse=True)[:5]:
         if attempt.status == 'completed' and attempt.completed_at:
             recruiter_profile = RecruiterProfile.query.filter_by(user_id=attempt.assessment.recruiter_id).first()
             
@@ -5392,4 +5483,221 @@ def export_recruiter_analytics():
     )
     
     return response
+
+@auth_bp.route('/invitations', methods=['GET'])
+def get_invitations():
+    """Get invitations for the current user (interviewee)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get invitations for this user's email
+    invitations = AssessmentInvitation.query.filter_by(
+        interviewee_email=user.email,
+        status='sent'
+    ).filter(
+        AssessmentInvitation.expires_at > datetime.utcnow()
+    ).all()
+    
+    invitation_data = []
+    for invitation in invitations:
+        assessment = invitation.assessment
+        recruiter = invitation.recruiter
+        
+        # Get recruiter name from profile
+        recruiter_name = "Unknown Recruiter"
+        if recruiter.role == 'recruiter':
+            profile = RecruiterProfile.query.filter_by(user_id=recruiter.id).first()
+            if profile:
+                recruiter_name = f"{profile.first_name} {profile.last_name}"
+        else:
+            profile = IntervieweeProfile.query.filter_by(user_id=recruiter.id).first()
+            if profile:
+                recruiter_name = f"{profile.first_name} {profile.last_name}"
+        
+        invitation_data.append({
+            'id': invitation.id,
+            'assessment_id': invitation.assessment_id,
+            'assessment_title': assessment.title,
+            'assessment_description': assessment.description,
+            'assessment_duration': assessment.duration,
+            'assessment_difficulty': assessment.difficulty,
+            'recruiter_name': recruiter_name,
+            'company_name': profile.company_name if hasattr(profile, 'company_name') else "Unknown Company",
+            'message': invitation.message,
+            'sent_at': invitation.sent_at.isoformat(),
+            'expires_at': invitation.expires_at.isoformat(),
+            'invitation_token': invitation.invitation_token
+        })
+    
+    return jsonify(invitation_data), 200
+
+@auth_bp.route('/invitations/<int:invitation_id>/accept', methods=['POST'])
+def accept_invitation(invitation_id):
+    """Accept an invitation and start assessment"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'interviewee':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    invitation = AssessmentInvitation.query.get(invitation_id)
+    if not invitation:
+        return jsonify({'error': 'Invitation not found'}), 404
+    
+    if invitation.interviewee_email != user.email:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if invitation.status != 'sent':
+        return jsonify({'error': 'Invitation already processed'}), 400
+    
+    if invitation.expires_at < datetime.utcnow():
+        return jsonify({'error': 'Invitation has expired'}), 400
+    
+    invitation.status = 'accepted'
+    invitation.accepted_at = datetime.utcnow()
+    db.session.commit()
+    
+    assessment = invitation.assessment
+    if not assessment or assessment.status != 'active':
+        return jsonify({'error': 'Assessment not available'}), 400
+    
+    existing_attempt = AssessmentAttempt.query.filter_by(
+        interviewee_id=user.id,
+        assessment_id=assessment.id
+    ).first()
+    
+    if existing_attempt:
+        if existing_attempt.status == 'completed':
+            existing_attempt.status = 'in_progress'
+            existing_attempt.completed_at = None
+            existing_attempt.score = None
+            existing_attempt.passed = None
+            existing_attempt.time_spent = None
+            AssessmentAttemptAnswer.query.filter_by(attempt_id=existing_attempt.id).delete()
+            db.session.commit()
+        
+        return jsonify({
+            'message': 'Assessment attempt reset',
+            'assessment_id': assessment.id,
+            'attempt_id': existing_attempt.id
+        }), 200
+    
+    # Create new attempt
+    attempt = AssessmentAttempt(
+        interviewee_id=user.id,
+        assessment_id=assessment.id,
+        status='in_progress',
+        started_at=datetime.utcnow()
+    )
+    db.session.add(attempt)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Invitation accepted',
+        'assessment_id': assessment.id,
+        'attempt_id': attempt.id
+    }), 200
+
+@auth_bp.route('/assessments/<int:assessment_id>/invitation-count', methods=['GET'])
+def get_assessment_invitation_count(assessment_id):
+    """Get invitation count for an assessment (for recruiter dashboard)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'recruiter':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    assessment = Assessment.query.filter_by(id=assessment_id, recruiter_id=user_id).first()
+    if not assessment:
+        return jsonify({'error': 'Assessment not found'}), 404
+    
+    total_invitations = AssessmentInvitation.query.filter_by(assessment_id=assessment_id).count()
+    accepted_invitations = AssessmentInvitation.query.filter_by(
+        assessment_id=assessment_id, 
+        status='accepted'
+    ).count()
+    pending_invitations = AssessmentInvitation.query.filter_by(
+        assessment_id=assessment_id, 
+        status='sent'
+    ).filter(AssessmentInvitation.expires_at > datetime.utcnow()).count()
+    
+    return jsonify({
+        'total_invitations': total_invitations,
+        'accepted_invitations': accepted_invitations,
+        'pending_invitations': pending_invitations
+    }), 200
+
+@auth_bp.route('/interviewee/assessment/<int:assessment_id>', methods=['GET'])
+def handle_assessment_invitation(assessment_id):
+    """Handle assessment invitation links and get assessment data"""
+    invitation_token = request.args.get('invitation')
+    
+    assessment = Assessment.query.get(assessment_id)
+    if not assessment or assessment.status != 'active':
+        return jsonify({'error': 'Assessment not found or not active'}), 404
+    
+    questions = AssessmentQuestion.query.filter_by(assessment_id=assessment.id).all()
+    questions_data = []
+    for q in questions:
+        question_data = {
+            'id': q.id,
+            'type': q.type,
+            'question': q.question,
+            'options': json.loads(q.options) if q.options else [],
+            'correct_answer': json.loads(q.correct_answer) if q.correct_answer else None,
+            'points': q.points,
+            'explanation': q.explanation,
+            'starter_code': q.starter_code,
+            'solution': q.solution,
+            'answer': q.answer,
+            'test_cases': q.test_cases,
+        }
+        questions_data.append(question_data)
+    
+    response_data = {
+        'id': assessment.id,
+        'title': assessment.title,
+        'description': assessment.description,
+        'type': assessment.type,
+        'difficulty': assessment.difficulty,
+        'duration': assessment.duration,
+        'passing_score': assessment.passing_score,
+        'instructions': assessment.instructions,
+        'tags': assessment.tags.split(',') if assessment.tags else [],
+        'status': assessment.status,
+        'created_at': assessment.created_at.isoformat() if assessment.created_at else None,
+        'deadline': assessment.deadline if hasattr(assessment, 'deadline') else None,
+        'updated_at': assessment.updated_at.isoformat(),
+        'is_test': assessment.is_test,
+        'questions': questions_data,
+        'category_id': assessment.category_id,
+    }
+    
+    if invitation_token:
+        invitation = AssessmentInvitation.query.filter_by(
+            invitation_token=invitation_token,
+            assessment_id=assessment_id,
+            status='sent'
+        ).first()
+        
+        if not invitation:
+            return jsonify({'error': 'Invalid or expired invitation'}), 404
+        
+        if invitation.expires_at and invitation.expires_at < datetime.utcnow():
+            return jsonify({'error': 'Invitation has expired'}), 400
+        
+        response_data['invitation_id'] = invitation.id
+        response_data['invitation_token'] = invitation_token
+        response_data['message'] = invitation.message
+    
+    return jsonify(response_data), 200
 

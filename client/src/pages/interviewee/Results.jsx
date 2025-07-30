@@ -111,8 +111,8 @@ export default function Results() {
 
     async function fetchAnalytics() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/analytics/interviewee/summary`, { credentials: "include" })
-        if (res.ok) {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/analytics/interviewee/summary`, { credentials: "include" })
+      if (res.ok) {
           const data = await res.json()
           setAnalytics(data)
         }
@@ -121,34 +121,12 @@ export default function Results() {
       }
     }
 
-    async function fetchCodeResults() {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/code-eval/results`, { credentials: "include" })
-        if (res.ok) {
-          const data = await res.json()
-          setCodeResults(data)
-        }
-      } catch (err) {
-        console.error("Error fetching code results:", err)
-      }
-    }
+  
 
-    async function fetchFeedbackStatus() {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/feedback/status`, { credentials: "include" })
-        if (res.ok) {
-          const data = await res.json()
-          setFeedbackStatus(data)
-        }
-      } catch (err) {
-        console.error("Error fetching feedback status:", err)
-      }
-    }
 
     fetchResults()
     fetchAnalytics()
-    fetchCodeResults()
-    fetchFeedbackStatus()
+
   }, [])
 
   const getScoreColor = (score) => {
@@ -166,8 +144,6 @@ export default function Results() {
       return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" />Failed</Badge>
     }
   }
-
-
 
   const handleViewDetails = async (assessmentId) => {
     try {
@@ -368,16 +344,16 @@ export default function Results() {
                   </TableHeader>
                   <TableBody>
                     {sortedResults.map((result) => (
-                        <TableRow key={result.attempt_id}>
+                      <TableRow key={result.attempt_id}>
                         <TableCell>
                           <div className="font-medium">{result.assessment_title}</div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <span className={`font-bold ${getScoreColor(result.score)}`}>
+                            <span className={`font-bold ${getScoreColor(result.score ?? 0)}`}>
                               {result.status === "completed" || result.passed ? `${(result.score ?? 0).toFixed(1)}%` : "-"}
                             </span>
-                            {(result.status === "completed" || result.passed) && <Progress value={result.score} className="w-16 h-2" />}
+                            {(result.status === "completed" || result.passed) && <Progress value={result.score ?? 0} className="w-16 h-2" />}
                           </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(result)}</TableCell>
@@ -403,62 +379,62 @@ export default function Results() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Dialog open={detailedOpen && detailedAttempt?.assessment_id === result.assessment_id} onOpenChange={setDetailedOpen}>
-                              <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" onClick={() => handleViewDetails(result.assessment_id)}>
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>Assessment Details</DialogTitle>
-                                  <DialogDescription>
-                                    <div className="font-bold mb-2">{result.assessment_title}</div>
-                                    <div>Score: {result.score.toFixed(1)}%</div>
-                                    <div>Status: {getStatusBadge(result)}</div>
-                                    <div>Completed: {result.completed_at ? new Date(result.completed_at).toLocaleDateString() : "-"}</div>
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="mt-4 space-y-4">
-                                  {detailedQuestions.map((q, idx) => (
-                                    <div key={q.id} className="border-b pb-2 mb-2">
-                                      <div className="font-medium">Q{idx + 1}: {q.question}</div>
-                                      <div className="text-sm mt-1">
-                                        <span className="font-semibold">Your Answer:</span> {detailedAttempt?.answers?.[q.id] ?? <span className="italic text-muted-foreground">No answer</span>}
-                                      </div>
-                                      {q.type === "multiple-choice" && (
-                                        <div className="text-sm">
-                                          <span className="font-semibold">Correct Answer:</span> {Array.isArray(q.correct_answer) ? q.correct_answer.join(", ") : q.correct_answer}
-                                        </div>
-                                      )}
-                                      {q.type === "coding" && (
-                                        <div className="text-xs mt-2">
-                                          <div className="font-semibold">Code Submitted:</div>
-                                          <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40 mb-2">{detailedAttempt?.answers?.[q.id]}</pre>
-                                          {codeResults[q.id] && (
-                                            <>
-                                              <div className="font-semibold">Test Case Results:</div>
-                                              <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40 mb-2">{JSON.stringify(codeResults[q.id].test_case_results, null, 2)}</pre>
-                                              <div>Score: {codeResults[q.id].score}</div>
-                                              <div>Feedback: {codeResults[q.id].feedback}</div>
-                                            </>
-                                          )}
-                                        </div>
-                                      )}
-                                      {typeof detailedAttempt?.answers?.[q.id] !== "undefined" && q.type !== "coding" && (
-                                        <div className="text-xs mt-1">
-                                          {detailedAttempt?.answers?.[q.id] === (Array.isArray(q.correct_answer) ? q.correct_answer[0] : q.correct_answer) ? (
-                                            <span className="text-green-600 font-semibold">Correct</span>
-                                          ) : (
-                                            <span className="text-red-600 font-semibold">Incorrect</span>
-                                          )}
-                                        </div>
-                                      )}
+                          <Dialog open={detailedOpen && detailedAttempt?.assessment_id === result.assessment_id} onOpenChange={setDetailedOpen}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" onClick={() => handleViewDetails(result.assessment_id)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Assessment Details</DialogTitle>
+                                <DialogDescription>
+                                  <div className="font-bold mb-2">{result.assessment_title}</div>
+                                  <div>Score: {(result.score ?? 0).toFixed(1)}%</div>
+                                  <div>Status: {getStatusBadge(result)}</div>
+                                  <div>Completed: {result.completed_at ? new Date(result.completed_at).toLocaleDateString() : "-"}</div>
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="mt-4 space-y-4">
+                                {detailedQuestions.map((q, idx) => (
+                                  <div key={q.id} className="border-b pb-2 mb-2">
+                                    <div className="font-medium">Q{idx + 1}: {q.question}</div>
+                                    <div className="text-sm mt-1">
+                                      <span className="font-semibold">Your Answer:</span> {detailedAttempt?.answers?.[q.id] ?? <span className="italic text-muted-foreground">No answer</span>}
                                     </div>
-                                  ))}
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                                    {q.type === "multiple-choice" && (
+                                      <div className="text-sm">
+                                        <span className="font-semibold">Correct Answer:</span> {Array.isArray(q.correct_answer) ? q.correct_answer.join(", ") : q.correct_answer}
+                                      </div>
+                                    )}
+                                    {q.type === "coding" && (
+                                      <div className="text-xs mt-2">
+                                        <div className="font-semibold">Code Submitted:</div>
+                                          <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40 mb-2">{detailedAttempt?.answers?.[q.id]}</pre>
+                                        {codeResults[q.id] && (
+                                          <>
+                                            <div className="font-semibold">Test Case Results:</div>
+                                              <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40 mb-2">{JSON.stringify(codeResults[q.id].test_case_results, null, 2)}</pre>
+                                            <div>Score: {codeResults[q.id].score}</div>
+                                            <div>Feedback: {codeResults[q.id].feedback}</div>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                    {typeof detailedAttempt?.answers?.[q.id] !== "undefined" && q.type !== "coding" && (
+                                      <div className="text-xs mt-1">
+                                        {detailedAttempt?.answers?.[q.id] === (Array.isArray(q.correct_answer) ? q.correct_answer[0] : q.correct_answer) ? (
+                                          <span className="text-green-600 font-semibold">Correct</span>
+                                        ) : (
+                                          <span className="text-red-600 font-semibold">Incorrect</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                             {result.has_review && result.review_status === 'completed' && (
                               <Button 
                                 variant="outline" 

@@ -488,3 +488,24 @@ class Feedback(db.Model):
     interviewee = db.relationship('User', backref='feedback_submitted')
 
 
+
+class AssessmentInvitation(db.Model):
+    __tablename__ = 'assessment_invitation'
+    id = db.Column(db.Integer, primary_key=True)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'), nullable=False)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    interviewee_email = db.Column(db.String(255), nullable=False)
+    interviewee_name = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(50), default='sent')
+    invitation_token = db.Column(db.String(255), unique=True, nullable=False)
+    message = db.Column(db.Text)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    assessment = db.relationship('Assessment', backref='invitations')
+    recruiter = db.relationship('User', foreign_keys=[recruiter_id])
+    
+    def __repr__(self):
+        return f'<AssessmentInvitation {self.id}>'

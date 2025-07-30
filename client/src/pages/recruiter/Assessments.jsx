@@ -14,6 +14,7 @@ import {
   CheckCircle,
   AlertCircle,
   FileText,
+  Mail,
 } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
@@ -63,6 +64,8 @@ export default function Assessments() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [categories, setCategories] = useState([])
 
+
+
   useEffect(() => {
     setLoading(true)
     fetch(`${import.meta.env.VITE_API_URL}/assessments`, {
@@ -80,6 +83,7 @@ export default function Assessments() {
         toast({ title: "Error", description: err.message, variant: "destructive" })
       setLoading(false)
       })
+    // Fetch categories for display
     fetch(`${import.meta.env.VITE_API_URL}/categories`, { credentials: "include" })
       .then(res => res.json())
       .then(data => setCategories(data))
@@ -92,8 +96,6 @@ export default function Assessments() {
     const matchesFilter = filterStatus === "all" || assessment.status === filterStatus
     return matchesSearch && matchesFilter
   })
-
-
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -282,10 +284,9 @@ export default function Assessments() {
                     <CardDescription>{assessment.description}</CardDescription>
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{assessment.candidates} candidates</span>
-                      </div>
+
+
+
                       <div className="flex items-center space-x-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>{assessment.duration} min</span>
@@ -294,6 +295,42 @@ export default function Assessments() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span>{categories.find(c => String(c.id) === String(assessment.category_id))?.name || "Uncategorized"}</span>
                       </div>
+                      
+                      {/* Test Assessment Statistics */}
+                      {assessment.is_test && (
+                        <>
+                          <div className="flex items-center space-x-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{assessment.total_attempts || 0} taken</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            <span>{assessment.completed_attempts || 0} completed</span>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Regular Assessment Statistics */}
+                      {!assessment.is_test && (
+                        <>
+                          <div className="flex items-center space-x-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{assessment.invitation_stats?.total_invitations || 0} invited</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            <span>{assessment.invitation_stats?.accepted_invitations || 0} accepted</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{assessment.completed_attempts || 0} completed</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                            <span>{assessment.invitation_stats?.pending_invitations || 0} pending</span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="text-sm text-muted-foreground">

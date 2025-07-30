@@ -153,13 +153,15 @@ def create_app(config=None):
     # Additional CORS headers for better compatibility
     @app.after_request
     def after_request(response):
-        origin = request.headers.get('Origin')
-        if origin in allowed_origins:
-            response.headers.add('Access-Control-Allow-Origin', origin)
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
-            response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            response.headers.add('Access-Control-Max-Age', '86400')
+        # Only add CORS headers if they haven't been set by the CORS extension
+        if 'Access-Control-Allow-Origin' not in response.headers:
+            origin = request.headers.get('Origin')
+            if origin in allowed_origins:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+                response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+                response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+                response.headers.add('Access-Control-Allow-Credentials', 'true')
+                response.headers.add('Access-Control-Max-Age', '86400')
         return response
     
     # Handle OPTIONS requests for preflight
