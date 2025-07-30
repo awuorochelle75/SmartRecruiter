@@ -19,6 +19,7 @@ import {
   ClipboardList,
 } from "lucide-react"
 import { Button } from "./ui/button"
+import { Tooltip } from "./ui/tooltip"
 import { cn } from "../lib/utils"
 import { useAuth } from "../contexts/AuthContext"
 
@@ -76,9 +77,18 @@ const sidebarItems = [
 ]
 
 export default function RecruiterSidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem('recruiter-sidebar-collapsed')
+    return saved ? JSON.parse(saved) : false
+  })
   const location = useLocation()
   const { logout } = useAuth()
+
+  const handleToggleCollapse = () => {
+    const newCollapsed = !collapsed
+    setCollapsed(newCollapsed)
+    localStorage.setItem('recruiter-sidebar-collapsed', JSON.stringify(newCollapsed))
+  }
 
   return (
     <div
@@ -101,7 +111,7 @@ export default function RecruiterSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={handleToggleCollapse}
           className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -113,36 +123,43 @@ export default function RecruiterSidebar() {
         {sidebarItems.map((item) => {
           const isActive = location.pathname === item.href
           return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              )}
-            >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
-            </Link>
+            <Tooltip key={item.href} content={item.title} show={collapsed}>
+              <Link
+                to={item.href}
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  collapsed && "justify-center space-x-0"
+                )}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && <span>{item.title}</span>}
+                {collapsed && isActive && (
+                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-sidebar-accent-foreground rounded-r-full"></div>
+                )}
+              </Link>
+            </Tooltip>
           )
         })}
       </nav>
 
       {/* Logout */}
       <div className="p-4 border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          onClick={logout}
-          className={cn(
-            "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            collapsed && "justify-center",
-          )}
-        >
-          <LogOut className="h-5 w-5 flex-shrink-0" />
-          {!collapsed && <span className="ml-3">Logout</span>}
-        </Button>
+        <Tooltip content="Logout" show={collapsed}>
+          <Button
+            variant="ghost"
+            onClick={logout}
+            className={cn(
+              "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              collapsed && "justify-center",
+            )}
+          >
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span className="ml-3">Logout</span>}
+          </Button>
+        </Tooltip>
       </div>
     </div>
   )
