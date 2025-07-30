@@ -130,14 +130,13 @@ def create_app(config=None):
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_DOMAIN'] = None
     
-    # CORS configuration for development and production
-    allowed_origins = [
+    # CORS configuration - use environment-aware origins
+    allowed_origins = app.config.get('CORS_ORIGINS', [
         "http://localhost:5173", 
         "http://127.0.0.1:5173",
         "https://smart-recruiter-mu.vercel.app",
-        "https://smart-recruiter-mu.vercel.app/",
-        "https://smartrecruiter-b6h2.onrender.com"
-    ]
+        "https://smart-recruiter-mu.vercel.app/"
+    ])
     
     
     CORS(

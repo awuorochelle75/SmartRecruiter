@@ -45,29 +45,50 @@ def send_email(to_email, subject, body):
         return False
 
 def send_verification_email(user):
-    """Send account verification email"""
+    """Send verification email to user"""
     token = user.generate_verification_token()
     db.session.commit()
     
-    verification_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={token}"
-    
-    subject = "Verify Your SmartRecruiter Account"
+    verification_url = f"{current_app.config['FRONTEND_URL']}/verify-email?token={token}"
+    subject = "Verify your email address"
     body = f"""
-Hello {user.email},
-
-Thank you for creating your SmartRecruiter account! Please verify your email address by clicking the link below:
-
-{verification_url}
-
-This link will expire in 24 hours.
-
-If you didn't create this account, please ignore this email.
-
-Best regards,
-The SmartRecruiter Team
-"""
+    Hello {user.email},
     
-    return send_email(user.email, subject, body)
+    Please verify your email address by clicking the link below:
+    {verification_url}
+    
+    If you didn't create an account, you can ignore this email.
+    
+    Best regards,
+    SmartRecruiter Team
+    """
+    
+    send_email(user.email, subject, body)
+    return token
+
+def send_password_reset_email(user):
+    """Send password reset email to user"""
+    token = user.generate_password_reset_token()
+    db.session.commit()
+    
+    reset_url = f"{current_app.config['FRONTEND_URL']}/reset-password?token={token}"
+    subject = "Reset your password"
+    body = f"""
+    Hello {user.email},
+    
+    You requested a password reset. Click the link below to reset your password:
+    {reset_url}
+    
+    This link will expire in 24 hours.
+    
+    If you didn't request a password reset, you can ignore this email.
+    
+    Best regards,
+    SmartRecruiter Team
+    """
+    
+    send_email(user.email, subject, body)
+    return token
 
 def send_password_reset_email(user):
     """Send password reset email"""
