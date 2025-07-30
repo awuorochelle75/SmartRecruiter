@@ -216,26 +216,86 @@ def onboarding():
 
 @auth_bp.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint to verify database status"""
+    """Health check endpoint to verify database status and all required tables"""
     try:
+        # Test database connection
         db.engine.connect()
         
+        # Define all required tables
+        required_tables = [
+            'user',
+            'interviewee_profile',
+            'recruiter_profile',
+            'recruiter_notification_settings',
+            'interviewee_notification_settings',
+            'interviewee_privacy_settings',
+            'session',
+            'category',
+            'assessment',
+            'assessment_question',
+            'assessment_attempt',
+            'assessment_attempt_answer',
+            'assessment_feedback',
+            'candidate_feedback',
+            'code_evaluation_result',
+            'assessment_review',
+            'assessment_review_answer',
+            'practice_problem',
+            'practice_problem_attempt',
+            'practice_category_session',
+            'practice_category_session_attempt',
+            'message',
+            'message_attachment',
+            'conversation',
+            'notification',
+            'interview',
+            'feedback',
+            'assessment_invitation'
+        ]
+        
+        # Check if all required tables exist
         from sqlalchemy import text
-        result = db.session.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user'"))
-        user_table_exists = result.fetchone() is not None
+        missing_tables = []
+        existing_tables = []
+        
+        for table_name in required_tables:
+            result = db.session.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = :table_name"), {'table_name': table_name})
+            if result.fetchone() is not None:
+                existing_tables.append(table_name)
+            else:
+                missing_tables.append(table_name)
+        
+        # Check email configuration
+        email_configured = bool(current_app.config.get('GMAIL_USER') and current_app.config.get('GMAIL_APP_PASSWORD'))
+        
+        # Determine overall health status
+        all_tables_exist = len(missing_tables) == 0
+        overall_status = 'healthy' if all_tables_exist and email_configured else 'unhealthy'
         
         return jsonify({
-            'status': 'healthy',
+            'status': overall_status,
             'database_connected': True,
-            'user_table_exists': user_table_exists,
+            'all_tables_exist': all_tables_exist,
+            'existing_tables': existing_tables,
+            'missing_tables': missing_tables,
+            'total_tables_checked': len(required_tables),
+            'tables_found': len(existing_tables),
+            'tables_missing': len(missing_tables),
+            'email_configured': email_configured,
             'environment': os.environ.get('FLASK_ENV', 'development')
-        }), 200
+        }), 200 if all_tables_exist else 500
     except Exception as e:
         return jsonify({
             'status': 'unhealthy',
             'error': str(e),
             'database_connected': False,
-            'user_table_exists': False,
+            'all_tables_exist': False,
+            'existing_tables': [],
+            'missing_tables': required_tables if 'required_tables' in locals() else [],
+            'total_tables_checked': len(required_tables) if 'required_tables' in locals() else 0,
+            'tables_found': 0,
+            'tables_missing': len(required_tables) if 'required_tables' in locals() else 0,
+            'email_configured': False,
             'environment': os.environ.get('FLASK_ENV', 'development')
         }), 500
 
