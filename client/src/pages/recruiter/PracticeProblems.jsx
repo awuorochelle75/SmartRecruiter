@@ -10,7 +10,7 @@ import { useToast } from "../../components/ui/use-toast"
 import RecruiterSidebar from "../../components/RecruiterSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { useNavigate } from "react-router-dom"
-import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Eye, Plus, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../components/ui/dropdown-menu"
 
 
@@ -194,6 +194,24 @@ export default function PracticeProblems() {
               </Card>
             ))}
           </div>
+
+          {problems.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No practice problems found</h3>
+              <p className="text-muted-foreground mb-4">
+                {selectedCategory
+                  ? "Try adjusting your filter criteria"
+                  : "Create your first practice problem to get started"}
+              </p>
+              {!selectedCategory && (
+                <Button onClick={() => navigate("/recruiter/practice-problems/create")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Practice Problem
+                </Button>
+              )}
+            </div>
+          )}
         </main>
       </div>
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
