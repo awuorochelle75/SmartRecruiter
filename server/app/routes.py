@@ -804,11 +804,34 @@ def assessment_operations(assessment_id):
         return jsonify({'message': 'Assessment updated', 'assessment_id': assessment.id}), 200
     
     elif request.method == 'DELETE':
-        # DELETE method
-        AssessmentAttempt.query.filter_by(assessment_id=assessment.id).delete()
-        db.session.delete(assessment)
-        db.session.commit()
-        return jsonify({'message': 'Assessment deleted'}), 200
+        # DELETE method - handle foreign key constraints properly
+        try:
+            attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment.id).all()
+            
+            for attempt in attempts:
+                for review in attempt.reviews:
+                    AssessmentReviewAnswer.query.filter_by(review_id=review.id).delete()
+                for review in attempt.reviews:
+                    db.session.delete(review)
+                for feedback in attempt.candidate_feedbacks:
+                    db.session.delete(feedback)
+                for answer in attempt.answers:
+                    CodeEvaluationResult.query.filter_by(attempt_answer_id=answer.id).delete()
+                for answer in attempt.answers:
+                    db.session.delete(answer)
+            
+            # Now delete
+            AssessmentAttempt.query.filter_by(assessment_id=assessment.id).delete()
+            AssessmentFeedback.query.filter_by(assessment_id=assessment.id).delete()
+            Interview.query.filter_by(assessment_id=assessment.id).update({Interview.assessment_id: None})
+            
+            db.session.delete(assessment)
+            db.session.commit()
+            return jsonify({'message': 'Assessment deleted'}), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Failed to delete assessment: {str(e)}'}), 500
 
 
 
