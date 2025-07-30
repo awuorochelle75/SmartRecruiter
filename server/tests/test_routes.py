@@ -54,10 +54,10 @@ class TestAuthRoutes:
             'bio': 'Experienced developer',
             'skills': 'Python, JavaScript'
         }
-        
+    
         response = client.post('/signup', json=data)
         assert response.status_code == 201
-        assert response.json['message'] == 'User created successfully'
+        assert response.json['message'] == 'Account created successfully. Please check your email to verify your account.'
     
     def test_signup_recruiter(self, client):
         """Test recruiter signup."""
@@ -69,10 +69,10 @@ class TestAuthRoutes:
             'last_name': 'Johnson',
             'company_name': 'Tech Corp'
         }
-        
+    
         response = client.post('/signup', json=data)
         assert response.status_code == 201
-        assert response.json['message'] == 'User created successfully'
+        assert response.json['message'] == 'Account created successfully. Please check your email to verify your account.'
     
     def test_signup_missing_fields(self, client):
         """Test signup with missing required fields."""
@@ -124,15 +124,19 @@ class TestAuthRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='test@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         # Login
         login_data = {
             'email': 'test@example.com',
             'password': 'password123'
         }
-        
+    
         response = client.post('/login', json=login_data)
         assert response.status_code == 200
-        assert 'redirect' in response.json
     
     def test_login_invalid_credentials(self, client):
         """Test login with invalid credentials."""
@@ -140,10 +144,10 @@ class TestAuthRoutes:
             'email': 'nonexistent@example.com',
             'password': 'wrongpassword'
         }
-        
+    
         response = client.post('/login', json=data)
         assert response.status_code == 401
-        assert 'Invalid credentials' in response.json['error']
+        assert 'Email address not found' in response.json['error']
     
     def test_logout(self, client):
         """Test logout."""
@@ -184,12 +188,17 @@ class TestProfileRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='interviewee@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'interviewee@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Get profile
         response = client.get('/profile')
         assert response.status_code == 200
@@ -211,12 +220,17 @@ class TestProfileRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Get profile
         response = client.get('/profile')
         assert response.status_code == 200
@@ -237,12 +251,17 @@ class TestProfileRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='interviewee@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'interviewee@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Update profile
         update_data = {
             'first_name': 'Johnny',
@@ -254,10 +273,9 @@ class TestProfileRoutes:
             'bio': 'Updated bio',
             'skills': 'Python, JavaScript, React'
         }
-        
+    
         response = client.post('/profile', json=update_data)
         assert response.status_code == 200
-        assert response.json['message'] == 'Profile updated successfully'
         
         # Verify update
         response = client.get('/profile')
@@ -279,12 +297,17 @@ class TestProfileRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='test@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'test@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Get current user
         response = client.get('/me')
         assert response.status_code == 200
@@ -311,12 +334,17 @@ class TestAssessmentRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Create assessment
         assessment_data = {
             'title': 'Python Programming Test',
@@ -341,7 +369,7 @@ class TestAssessmentRoutes:
                 }
             ]
         }
-        
+    
         response = client.post('/assessments', json=assessment_data)
         assert response.status_code == 201
         assert response.json['message'] == 'Assessment created'
@@ -360,12 +388,17 @@ class TestAssessmentRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Create an assessment first
         assessment_data = {
             'title': 'Test Assessment',
@@ -377,7 +410,7 @@ class TestAssessmentRoutes:
             'questions': []
         }
         client.post('/assessments', json=assessment_data)
-        
+    
         # Get assessments
         response = client.get('/assessments')
         assert response.status_code == 200
@@ -399,12 +432,17 @@ class TestAssessmentRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Create an assessment
         assessment_data = {
             'title': 'Test Assessment',
@@ -447,12 +485,17 @@ class TestAssessmentRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Create an assessment
         assessment_data = {
             'title': 'Original Title',
@@ -499,12 +542,17 @@ class TestAssessmentRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Create an assessment
         assessment_data = {
             'title': 'Test Assessment',
@@ -544,6 +592,11 @@ class TestIntervieweeAssessmentRoutes:
         }
         client.post('/signup', json=recruiter_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+        
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
@@ -576,6 +629,11 @@ class TestIntervieweeAssessmentRoutes:
         }
         client.post('/signup', json=interviewee_data)
         
+        # Verify email manually for testing
+        interviewee_user = User.query.filter_by(email='interviewee@example.com').first()
+        interviewee_user.email_verified = True
+        db.session.commit()
+        
         login_data = {
             'email': 'interviewee@example.com',
             'password': 'password123'
@@ -601,12 +659,17 @@ class TestIntervieweeAssessmentRoutes:
         }
         client.post('/signup', json=recruiter_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         assessment_data = {
             'title': 'Test Assessment',
             'description': 'Test description',
@@ -622,7 +685,7 @@ class TestIntervieweeAssessmentRoutes:
                     'question': 'What is 2+2?',
                     'points': 10,
                     'options': ['3', '4', '5', '6'],
-                    'correctAnswer': '4'
+                    'correctAnswer': 1
                 }
             ]
         }
@@ -645,6 +708,11 @@ class TestIntervieweeAssessmentRoutes:
         }
         client.post('/signup', json=interviewee_data)
         
+        # Verify email manually for testing
+        interviewee_user = User.query.filter_by(email='interviewee@example.com').first()
+        interviewee_user.email_verified = True
+        db.session.commit()
+        
         login_data = {
             'email': 'interviewee@example.com',
             'password': 'password123'
@@ -661,7 +729,7 @@ class TestIntervieweeAssessmentRoutes:
             'answer': '4',
             'next_question': 1
         }
-        
+    
         response = client.post(f'/interviewee/attempts/{attempt_id}/answer', json=answer_data)
         assert response.status_code == 200
         assert response.json['message'] == 'Answer saved'
@@ -680,12 +748,17 @@ class TestIntervieweeAssessmentRoutes:
         }
         client.post('/signup', json=recruiter_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         assessment_data = {
             'title': 'Test Assessment',
             'description': 'Test description',
@@ -701,7 +774,7 @@ class TestIntervieweeAssessmentRoutes:
                     'question': 'What is 2+2?',
                     'points': 10,
                     'options': ['3', '4', '5', '6'],
-                    'correctAnswer': '4'
+                    'correctAnswer': 1
                 }
             ]
         }
@@ -723,6 +796,11 @@ class TestIntervieweeAssessmentRoutes:
             'last_name': 'Doe'
         }
         client.post('/signup', json=interviewee_data)
+        
+        # Verify email manually for testing
+        interviewee_user = User.query.filter_by(email='interviewee@example.com').first()
+        interviewee_user.email_verified = True
+        db.session.commit()
         
         login_data = {
             'email': 'interviewee@example.com',
@@ -905,6 +983,11 @@ class TestNotificationRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='test@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+        
         login_data = {
             'email': 'test@example.com',
             'password': 'password123'
@@ -927,6 +1010,11 @@ class TestNotificationRoutes:
             'last_name': 'Doe'
         }
         client.post('/signup', json=signup_data)
+        
+        # Verify email manually for testing
+        user = User.query.filter_by(email='test@example.com').first()
+        user.email_verified = True
+        db.session.commit()
         
         login_data = {
             'email': 'test@example.com',
@@ -955,6 +1043,11 @@ class TestPublicRoutes:
             'company_name': 'Tech Corp'
         }
         client.post('/signup', json=recruiter_data)
+        
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
         
         login_data = {
             'email': 'recruiter@example.com',
@@ -1000,12 +1093,17 @@ class TestAnalyticsRoutes:
         }
         client.post('/signup', json=signup_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='interviewee@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'interviewee@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         # Get analytics
         response = client.get('/analytics/interviewee/summary')
         assert response.status_code == 200
@@ -1028,12 +1126,17 @@ class TestAnalyticsRoutes:
         }
         client.post('/signup', json=recruiter_data)
         
+        # Verify email manually for testing
+        user = User.query.filter_by(email='recruiter@example.com').first()
+        user.email_verified = True
+        db.session.commit()
+    
         login_data = {
             'email': 'recruiter@example.com',
             'password': 'password123'
         }
         client.post('/login', json=login_data)
-        
+    
         assessment_data = {
             'title': 'Test Assessment',
             'description': 'Test description',

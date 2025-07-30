@@ -75,14 +75,14 @@ def send_password_reset_email(user):
     subject = "Reset your password"
     body = f"""
     Hello {user.email},
-    
+
     You requested a password reset. Click the link below to reset your password:
     {reset_url}
-    
+
     This link will expire in 24 hours.
-    
+
     If you didn't request a password reset, you can ignore this email.
-    
+
     Best regards,
     SmartRecruiter Team
     """
@@ -90,54 +90,34 @@ def send_password_reset_email(user):
     send_email(user.email, subject, body)
     return token
 
-def send_password_reset_email(user):
-    """Send password reset email"""
-    token = user.generate_password_reset_token()
-    db.session.commit()
-    
-    reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
-    
-    subject = "Reset Your SmartRecruiter Password"
-    body = f"""
-Hello {user.email},
-
-You requested a password reset for your SmartRecruiter account. Click the link below to reset your password:
-
-{reset_url}
-
-This link will expire in 24 hours.
-
-If you didn't request this password reset, please ignore this email.
-
-Best regards,
-The SmartRecruiter Team
-"""
-    
-    return send_email(user.email, subject, body)
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
+    # Validate required fields
     required_fields = ['email', 'password', 'role', 'first_name', 'last_name']
     for field in required_fields:
         if field not in data or not data[field]:
             return jsonify({'error': f'Missing required field: {field}'}), 400
     if data['role'] not in ['interviewee', 'recruiter']:
         return jsonify({'error': 'Invalid role'}), 400
+    # Check if user already exists
     existing_user = User.query.filter_by(email=data['email']).first()
     if existing_user:
         return jsonify({'error': 'User already exists'}), 409
     try:
+        # Create new user
         user = User(
             email=data['email'],
-            role=data['role']
+            role=data['role'],
+            email_verified=False
         )
         user.set_password(data['password'])
         db.session.add(user)
-        db.session.flush()
+        db.session.flush()  # Get user.id before commit
+        # Create profile based on role
         if data['role'] == 'interviewee':
             profile = IntervieweeProfile(
                 user_id=user.id,
@@ -159,18 +139,32 @@ def signup():
             )
             db.session.add(profile)
         db.session.commit()
-        return jsonify({'message': 'User created successfully'}), 201
+        
+        # Send verification email
+        if send_verification_email(user):
+            return jsonify({'message': 'Account created successfully. Please check your email to verify your account.'}), 201
+        else:
+            return jsonify({'message': 'Account created successfully, but verification email could not be sent. Please contact support.'}), 201
     except IntegrityError as e:
         db.session.rollback()
         return jsonify({'error': 'A database integrity error occurred. Please check your input and try again.'}), 400
-    
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     
+    # Check if user exists
     user = User.query.filter_by(email=data['email']).first()
-    if not user or not user.check_password(data['password']):
-        return jsonify({'error': 'Invalid credentials'}), 401
+    if not user:
+        return jsonify({'error': 'Email address not found. Please check your email or sign up for a new account.'}), 401
+    
+    # Check if password is correct
+    if not user.check_password(data['password']):
+        return jsonify({'error': 'Incorrect password. Please try again.'}), 401
+    
+    # Check if account is verified
+    if not user.email_verified:
+        return jsonify({'error': 'Please verify your email address before logging in. Check your email for a verification link.'}), 401
     
     # Set session data
     session['user_id'] = user.id
@@ -199,6 +193,90 @@ def login():
     
     return jsonify(response_data), 200
 
+@auth_bp.route('/verify-email', methods=['POST'])
+def verify_email():
+    data = request.get_json()
+    token = data.get('token')
+    
+    if not token:
+        return jsonify({'error': 'Verification token is required'}), 400
+    
+    user = User.query.filter_by(email_verification_token=token).first()
+    if not user:
+        return jsonify({'error': 'Invalid or expired verification token'}), 400
+    
+    # Check if user is already verified
+    if user.email_verified:
+        return jsonify({'error': 'Email is already verified. You can log in to your account.'}), 400
+    
+    user.email_verified = True
+    user.email_verification_token = None
+    db.session.commit()
+    
+    return jsonify({'message': 'Email verified successfully. You can now log in.'}), 200
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    if user.email_verified:
+        return jsonify({'error': 'Email is already verified'}), 400
+    
+    if send_verification_email(user):
+        return jsonify({'message': 'Verification email sent successfully'}), 200
+    else:
+        return jsonify({'error': 'Failed to send verification email. Please check your email configuration.'}), 500
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        # Don't reveal if user exists or not for security
+        return jsonify({'message': 'If an account with this email exists, a password reset link has been sent.'}), 200
+    
+    if send_password_reset_email(user):
+        return jsonify({'message': 'Password reset email sent successfully'}), 200
+    else:
+        return jsonify({'error': 'Failed to send password reset email. Please check your email configuration.'}), 500
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    token = data.get('token')
+    new_password = data.get('new_password')
+    
+    if not token or not new_password:
+        return jsonify({'error': 'Token and new password are required'}), 400
+    
+    user = User.query.filter_by(password_reset_token=token).first()
+    if not user:
+        return jsonify({'error': 'Invalid or expired reset token'}), 400
+    
+    # Check if token is expired
+    if user.password_reset_expires and user.password_reset_expires < datetime.utcnow():
+        return jsonify({'error': 'Reset token has expired'}), 400
+    
+    user.set_password(new_password)
+    user.password_reset_token = None
+    user.password_reset_expires = None
+    db.session.commit()
+    
+    return jsonify({'message': 'Password reset successfully'}), 200
+
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     session_id = request.cookies.get('session')
@@ -214,9 +292,6 @@ def logout():
     response.delete_cookie('session')
     return response, 200
 
-
-
-
 @auth_bp.route('/onboarding', methods=['POST'])
 def onboarding():
     user_id = session.get('user_id')
@@ -226,9 +301,11 @@ def onboarding():
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Unauthorized'}), 403
     data = request.get_json()
+    # Create or update interviewee profile
     profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
     if not profile:
         return jsonify({'error': 'Profile not found'}), 404
+    # Only update skills and onboarding_completed
     if 'skills' in data:
         profile.skills = ','.join(data['skills']) if isinstance(data['skills'], list) else data['skills']
     profile.onboarding_completed = True
@@ -320,6 +397,18 @@ def health_check():
             'environment': os.environ.get('FLASK_ENV', 'development')
         }), 500
 
+@auth_bp.route('/debug/session', methods=['GET'])
+def debug_session():
+    """Debug endpoint to check session status"""
+    user_id = session.get('user_id')
+    role = session.get('role')
+    
+    return jsonify({
+        'session_user_id': user_id,
+        'session_role': role,
+        'has_session': bool(user_id),
+        'cookies': dict(request.cookies)
+    }), 200
 
 @auth_bp.route('/me', methods=['GET'])
 def get_current_user():
@@ -334,26 +423,21 @@ def get_current_user():
         'email': user.email,
         'role': user.role,
     }
-    
-    
     if user.role == 'interviewee':
         profile = IntervieweeProfile.query.filter_by(user_id=user.id).first()
         if profile:
             result['first_name'] = profile.first_name
             result['last_name'] = profile.last_name
-            result['onboarding_completed'] = profile.onboarding_completed
-            result['avatar'] = profile.avatar
-            
+            result['onboarding_completed'] = profile.onboarding_completed  # Add this line
+            result['avatar'] = profile.avatar  # Add avatar field
     elif user.role == 'recruiter':
         profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
         if profile:
             result['first_name'] = profile.first_name
             result['last_name'] = profile.last_name
             result['company_name'] = profile.company_name
-            result['avatar'] = profile.avatar
+            result['avatar'] = profile.avatar  # Add avatar field
     return jsonify(result), 200
-
-
 
 @auth_bp.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -402,7 +486,7 @@ def profile():
                 'company_website': profile.company_website,
                 'role': profile.role,
                 'bio': profile.bio,
-                'avatar': profile.avatar,
+                'avatar': profile.avatar,  # Add avatar field
                 'industry': profile.industry,
                 'company_size': profile.company_size,
                 'company_description': profile.company_description,
@@ -410,7 +494,6 @@ def profile():
                 'timezone': profile.timezone,
                 'position': profile.position,
             }), 200
-            
     elif request.method == 'POST':
         data = request.get_json()
         if user.role == 'interviewee':
@@ -610,18 +693,20 @@ def interviewee_security():
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Unauthorized'}), 403
     data = request.get_json()
-    
+    # Password change
     if 'current_password' in data and 'new_password' in data:
         if not user.check_password(data['current_password']):
             return jsonify({'error': 'Current password is incorrect'}), 400
         user.set_password(data['new_password'])
         db.session.commit()
+    # 2FA toggle (for demo, just a boolean field in notification settings)
     if 'enable_2fa' in data:
         from .models import IntervieweeNotificationSettings
         settings = IntervieweeNotificationSettings.query.filter_by(user_id=user.id).first()
         if not settings:
             settings = IntervieweeNotificationSettings(user_id=user.id)
             db.session.add(settings)
+        # We'll use monthly_progress_reports as a placeholder for 2FA for now
         settings.monthly_progress_reports = bool(data['enable_2fa'])
         db.session.commit()
     return jsonify({'message': 'Security settings updated successfully'}), 200
@@ -670,17 +755,20 @@ def recruiter_security():
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Unauthorized'}), 403
     data = request.get_json()
+    # Password change
     if 'current_password' in data and 'new_password' in data:
         if not user.check_password(data['current_password']):
             return jsonify({'error': 'Current password is incorrect'}), 400
         user.set_password(data['new_password'])
         db.session.commit()
+    # 2FA toggle (for demo, just a boolean field in notification settings)
     if 'enable_2fa' in data:
         from .models import RecruiterNotificationSettings
         settings = RecruiterNotificationSettings.query.filter_by(user_id=user.id).first()
         if not settings:
             settings = RecruiterNotificationSettings(user_id=user.id)
             db.session.add(settings)
+        # We'll use monthly_analytics as a placeholder for 2FA for now
         settings.monthly_analytics = bool(data['enable_2fa'])
         db.session.commit()
     return jsonify({'message': 'Security settings updated successfully'}), 200
@@ -717,6 +805,7 @@ def upload_avatar():
         old_path = os.path.join(UPLOAD_FOLDER, profile.avatar)
         if os.path.exists(old_path):
             os.remove(old_path)
+    # Update DB
     if profile:
         profile.avatar = filename
         db.session.commit()
@@ -747,10 +836,10 @@ def create_assessment():
             status=data.get('status', 'draft'),
             deadline=data.get('deadline'),
             is_test=data.get('is_test', False),
-            category_id=data.get('category_id')
+            category_id=data.get('category_id') # Add category_id
         )
         db.session.add(assessment)
-        db.session.flush()
+        db.session.flush()  # Get assessment.id
         for q in data.get('questions', []):
             question = AssessmentQuestion(
                 assessment_id=assessment.id,
@@ -814,11 +903,11 @@ def assessment_operations(assessment_id):
                     'explanation': q.explanation,
                     'starter_code': q.starter_code,
                     'solution': q.solution,
-                    'answer': q.answer,
+                    'answer': q.answer,  # New: return answer for short-answer
                     'test_cases': q.test_cases if q.type == 'coding' else None,
                 } for q in assessment.questions
             ],
-            'category_id': assessment.category_id
+            'category_id': assessment.category_id # Add category_id to response
         }), 200
     
     elif request.method == 'PUT':
@@ -834,7 +923,7 @@ def assessment_operations(assessment_id):
         assessment.tags = ','.join(data.get('tags', []))
         assessment.status = data.get('status', assessment.status)
         assessment.deadline = data.get('deadline', assessment.deadline)
-        assessment.category_id = data.get('category_id', assessment.category_id)
+        assessment.category_id = data.get('category_id', assessment.category_id) # Update category_id
 
         # --- PATCH: Safe update logic for questions ---
         incoming_questions = data.get('questions', [])
@@ -887,26 +976,43 @@ def assessment_operations(assessment_id):
     elif request.method == 'DELETE':
         # DELETE method - handle foreign key constraints properly
         try:
+            # Get all attempts for this assessment
             attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment.id).all()
             
             for attempt in attempts:
+                # Delete review answers first (they reference reviews)
                 for review in attempt.reviews:
                     AssessmentReviewAnswer.query.filter_by(review_id=review.id).delete()
+                
+                # Delete reviews (they reference attempts)
                 for review in attempt.reviews:
                     db.session.delete(review)
+                
+                # Delete candidate feedback (they reference attempts)
                 for feedback in attempt.candidate_feedbacks:
                     db.session.delete(feedback)
+                
+                # Delete code evaluation results (they reference attempt answers)
                 for answer in attempt.answers:
                     CodeEvaluationResult.query.filter_by(attempt_answer_id=answer.id).delete()
+                
+                # Delete attempt answers (they reference attempts)
                 for answer in attempt.answers:
                     db.session.delete(answer)
             
-            # Now delete
+            # Now delete all attempts
             AssessmentAttempt.query.filter_by(assessment_id=assessment.id).delete()
+            
+            # Delete assessment feedback
             AssessmentFeedback.query.filter_by(assessment_id=assessment.id).delete()
+            
+            # Update interviews that reference this assessment (set assessment_id to NULL)
             Interview.query.filter_by(assessment_id=assessment.id).update({Interview.assessment_id: None})
+            
+            # Delete assessment invitations
             AssessmentInvitation.query.filter_by(assessment_id=assessment.id).delete()
             
+            # Finally delete the assessment
             db.session.delete(assessment)
             db.session.commit()
             return jsonify({'message': 'Assessment deleted'}), 200
@@ -914,8 +1020,6 @@ def assessment_operations(assessment_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': f'Failed to delete assessment: {str(e)}'}), 500
-
-
 
 @auth_bp.route('/assessments', methods=['GET', 'OPTIONS'])
 def list_assessments():
@@ -927,7 +1031,7 @@ def list_assessments():
     user = User.query.get(user_id)
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Unauthorized'}), 403
-    
+    # Support filtering for test assessments
     is_test = request.args.get('is_test')
     query = Assessment.query.filter_by(recruiter_id=user.id)
     if is_test is not None:
@@ -939,6 +1043,7 @@ def list_assessments():
         total_attempts = AssessmentAttempt.query.filter_by(assessment_id=a.id).count()
         completed_attempts = AssessmentAttempt.query.filter_by(assessment_id=a.id, status='completed').count()
         
+        # Get invitation statistics (only for regular assessments)
         invitation_stats = {}
         if not a.is_test:
             total_invitations = AssessmentInvitation.query.filter_by(assessment_id=a.id).count()
@@ -956,7 +1061,7 @@ def list_assessments():
                 'accepted_invitations': accepted_invitations,
                 'pending_invitations': pending_invitations
             }
-            
+        
         result.append({
             'id': a.id,
             'title': a.title,
@@ -987,14 +1092,14 @@ def list_assessments():
                     'starter_code': q.starter_code,
                     'solution': q.solution,
                     'answer': q.answer,
-                    'test_cases': q.test_cases,
+                    'test_cases': q.test_cases,  # PATCH: include test_cases for coding questions
                 } for q in a.questions
             ],
-            'category_id': a.category_id
+            'category_id': a.category_id # Add category_id to response
         })
     return jsonify(result), 200
 
-
+# Add a public endpoint for interviewees to list all test assessments
 @auth_bp.route('/public/test-assessments', methods=['GET'])
 def public_test_assessments():
     tests = Assessment.query.filter_by(is_test=True, status='active').order_by(Assessment.created_at.desc()).all()
@@ -1027,13 +1132,12 @@ def public_test_assessments():
                     'starter_code': q.starter_code,
                     'solution': q.solution,
                     'answer': q.answer,
-                    'test_cases': q.test_cases,
+                    'test_cases': q.test_cases,  # PATCH: include test_cases for coding questions
                 } for q in a.questions
             ],
-            'category_id': a.category_id
+            'category_id': a.category_id # Add category_id to response
         })
     return jsonify(result), 200
-
 
 @auth_bp.route('/send-invite', methods=['POST'])
 def send_invite():
@@ -1087,6 +1191,7 @@ def send_invite():
             )
             db.session.add(invitation)
             
+            # Create email body with invitation link - use frontend URL from config
             invitation_link = f"{current_app.config['FRONTEND_URL']}/interviewee/assessment/{assessment_id}?invitation={token}"
             body = f"{message}\n\nAssessment: {assessment_title}\n\nClick here to take the assessment: {invitation_link}\n\nThis invitation expires in 30 days."
             
@@ -1095,9 +1200,9 @@ def send_invite():
             msg['From'] = current_app.config['GMAIL_USER']
             msg['To'] = recipient_email
 
-            with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
-                server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
-                server.sendmail(current_app.config['GMAIL_USER'], [recipient_email], msg.as_string())
+        with smtplib.SMTP_SSL(current_app.config['GMAIL_SMTP_HOST'], current_app.config['GMAIL_SMTP_PORT']) as server:
+            server.login(current_app.config['GMAIL_USER'], current_app.config['GMAIL_APP_PASSWORD'])
+            server.sendmail(current_app.config['GMAIL_USER'], [recipient_email], msg.as_string())
             
             # If user exists in database, also send a notification
             if existing_user:
@@ -1122,7 +1227,6 @@ def send_invite():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
 
 @auth_bp.route('/settings/delete-account', methods=['POST'])
 def delete_account():
@@ -1152,6 +1256,7 @@ def delete_account():
                 avatar_path = os.path.join(UPLOAD_FOLDER, profile.avatar)
                 if os.path.exists(avatar_path):
                     os.remove(avatar_path)
+            # Delete recruiter's assessments and questions
             assessments = Assessment.query.filter_by(recruiter_id=user.id).all()
             for a in assessments:
                 AssessmentQuestion.query.filter_by(assessment_id=a.id).delete()
@@ -1183,8 +1288,9 @@ def start_assessment_attempt(assessment_id):
     assessment = Assessment.query.filter_by(id=assessment_id, is_test=True, status='active').first()
     if not assessment:
         return jsonify({'error': 'Assessment not found'}), 404
+    # Count previous attempts
     prev_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).count()
-    max_attempts = 3
+    max_attempts = 3  # You can make this dynamic per assessment if needed
     
     # Check if user has remaining attempts
     if prev_attempts >= max_attempts:
@@ -1199,6 +1305,7 @@ def start_assessment_attempt(assessment_id):
     
     # If user has completed attempts but still has remaining attempts, allow retake
     if completed_attempts > 0 and prev_attempts < max_attempts:
+        # Allow retake - this is intentional
         pass
     attempt = AssessmentAttempt(
         interviewee_id=user.id,
@@ -1211,7 +1318,6 @@ def start_assessment_attempt(assessment_id):
     db.session.commit()
     return jsonify({'attempt_id': attempt.id, 'num_attempt': attempt.num_attempt}), 201
 
-
 @auth_bp.route('/interviewee/assessments/<int:assessment_id>/attempt', methods=['GET'])
 def get_current_attempt(assessment_id):
     user_id = session.get('user_id')
@@ -1221,7 +1327,6 @@ def get_current_attempt(assessment_id):
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Unauthorized'}), 403
     attempt = AssessmentAttempt.query.filter_by(interviewee_id=user.id, assessment_id=assessment_id).order_by(AssessmentAttempt.num_attempt.desc()).first()
-    
     if not attempt:
         return jsonify({'error': 'No attempt found'}), 404
     answers = {a.question_id: a.answer for a in attempt.answers}
@@ -1261,6 +1366,7 @@ def submit_answer(attempt_id):
     question = AssessmentQuestion.query.get(question_id)
     if not question or question.assessment_id != attempt.assessment_id:
         return jsonify({'error': 'Invalid question'}), 400
+    # Check if already answered
     existing = AssessmentAttemptAnswer.query.filter_by(attempt_id=attempt.id, question_id=question_id).first()
     is_correct = None
     test_case_score = None
@@ -1276,6 +1382,7 @@ def submit_answer(attempt_id):
                 try:
                     user_answer_index = options.index(answer)
                 except ValueError:
+                    # If not found, try to convert to int (in case answer is "0", "1", etc.)
                     try:
                         user_answer_index = int(answer)
                     except ValueError:
@@ -1421,9 +1528,6 @@ def get_attempts_for_assessment(assessment_id):
         })
     return jsonify(result), 200
 
-
-
-# --- INTERVIEWEE ATTEMPTS SUMMARY ENDPOINT ---
 @auth_bp.route('/interviewee/attempts/summary', methods=['GET'])
 def get_attempts_summary():
     user_id = session.get('user_id')
@@ -1485,8 +1589,6 @@ def assessment_feedback(assessment_id):
                 'created_at': f.created_at
             } for f in feedbacks
         ]), 200
-
-
 
 @auth_bp.route('/feedback/candidate/<int:attempt_id>', methods=['POST', 'GET'])
 def candidate_feedback(attempt_id):
@@ -1603,7 +1705,7 @@ def run_code():
         test_cases = data.get('test_cases', [])
         results = []
         if language == 'javascript':
-            if not test_cases:
+            if not test_cases:  # Run Code (single input)
                 input_val = data.get('input', '')
                 js_code = f"""
 const readline = () => {json.dumps(input_val)};
@@ -1666,6 +1768,7 @@ const readline = () => {json.dumps(input_val)};
                         os.remove(temp_path)
                 if timeout_occurred:
                     return jsonify({'test_case_results': [], 'timeout': True, 'output': timeout_error_result['error']}), 200
+                # If all test cases failed due to a compile/runtime error, show a single error
                 if all(r['error'] and not r['output'] for r in results):
                     return jsonify({'test_case_results': results, 'timeout': False}), 200
                 return jsonify({'test_case_results': results, 'timeout': False}), 200
@@ -1817,6 +1920,7 @@ def categories():
     user_id = session.get('user_id')
     user = User.query.get(user_id)
     if request.method == 'GET':
+        # List all global and recruiter-specific categories
         cats = Category.query.filter((Category.recruiter_id == None) | (Category.recruiter_id == user_id)).order_by(Category.name).all()
         return jsonify([
             {
@@ -1855,6 +1959,7 @@ def category_ops(cat_id):
         db.session.commit()
         return jsonify({'id': cat.id, 'name': cat.name, 'description': cat.description, 'created_at': cat.created_at.isoformat(), 'recruiter_id': cat.recruiter_id}), 200
     elif request.method == 'DELETE':
+        # Optionally: set category_id to null for assessments using this category
         for a in cat.assessments:
             a.category_id = None
         db.session.delete(cat)
@@ -1957,6 +2062,7 @@ def practice_problem_detail(problem_id):
         return jsonify({'message': 'Practice problem updated'}), 200
     elif request.method == 'DELETE':
         try:
+            # Delete all attempts for this problem (both regular and category session attempts)
             PracticeProblemAttempt.query.filter_by(problem_id=problem_id).delete()
             PracticeCategorySessionAttempt.query.filter_by(problem_id=problem_id).delete()
             
@@ -2235,18 +2341,21 @@ def practice_problem_to_dict(problem):
         'created_at': problem.created_at.isoformat() if problem.created_at else None,
         'updated_at': problem.updated_at.isoformat() if problem.updated_at else None,
     }
-    
+
+
 # Category Session Endpoints
 @auth_bp.route('/practice-categories', methods=['GET'])
 def get_practice_categories():
     """Get all categories with practice problems for category sessions"""
     try:
+        # Get categories that have practice problems
         categories = Category.query.join(PracticeProblem).filter(
             PracticeProblem.is_public == True
         ).distinct().all()
         
         result = []
         for category in categories:
+            # Count problems in this category
             problems_count = PracticeProblem.query.filter_by(
                 category_id=category.id, 
                 is_public=True
@@ -2258,7 +2367,7 @@ def get_practice_categories():
                     'name': category.name,
                     'description': category.description,
                     'problems_count': problems_count,
-                    'estimated_time': f"{problems_count * 5} min"
+                    'estimated_time': f"{problems_count * 5} min"  # 5 min per problem
                 })
         
         return jsonify(result)
@@ -2275,6 +2384,7 @@ def start_category_session(category_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
+        # Get problems for this category
         problems = PracticeProblem.query.filter_by(
             category_id=category_id, 
             is_public=True
@@ -2284,7 +2394,7 @@ def start_category_session(category_id):
             return jsonify({'error': 'No problems found for this category'}), 404
         
         # Calculate total time limit using actual problem time limits
-        total_time_limit = sum(p.time_limit or 300 for p in problems)
+        total_time_limit = sum(p.time_limit or 300 for p in problems)  # Default 5 min (300s) if not set
         total_max_score = sum(p.points for p in problems)
         
         # Create category session
@@ -2383,12 +2493,16 @@ def submit_category_session_problem(session_id):
             score = problem.points if passed else 0
             
         elif problem.problem_type == 'coding':
+            # For coding problems, we'll use a simple evaluation
+            # In a real implementation, you'd run the code against test cases
             code_submission = answer_data.get('code_submission', '')
+            # For now, give partial credit for non-empty submission
             score = min(problem.points, len(code_submission) / 10)
             passed = score >= problem.points * 0.7
             
         elif problem.problem_type == 'short-answer':
             answer = answer_data.get('answer', '')
+            # Simple keyword matching for now
             keywords = problem.keywords.split(',') if problem.keywords else []
             if keywords:
                 answer_lower = answer.lower()
@@ -2648,7 +2762,7 @@ def get_messages(conversation_id):
             'sender_id': m.sender_id,
             'receiver_id': m.receiver_id,
             'content': m.content,
-            'created_at': m.timestamp.isoformat(),
+            'created_at': m.timestamp.isoformat() + 'Z',
             'read': m.read,
             'attachments': attachments
         })
@@ -3042,7 +3156,7 @@ def get_archived_conversations():
                     'last_name': getattr(other_user.interviewee_profile, 'last_name', None) or getattr(other_user.recruiter_profile, 'last_name', None),
                     'avatar': getattr(other_user.interviewee_profile, 'avatar', None) or getattr(other_user.recruiter_profile, 'avatar', None),
                     'company': company,
-                    'status': 'online'
+                    'status': 'online'  # Default status, can be enhanced later
                 }
             })
     
@@ -3194,6 +3308,7 @@ def get_available_candidates():
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Unauthorized'}), 403
     
+    # Get all interviewee users with their profiles
     interviewees = User.query.filter_by(role='interviewee').all()
     candidates = []
     
@@ -3225,12 +3340,15 @@ def get_interviews():
         return jsonify({'error': 'User not found'}), 404
     
     if user.role == 'recruiter':
+        # Get interviews scheduled by this recruiter
         interviews = Interview.query.filter_by(recruiter_id=user.id).order_by(Interview.scheduled_at.desc()).all()
     else:
+        # Get interviews for this interviewee
         interviews = Interview.query.filter_by(interviewee_id=user.id).order_by(Interview.scheduled_at.desc()).all()
     
     result = []
     for interview in interviews:
+        # Get profiles
         recruiter_profile = RecruiterProfile.query.filter_by(user_id=interview.recruiter_id).first()
         interviewee_profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
         
@@ -3280,10 +3398,12 @@ def schedule_interview():
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
     
+    # Validate interviewee exists and is an interviewee
     interviewee = User.query.filter_by(id=data['interviewee_id'], role='interviewee').first()
     if not interviewee:
         return jsonify({'error': 'Interviewee not found'}), 404
     
+    # Parse scheduled_at
     try:
         scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
         
@@ -3295,10 +3415,12 @@ def schedule_interview():
     except ValueError as e:
         return jsonify({'error': 'Invalid date format for scheduled_at'}), 400
     
+    # Get recruiter profile for email
     recruiter_profile = RecruiterProfile.query.filter_by(user_id=user.id).first()
     recruiter_name = f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown"
     recruiter_company = recruiter_profile.company_name if recruiter_profile else "Unknown"
     
+    # Handle assessment_id - convert empty string to None
     assessment_id = data.get('assessment_id')
     if assessment_id == "" or assessment_id is None:
         assessment_id = None
@@ -3308,6 +3430,7 @@ def schedule_interview():
         except (ValueError, TypeError):
             assessment_id = None
     
+    # Create interview
     interview = Interview(
         recruiter_id=user.id,
         interviewee_id=data['interviewee_id'],
@@ -3323,6 +3446,7 @@ def schedule_interview():
     
     db.session.add(interview)
     
+    # Create notification for interviewee
     notification = Notification(
         user_id=data['interviewee_id'],
         type='interview',
@@ -3333,18 +3457,22 @@ def schedule_interview():
     
     db.session.commit()
     
+    # Send email notification if interviewee has email notifications enabled
     try:
         from .models import IntervieweeNotificationSettings
         settings = IntervieweeNotificationSettings.query.filter_by(user_id=data['interviewee_id']).first()
         
+        # Default to True if no settings found
         should_send_email = True
         if settings:
             should_send_email = settings.email_interview_invites
         
         if should_send_email:
+            # Format the scheduled date and time
             formatted_date = scheduled_at.strftime("%B %d, %Y")
             formatted_time = scheduled_at.strftime("%I:%M %p")
             
+            # Create email content
             subject = f"Interview Invitation - {data['position']} Position"
             
             # Build email body
@@ -3390,6 +3518,7 @@ Best regards,
                 server.sendmail(current_app.config['GMAIL_USER'], [interviewee.email], msg.as_string())
                 
     except Exception as e:
+        # Log the error but don't fail the interview scheduling
         print(f"Failed to send interview email: {str(e)}")
     
     return jsonify({
@@ -3410,11 +3539,13 @@ def get_interview(interview_id):
     if not interview:
         return jsonify({'error': 'Interview not found'}), 404
     
+    # Check if user is authorized to view this interview
     if user.role == 'recruiter' and interview.recruiter_id != user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     elif user.role == 'interviewee' and interview.interviewee_id != user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     
+    # Get profiles
     recruiter_profile = RecruiterProfile.query.filter_by(user_id=interview.recruiter_id).first()
     interviewee_profile = IntervieweeProfile.query.filter_by(user_id=interview.interviewee_id).first()
     
@@ -3464,6 +3595,7 @@ def update_interview(interview_id):
     if not interview:
         return jsonify({'error': 'Interview not found'}), 404
     
+    # Check if user is authorized to update this interview
     if user.role == 'recruiter' and interview.recruiter_id != user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     elif user.role == 'interviewee' and interview.interviewee_id != user.id:
@@ -3491,6 +3623,7 @@ def update_interview(interview_id):
     if 'rating' in data:
         interview.rating = data['rating']
     if 'assessment_id' in data:
+        # Handle assessment_id - convert empty string to None
         assessment_id = data['assessment_id']
         if assessment_id == "" or assessment_id is None:
             interview.assessment_id = None
@@ -3529,11 +3662,13 @@ def cancel_interview(interview_id):
     if not interview:
         return jsonify({'error': 'Interview not found'}), 404
     
+    # Check if user is authorized to cancel this interview
     if user.role == 'recruiter' and interview.recruiter_id != user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     elif user.role == 'interviewee' and interview.interviewee_id != user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     
+    # Update status to cancelled
     interview.status = 'cancelled'
     db.session.commit()
     
@@ -3573,6 +3708,7 @@ def get_candidates():
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Only recruiters can view candidates'}), 403
     
+    # Get all interviewee users with their profiles and comprehensive data
     interviewees = User.query.filter_by(role='interviewee').all()
     candidates = []
     
@@ -3597,6 +3733,7 @@ def get_candidates():
             assessment_avg = round(sum([a.score for a in completed_assessments if a.score]) / len(completed_assessments), 1) if completed_assessments else 0
             test_avg = round(sum([a.score for a in completed_test_assessments if a.score]) / len(completed_test_assessments), 1) if completed_test_assessments else 0
             
+            # Determine candidate status
             status = 'applied'
             if completed_interviews:
                 status = 'interviewed'
@@ -3605,6 +3742,7 @@ def get_candidates():
             if assessment_avg >= 80 or test_avg >= 80:
                 status = 'shortlisted'
             
+            # Get last activity
             last_activity = interviewee.created_at
             if attempts:
                 last_attempt = max(attempts, key=lambda x: x.started_at)
@@ -3615,6 +3753,7 @@ def get_candidates():
                 if last_interview.created_at > last_activity:
                     last_activity = last_interview.created_at
             
+            # Get practice problem statistics
             practice_attempts = PracticeProblemAttempt.query.filter_by(user_id=interviewee.id).all()
             completed_practice = [p for p in practice_attempts if p.passed]
             practice_avg = round(sum([p.score for p in completed_practice if p.score]) / len(completed_practice), 1) if completed_practice else 0
@@ -3704,25 +3843,31 @@ def get_recruiter_dashboard():
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Only recruiters can access dashboard'}), 403
     
+    # Get all data for this recruiter
     assessments = Assessment.query.filter_by(recruiter_id=user_id).all()
     assessment_attempts = AssessmentAttempt.query.join(Assessment).filter(Assessment.recruiter_id == user_id).all()
     interviews = Interview.query.filter_by(recruiter_id=user_id).all()
     
+    # Calculate stats
     total_assessments = len(assessments)
     active_assessments = len([a for a in assessments if a.status == 'active'])
     
+    # Get unique candidates
     unique_candidates = set()
     for attempt in assessment_attempts:
         unique_candidates.add(attempt.interviewee_id)
     total_candidates = len(unique_candidates)
     
+    # Calculate completion rate
     total_attempts = len(assessment_attempts)
     completed_attempts = len([a for a in assessment_attempts if a.status == 'completed'])
     completion_rate = round((completed_attempts / total_attempts * 100), 1) if total_attempts > 0 else 0
     
+    # Calculate average score
     scores = [a.score for a in assessment_attempts if a.score is not None]
     average_score = round(sum(scores) / len(scores), 0) if scores else 0
     
+    # Get recent candidate activity (last 5 attempts)
     recent_attempts = []
     for attempt in sorted(assessment_attempts, key=lambda x: x.started_at, reverse=True)[:5]:
         interviewee = User.query.get(attempt.interviewee_id)
@@ -3740,13 +3885,16 @@ def get_recruiter_dashboard():
                 'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None
             })
     
+    # Get upcoming interviews (next 7 days)
     from datetime import datetime, timedelta
     today = datetime.now()
     week_from_now = today + timedelta(days=7)
     
     upcoming_interviews = []
     for interview in interviews:
+        # Check if interview is scheduled and within the next 7 days
         if interview.status == 'scheduled':
+            # Remove timezone info for comparison if present
             scheduled_time = interview.scheduled_at
             if hasattr(scheduled_time, 'replace'):
                 scheduled_time = scheduled_time.replace(tzinfo=None)
@@ -3813,7 +3961,7 @@ def get_recruiter_dashboard():
             }
         },
         'recent_candidates': recent_attempts,
-        'upcoming_interviews': upcoming_interviews[:3],
+        'upcoming_interviews': upcoming_interviews[:3],  # Top 3
         'category_performance': category_performance
     }), 200
 
@@ -3960,7 +4108,6 @@ def get_recruiter_analytics():
         }
     }), 200
 
-
 @auth_bp.route('/dashboard/interviewee', methods=['GET'])
 def get_interviewee_dashboard():
     user_id = session.get('user_id')
@@ -3970,20 +4117,23 @@ def get_interviewee_dashboard():
     if not user or user.role != 'interviewee':
         return jsonify({'error': 'Only interviewees can access dashboard'}), 403
     
-    
+    # Get all data for this interviewee
     assessment_attempts = AssessmentAttempt.query.filter_by(interviewee_id=user_id).all()
     practice_attempts = PracticeProblemAttempt.query.filter_by(user_id=user_id).all()
     interviews = Interview.query.filter_by(interviewee_id=user_id).all()
     
-    
+    # Calculate stats
     completed_tests = len([a for a in assessment_attempts if a.status == 'completed'])
     total_attempts = len(assessment_attempts)
     
+    # Calculate average score
     scores = [a.score for a in assessment_attempts if a.score is not None]
     average_score = round(sum(scores) / len(scores), 0) if scores else 0
     
+    # Calculate practice sessions
     practice_sessions = len(practice_attempts)
     
+    # Calculate rank (simplified - based on average score)
     all_interviewees = User.query.filter_by(role='interviewee').all()
     interviewee_scores = []
     for interviewee in all_interviewees:
@@ -3993,6 +4143,7 @@ def get_interviewee_dashboard():
             avg_score = sum(scores) / len(scores)
             interviewee_scores.append((interviewee.id, avg_score))
     
+    # Sort by average score and find rank
     interviewee_scores.sort(key=lambda x: x[1], reverse=True)
     user_rank = 1
     for interviewee_id, score in interviewee_scores:
@@ -4000,10 +4151,13 @@ def get_interviewee_dashboard():
             break
         user_rank += 1
     
+    # Get available tests (public assessments and test assessments)
     available_tests = []
     
+    # Get public test assessments
     public_tests = Assessment.query.filter_by(is_test=True).all()
     for test in public_tests:
+        # Check if user hasn't completed this test
         existing_attempt = AssessmentAttempt.query.filter_by(
             interviewee_id=user_id, 
             assessment_id=test.id,
@@ -4018,15 +4172,17 @@ def get_interviewee_dashboard():
                 'company': recruiter_profile.company_name if recruiter_profile else "Unknown Company",
                 'difficulty': test.difficulty,
                 'duration': f"{test.duration} min",
-                'deadline': "No deadline",
+                'deadline': "No deadline",  # Public tests don't have deadlines
                 'type': 'test'
             })
     
+    # Get recent results (last 5 completed attempts)
     recent_results = []
     for attempt in sorted(assessment_attempts, key=lambda x: x.completed_at or datetime.min, reverse=True)[:5]:
         if attempt.status == 'completed' and attempt.completed_at:
             recruiter_profile = RecruiterProfile.query.filter_by(user_id=attempt.assessment.recruiter_id).first()
             
+            # Get feedback if available
             feedback = None
             candidate_feedback = CandidateFeedback.query.filter_by(attempt_id=attempt.id).first()
             if candidate_feedback:
@@ -4042,6 +4198,7 @@ def get_interviewee_dashboard():
                 'feedback': feedback or "No feedback provided"
             })
     
+    # Get upcoming interviews (next 7 days)
     from datetime import datetime, timedelta
     today = datetime.now()
     week_from_now = today + timedelta(days=7)
@@ -4064,8 +4221,10 @@ def get_interviewee_dashboard():
                     'interviewer': f"{recruiter_profile.first_name} {recruiter_profile.last_name}" if recruiter_profile else "Unknown"
                 })
     
+    # Sort by scheduled time
     upcoming_interviews.sort(key=lambda x: x['time'])
     
+    # Calculate skill progress based on categories
     skill_progress = []
     categories = Category.query.all()
     for category in categories:
@@ -4079,7 +4238,9 @@ def get_interviewee_dashboard():
                 'total_attempts': len(category_attempts)
             })
     
+    # If no categories, create default skills based on assessment types
     if not skill_progress:
+        # Group by assessment type
         type_attempts = {}
         for attempt in assessment_attempts:
             if attempt.status == 'completed':
@@ -4115,10 +4276,10 @@ def get_interviewee_dashboard():
                 'rank': f"↑{max(0, user_rank - (user_rank - 5))} positions"
             }
         },
-        'available_tests': available_tests[:3],
+        'available_tests': available_tests[:3],  # Top 3
         'recent_results': recent_results,
-        'upcoming_interviews': upcoming_interviews[:2],
-        'skill_progress': skill_progress[:3]
+        'upcoming_interviews': upcoming_interviews[:2],  # Top 2
+        'skill_progress': skill_progress[:3]  # Top 3 skills
     }), 200
 
 @auth_bp.route('/profile/recruiter/stats', methods=['GET'])
@@ -4133,9 +4294,11 @@ def get_recruiter_profile_stats():
         return jsonify({'error': 'Only recruiters can access this endpoint'}), 403
     
     try:
+        # Get assessments created by recruiter
         assessments = Assessment.query.filter_by(recruiter_id=user_id).all()
         assessments_count = len(assessments)
         
+        # Get unique candidates who have taken assessments by this recruiter
         candidate_ids = set()
         for assessment in assessments:
             attempts = AssessmentAttempt.query.filter_by(assessment_id=assessment.id).all()
@@ -4228,9 +4391,11 @@ def get_interviewee_profile_stats():
         
         assessments_completed = len(completed_attempts)
         
+        # Calculate average score
         scores = [attempt.score for attempt in completed_attempts if attempt.score is not None]
         average_score = round(sum(scores) / len(scores), 0) if scores else 0
         
+        # Calculate rank (position among all interviewees by average score)
         all_interviewees = User.query.filter_by(role='interviewee').all()
         interviewee_scores = []
         
@@ -4246,13 +4411,16 @@ def get_interviewee_profile_stats():
         interviewee_scores.sort(key=lambda x: x[1], reverse=True)
         rank = next((i + 1 for i, (uid, _) in enumerate(interviewee_scores) if uid == user_id), len(interviewee_scores))
         
+        # Get member since date
         member_since = user.created_at.strftime('%b %Y') if user.created_at else 'Unknown'
         
+        # Get skills from profile
         profile = IntervieweeProfile.query.filter_by(user_id=user_id).first()
         skills = []
         if profile and profile.skills:
             skills = [skill.strip() for skill in profile.skills.split(',') if skill.strip()]
         
+        # Generate achievements based on performance
         achievements = []
         
         # Top performer achievement
@@ -4271,6 +4439,7 @@ def get_interviewee_profile_stats():
                 'date': datetime.now().strftime('%Y-%m-%d')
             })
         
+        # Consistent performer achievement
         if average_score >= 85:
             achievements.append({
                 'title': 'Consistent',
@@ -4278,6 +4447,7 @@ def get_interviewee_profile_stats():
                 'date': datetime.now().strftime('%Y-%m-%d')
             })
         
+        # Recent high scores
         recent_high_scores = [a for a in completed_attempts if a.score and a.score >= 90]
         if recent_high_scores:
             achievements.append({
@@ -4286,6 +4456,7 @@ def get_interviewee_profile_stats():
                 'date': recent_high_scores[0].started_at.strftime('%Y-%m-%d') if recent_high_scores[0].started_at else datetime.now().strftime('%Y-%m-%d')
             })
         
+        # Sort achievements by date (most recent first)
         achievements.sort(key=lambda x: x['date'], reverse=True)
         achievements = achievements[:4]  # Limit to 4 achievements
         
@@ -4361,8 +4532,10 @@ def get_feedback():
     
     try:
         if user.role == 'recruiter':
+            # Recruiters can see all feedback
             feedback_list = Feedback.query.order_by(Feedback.created_at.desc()).all()
         else:
+            # Interviewees can only see their own feedback
             feedback_list = Feedback.query.filter_by(interviewee_id=user_id).order_by(Feedback.created_at.desc()).all()
         
         feedback_data = []
@@ -4496,10 +4669,11 @@ def get_available_tests():
         test_attempts = [a for a in user_attempts if a.assessment_id == test.id]
         completed_attempts_for_test = [a for a in test_attempts if a.status == 'completed']
         
-        # Determine status
+        
         if completed_attempts_for_test:
+            highest_score = max([a.score for a in completed_attempts_for_test if a.score is not None], default=0)
             status = "completed"
-            score = round(completed_attempts_for_test[0].score, 0) if completed_attempts_for_test[0].score else 0
+            score = round(highest_score, 0)
         elif len(test_attempts) >= 3:
             status = "locked"
             score = None
@@ -4530,7 +4704,9 @@ def get_available_tests():
             'status': status,
             'rating': 4.5,
             'completions': len(AssessmentAttempt.query.filter_by(assessment_id=test.id, status='completed').all()),
-            'score': score
+            'score': score,
+            'canRetake': status == "completed" and len(test_attempts) < 3,
+            'remainingAttempts': 3 - len(test_attempts)
         })
     
     return jsonify({
@@ -4542,7 +4718,7 @@ def get_available_tests():
         },
         'tests': tests_data
     }), 200
-    
+
 # --- ASSESSMENT REVIEW ENDPOINTS ---
 
 @auth_bp.route('/assessments/<int:assessment_id>/submissions', methods=['GET'])
@@ -4569,6 +4745,7 @@ def get_assessment_submissions(assessment_id):
         # Get review status
         review = AssessmentReview.query.filter_by(attempt_id=attempt.id).first()
         
+        # Calculate actual auto-score from review answers if review exists
         actual_auto_score = attempt.score  # Default to attempt score
         if review:
             review_answers = AssessmentReviewAnswer.query.filter_by(review_id=review.id).all()
@@ -4853,7 +5030,7 @@ def get_interviewee_review(attempt_id):
                 'auto_is_correct': review_answer.auto_is_correct,
                 'final_is_correct': review_answer.is_correct,
                 'feedback': review_answer.feedback,
-                'review_notes': review_answer.review_notes
+                'review_notes': review_answer.review_notes  # Internal notes not shown to interviewee
             })
     
     # Calculate actual auto-score from individual question auto-scores
@@ -4882,12 +5059,14 @@ def get_interview_candidates():
     if not user or user.role != 'recruiter':
         return jsonify({'error': 'Only recruiters can view candidates'}), 403
     
+    # Get all interviewee users with their profiles and assessment results
     interviewees = User.query.filter_by(role='interviewee').all()
     candidates = []
     
     for interviewee in interviewees:
         profile = IntervieweeProfile.query.filter_by(user_id=interviewee.id).first()
         if profile:
+            # Get assessment attempts for this interviewee
             attempts = AssessmentAttempt.query.filter_by(interviewee_id=interviewee.id).all()
             completed_assessments = [a for a in attempts if a.status == 'completed']
             
@@ -4907,7 +5086,6 @@ def get_interview_candidates():
             candidates.append(candidate_data)
     
     return jsonify({'candidates': candidates}), 200
-
 
 @auth_bp.route('/search/recruiter', methods=['GET'])
 def recruiter_search():
@@ -5203,7 +5381,6 @@ def interviewee_search():
         })
     
     return jsonify(results), 200
-
 
 @auth_bp.route('/export/interviewee/results', methods=['GET'])
 def export_interviewee_results():
@@ -5661,6 +5838,7 @@ def accept_invitation(invitation_id):
             existing_attempt.score = None
             existing_attempt.passed = None
             existing_attempt.time_spent = None
+            # Clear previous answers
             AssessmentAttemptAnswer.query.filter_by(attempt_id=existing_attempt.id).delete()
             db.session.commit()
         
