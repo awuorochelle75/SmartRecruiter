@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users } from "lucide-react"
+import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
@@ -14,9 +14,7 @@ import { Separator } from "../../components/ui/separator"
 import RecruiterSidebar from "../../components/RecruiterSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { useToast } from "../../components/ui/use-toast"
-
-
-
+import MonacoEditor from "@monaco-editor/react"
 
 export default function CreateAssessment() {
   const { toast } = useToast()
@@ -35,25 +33,26 @@ export default function CreateAssessment() {
 
   const [questions, setQuestions] = useState([])
   const [newTag, setNewTag] = useState("")
+  // Add state for coding test cases
   const [codingTestCases, setCodingTestCases] = useState([])
   const [categories, setCategories] = useState([])
   const [categoryId, setCategoryId] = useState("")
+  const [starterCodeFullscreen, setStarterCodeFullscreen] = useState(false)
+  const [solutionFullscreen, setSolutionFullscreen] = useState(false)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/categories`, { credentials: "include" })
       .then(res => res.json())
       .then(data => setCategories(data))
   }, [])
-  
-
-
+  // Helper to get default question state by type
   const getDefaultQuestion = (type = "multiple-choice") => {
     switch (type) {
       case "multiple-choice":
         return {
           type: "multiple-choice",
           question: "",
-          options: ["", ""],
+          options: ["", ""], // Start with 2 options
           correctAnswer: 0,
           points: 10,
           explanation: "",
@@ -94,11 +93,9 @@ export default function CreateAssessment() {
     }
   }
 
-
-
-
   const [currentQuestion, setCurrentQuestion] = useState(getDefaultQuestion())
 
+  // Add test case to codingTestCases
   const addTestCase = () => {
     setCodingTestCases(prev => [...prev, { input: '', expectedOutput: '' }])
   }
@@ -109,11 +106,13 @@ export default function CreateAssessment() {
     setCodingTestCases(prev => prev.map((tc, i) => i === idx ? { ...tc, [field]: value } : tc))
   }
 
+  // When question type changes, reset test cases
   const handleQuestionTypeChange = (type) => {
     setCurrentQuestion(getDefaultQuestion(type))
     setCodingTestCases([])
   }
 
+  // Add/remove option for multiple choice
   const addOption = () => {
     setCurrentQuestion((prev) => ({
       ...prev,
@@ -134,8 +133,7 @@ export default function CreateAssessment() {
     })
   }
 
-
-
+  // Add question, only include relevant fields
   const addQuestion = () => {
     if (!currentQuestion.question.trim()) return
     let questionToAdd = { type: currentQuestion.type, question: currentQuestion.question, points: currentQuestion.points, explanation: currentQuestion.explanation }
@@ -168,8 +166,6 @@ export default function CreateAssessment() {
     }
   }
 
-
-
   const removeTag = (tagToRemove) => {
     setAssessmentData((prev) => ({
       ...prev,
@@ -177,6 +173,7 @@ export default function CreateAssessment() {
     }))
   }
 
+  // Add this function to update assessmentData fields
   const handleAssessmentChange = (field, value) => {
     setAssessmentData((prev) => ({
       ...prev,
@@ -185,6 +182,7 @@ export default function CreateAssessment() {
   }
 
   const handleSave = async (isDraft = false) => {
+    // Map all questions to ensure snake_case for API
     const mappedQuestions = questions.map(q => {
       if (q.type === "coding") {
         return {
@@ -201,8 +199,7 @@ export default function CreateAssessment() {
         return q
       }
     })
-    
-
+    // Map camelCase to snake_case for backend
     const assessment = {
       title: assessmentData.title,
       description: assessmentData.description,
@@ -210,9 +207,9 @@ export default function CreateAssessment() {
       is_test: true,
       difficulty: assessmentData.difficulty,
       duration: assessmentData.duration,
-      passing_score: assessmentData.passingScore,
+      passing_score: assessmentData.passingScore, // snake_case
       instructions: assessmentData.instructions,
-      tags: Array.isArray(assessmentData.tags) ? assessmentData.tags : [],
+      tags: Array.isArray(assessmentData.tags) ? assessmentData.tags : [], // always array
       status: isDraft ? "draft" : "active",
       createdAt: assessmentData.createdAt || new Date().toISOString(),
       deadline: assessmentData.deadline || "",
@@ -264,37 +261,7 @@ export default function CreateAssessment() {
     }
   }
 
-  // useEffect(() => {
-  //   if (assessmentId) {
-  //     fetch(`${import.meta.env.VITE_API_URL}/assessments/${assessmentId}`, {
-  //       credentials: "include",
-  //     })
-  //       .then(res => res.json())
-  //       .then(data => {
-  //         if (data.error) {
-  //           toast({ title: "Error", description: data.error, variant: "destructive" })
-  //         } else {
-  //           setAssessmentData({
-  //             title: data.title,
-  //             description: data.description,
-  //             type: data.type,
-  //             difficulty: data.difficulty,
-  //             duration: data.duration,
-  //             passingScore: data.passing_score,
-  //             instructions: data.instructions,
-  //             tags: data.tags || [],
-  //             deadline: data.deadline || "",
-  //             createdAt: data.createdAt || new Date().toISOString(),
-  //           })
-  //           setQuestions(data.questions || [])
-  //           setCategoryId(data.category_id || "")
-  //         }
-  //       })
-  //       .catch(err => {
-  //         toast({ title: "Error", description: err.message, variant: "destructive" })
-  //       })
-  //   }
-  // }, [assessmentId, toast])
+
 
   return (
     <div className="flex h-screen bg-background">
@@ -321,8 +288,7 @@ export default function CreateAssessment() {
               </div>
             </div>
 
-
-
+            {/* Add this just below the main heading (Create Assessment): */}
             <Card className="mb-6 bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700">
               <CardContent className="py-4 flex items-center gap-4">
                 <svg className="h-6 w-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
@@ -333,7 +299,7 @@ export default function CreateAssessment() {
               </CardContent>
             </Card>
 
-
+            {/* Basic Information */}
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
@@ -350,6 +316,7 @@ export default function CreateAssessment() {
                       onChange={(e) => handleAssessmentChange("title", e.target.value)}
                     />
                   </div>
+                  {/* Remove the Assessment Type selector from the form UI (do not render the Select for type) */}
                   <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
                     <Select value={categoryId === "" ? "uncategorized" : categoryId} onValueChange={v => setCategoryId(v === "uncategorized" ? "" : v)}>
@@ -461,12 +428,14 @@ export default function CreateAssessment() {
               </CardContent>
             </Card>
 
+            {/* Questions Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Questions ({questions.length})</CardTitle>
                 <CardDescription>Add questions to evaluate candidate skills</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Question List */}
                 {questions.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="font-medium">Added Questions</h3>
@@ -502,7 +471,7 @@ export default function CreateAssessment() {
                   </div>
                 )}
 
-
+                {/* Add New Question */}
                 <div className="space-y-4">
                   <h3 className="font-medium">Add New Question</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -579,19 +548,111 @@ export default function CreateAssessment() {
                   {currentQuestion.type === "coding" && (
                     <div className="space-y-2">
                       <Label>Starter Code</Label>
-                      <Textarea
-                        placeholder="Provide starter code for the candidate..."
-                        value={currentQuestion.starterCode || ""}
-                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, starterCode: e.target.value }))}
-                        rows={3}
-                      />
+                      <div className="relative">
+                        {starterCodeFullscreen && (
+                          <div className="fixed inset-0 z-50 bg-background flex flex-col">
+                            <div className="flex items-center justify-between p-4 border-b">
+                              <h3 className="text-lg font-semibold">Starter Code Editor</h3>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setStarterCodeFullscreen(false)}
+                              >
+                                <Minimize2 />
+                              </Button>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center items-center w-full h-full pt-12 pb-8">
+                              <MonacoEditor
+                                height="80vh"
+                                width="90vw"
+                                defaultLanguage="javascript"
+                                value={currentQuestion.starterCode || ""}
+                                onChange={v => setCurrentQuestion((prev) => ({ ...prev, starterCode: v || "" }))}
+                                theme="vs-dark"
+                                options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {!starterCodeFullscreen && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-2 top-2 z-20"
+                            aria-label="Expand editor"
+                            onClick={() => setStarterCodeFullscreen(true)}
+                          >
+                            <Maximize2 />
+                          </Button>
+                        )}
+                        {!starterCodeFullscreen && (
+                          <div className="rounded border bg-muted/50 overflow-hidden" style={{ minHeight: 200 }}>
+                            <MonacoEditor
+                              height="200px"
+                              defaultLanguage="javascript"
+                              value={currentQuestion.starterCode || ""}
+                              onChange={v => setCurrentQuestion((prev) => ({ ...prev, starterCode: v || "" }))}
+                              theme="vs-dark"
+                              options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <Label>Solution</Label>
-                      <Textarea
-                        placeholder="Provide the expected solution..."
-                        value={currentQuestion.solution || ""}
-                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, solution: e.target.value }))}
-                        rows={3}
-                      />
+                      <div className="relative">
+                        {solutionFullscreen && (
+                          <div className="fixed inset-0 z-50 bg-background flex flex-col">
+                            <div className="flex items-center justify-between p-4 border-b">
+                              <h3 className="text-lg font-semibold">Solution Editor</h3>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setSolutionFullscreen(false)}
+                              >
+                                <Minimize2 />
+                              </Button>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center items-center w-full h-full pt-12 pb-8">
+                              <MonacoEditor
+                                height="80vh"
+                                width="90vw"
+                                defaultLanguage="javascript"
+                                value={currentQuestion.solution || ""}
+                                onChange={v => setCurrentQuestion((prev) => ({ ...prev, solution: v || "" }))}
+                                theme="vs-dark"
+                                options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {!solutionFullscreen && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-2 top-2 z-20"
+                            aria-label="Expand editor"
+                            onClick={() => setSolutionFullscreen(true)}
+                          >
+                            <Maximize2 />
+                          </Button>
+                        )}
+                        {!solutionFullscreen && (
+                          <div className="rounded border bg-muted/50 overflow-hidden" style={{ minHeight: 200 }}>
+                            <MonacoEditor
+                              height="200px"
+                              defaultLanguage="javascript"
+                              value={currentQuestion.solution || ""}
+                              onChange={v => setCurrentQuestion((prev) => ({ ...prev, solution: v || "" }))}
+                              theme="vs-dark"
+                              options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <Label>Test Cases</Label>
                       <div className="space-y-2">
                         {codingTestCases.map((tc, idx) => (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users, ArrowLeft } from "lucide-react"
+import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users, ArrowLeft, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
@@ -15,6 +15,7 @@ import { Separator } from "../../components/ui/separator"
 import RecruiterSidebar from "../../components/RecruiterSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { useToast } from "../../components/ui/use-toast"
+import MonacoEditor from "@monaco-editor/react"
 import { TableSkeleton } from "../../components/LoadingSkeleton"
 
 function isTestAssessment(data) {
@@ -45,8 +46,7 @@ export default function EditAssessment() {
   const [categories, setCategories] = useState([])
   const [categoryId, setCategoryId] = useState("")
 
-  
-
+  // Helper to get default question state by type
   const getDefaultQuestion = (type = "multiple-choice") => {
     switch (type) {
       case "multiple-choice":
@@ -97,13 +97,15 @@ export default function EditAssessment() {
 
   const [currentQuestion, setCurrentQuestion] = useState(getDefaultQuestion())
   const [editIndex, setEditIndex] = useState(null)
+  const [starterCodeFullscreen, setStarterCodeFullscreen] = useState(false)
+  const [solutionFullscreen, setSolutionFullscreen] = useState(false)
 
-  
+  // When type changes, reset currentQuestion to default for that type
   const handleQuestionTypeChange = (type) => {
     setCurrentQuestion(getDefaultQuestion(type))
   }
 
-  
+  // Add/remove option for multiple choice
   const addOption = () => {
     setCurrentQuestion((prev) => ({
       ...prev,
@@ -124,8 +126,7 @@ export default function EditAssessment() {
     })
   }
 
-  
-
+  // Add question, only include relevant fields
   const addQuestion = () => {
     if (!currentQuestion.question.trim()) return
     let questionToAdd = { type: currentQuestion.type, question: currentQuestion.question, points: currentQuestion.points, explanation: currentQuestion.explanation }
@@ -226,6 +227,7 @@ export default function EditAssessment() {
         throw new Error("Failed to fetch assessment")
       }
       const data = await res.json()
+      // Format the data for the form
       setAssessmentData({
         title: data.title || "",
         description: data.description || "",
@@ -240,8 +242,7 @@ export default function EditAssessment() {
       })
       setCategoryId(data.category_id ? String(data.category_id) : "")
       
-      
-
+      // Format questions
       const formattedQuestions = (data.questions || []).map(q => {
         if (q.type === "multiple-choice") {
           return {
@@ -698,19 +699,111 @@ export default function EditAssessment() {
                   {currentQuestion.type === "coding" && (
                     <div className="space-y-2">
                       <Label>Starter Code</Label>
-                      <Textarea
-                        placeholder="Provide starter code for the candidate..."
-                        value={currentQuestion.starterCode || ""}
-                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, starterCode: e.target.value }))}
-                        rows={3}
-                      />
+                      <div className="relative">
+                        {starterCodeFullscreen && (
+                          <div className="fixed inset-0 z-50 bg-background flex flex-col">
+                            <div className="flex items-center justify-between p-4 border-b">
+                              <h3 className="text-lg font-semibold">Starter Code Editor</h3>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setStarterCodeFullscreen(false)}
+                              >
+                                <Minimize2 />
+                              </Button>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center items-center w-full h-full pt-12 pb-8">
+                              <MonacoEditor
+                                height="80vh"
+                                width="90vw"
+                                defaultLanguage="javascript"
+                                value={currentQuestion.starterCode || ""}
+                                onChange={v => setCurrentQuestion((prev) => ({ ...prev, starterCode: v || "" }))}
+                                theme="vs-dark"
+                                options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {!starterCodeFullscreen && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-2 top-2 z-20"
+                            aria-label="Expand editor"
+                            onClick={() => setStarterCodeFullscreen(true)}
+                          >
+                            <Maximize2 />
+                          </Button>
+                        )}
+                        {!starterCodeFullscreen && (
+                          <div className="rounded border bg-muted/50 overflow-hidden" style={{ minHeight: 200 }}>
+                            <MonacoEditor
+                              height="200px"
+                              defaultLanguage="javascript"
+                              value={currentQuestion.starterCode || ""}
+                              onChange={v => setCurrentQuestion((prev) => ({ ...prev, starterCode: v || "" }))}
+                              theme="vs-dark"
+                              options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <Label>Solution</Label>
-                      <Textarea
-                        placeholder="Provide the expected solution..."
-                        value={currentQuestion.solution || ""}
-                        onChange={(e) => setCurrentQuestion((prev) => ({ ...prev, solution: e.target.value }))}
-                        rows={3}
-                      />
+                      <div className="relative">
+                        {solutionFullscreen && (
+                          <div className="fixed inset-0 z-50 bg-background flex flex-col">
+                            <div className="flex items-center justify-between p-4 border-b">
+                              <h3 className="text-lg font-semibold">Solution Editor</h3>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setSolutionFullscreen(false)}
+                              >
+                                <Minimize2 />
+                              </Button>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center items-center w-full h-full pt-12 pb-8">
+                              <MonacoEditor
+                                height="80vh"
+                                width="90vw"
+                                defaultLanguage="javascript"
+                                value={currentQuestion.solution || ""}
+                                onChange={v => setCurrentQuestion((prev) => ({ ...prev, solution: v || "" }))}
+                                theme="vs-dark"
+                                options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {!solutionFullscreen && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-2 top-2 z-20"
+                            aria-label="Expand editor"
+                            onClick={() => setSolutionFullscreen(true)}
+                          >
+                            <Maximize2 />
+                          </Button>
+                        )}
+                        {!solutionFullscreen && (
+                          <div className="rounded border bg-muted/50 overflow-hidden" style={{ minHeight: 200 }}>
+                            <MonacoEditor
+                              height="200px"
+                              defaultLanguage="javascript"
+                              value={currentQuestion.solution || ""}
+                              onChange={v => setCurrentQuestion((prev) => ({ ...prev, solution: v || "" }))}
+                              theme="vs-dark"
+                              options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <Label>Test Cases</Label>
                       {(currentQuestion.testCases || []).map((tc, idx) => (
                         <div key={idx} className="flex gap-2 mb-2">
