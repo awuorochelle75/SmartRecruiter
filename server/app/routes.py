@@ -16,6 +16,8 @@ import time
 import logging
 import secrets
 
+from .codewars_integration import import_codewars_challenge, search_codewars_challenges
+
 auth_bp = Blueprint('auth', __name__)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'avatars')
@@ -5959,4 +5961,67 @@ def handle_assessment_invitation(assessment_id):
         response_data['message'] = invitation.message
     
     return jsonify(response_data), 200
+
+@auth_bp.route('/codewars/search', methods=['GET'])
+def search_codewars():
+    """Search for CodeWars challenges to import."""
+    try:
+        # Get query parameters
+        difficulty = request.args.get('difficulty')
+        language = request.args.get('language')
+        tags = request.args.getlist('tags') if request.args.get('tags') else None
+        
+        # Search for challenges
+        challenges = search_codewars_challenges(
+            difficulty=difficulty,
+            language=language,
+            tags=tags
+        )
+        
+        return jsonify({
+            'success': True,
+            'challenges': challenges,
+            'count': len(challenges)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to search CodeWars challenges: {str(e)}'}), 500
+
+@auth_bp.route('/codewars/import/<challenge_id>', methods=['POST'])
+def import_codewars_challenge_route(challenge_id):
+    """Import a specific CodeWars challenge as an assessment question."""
+    try:
+        question_data = import_codewars_challenge(challenge_id)
+        
+        if not question_data:
+            return jsonify({'error': 'Challenge not found or could not be imported'}), 404
+        
+        return jsonify({
+            'success': True,
+            'question': question_data,
+            'message': 'Challenge imported successfully'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to import challenge: {str(e)}'}), 500
+
+@auth_bp.route('/codewars/challenge/<challenge_id>', methods=['GET'])
+def get_codewars_challenge(challenge_id):
+    """Get details of a specific CodeWars challenge."""
+    try:
+        from .codewars_integration import CodeWarsAPI
+        
+        api = CodeWarsAPI()
+        challenge = api.get_challenge(challenge_id)
+        
+        if not challenge:
+            return jsonify({'error': 'Challenge not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'challenge': challenge
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch challenge: {str(e)}'}), 500
 

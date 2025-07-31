@@ -36,9 +36,17 @@ def setup_database():
                 alembic_cfg.set_main_option("script_location", "migrations")
                 alembic_cfg.set_main_option("sqlalchemy.url", database_url)
                 
-                # Run migrations to latest version
-                command.upgrade(alembic_cfg, "head")
-                print("Database migrations completed successfully!")
+                # Check if migrations directory exists and has content
+                migrations_dir = "migrations"
+                if not os.path.exists(migrations_dir):
+                    print("Migrations directory not found, skipping migrations")
+                else:
+                    try:
+                        command.upgrade(alembic_cfg, "head")
+                        print("Database migrations completed successfully!")
+                    except Exception as migration_error:
+                        print(f"Migration failed: {migration_error}")
+                        print("Continuing with database creation...")
                 
                 # Create any missing tables (for new models not yet migrated)
                 print("Creating any missing tables...")

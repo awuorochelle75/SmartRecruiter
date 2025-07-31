@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users, Maximize2, Minimize2 } from "lucide-react"
+import { Plus, Trash2, Save, Eye, Code, FileText, Clock, Users, Maximize2, Minimize2, ExternalLink } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
@@ -15,6 +15,7 @@ import RecruiterSidebar from "../../components/RecruiterSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { useToast } from "../../components/ui/use-toast"
 import MonacoEditor from "@monaco-editor/react"
+import CodeWarsImport from "../../components/CodeWarsImport"
 
 export default function CreateAssessment() {
   const { toast } = useToast()
@@ -39,6 +40,7 @@ export default function CreateAssessment() {
   const [categoryId, setCategoryId] = useState("")
   const [starterCodeFullscreen, setStarterCodeFullscreen] = useState(false)
   const [solutionFullscreen, setSolutionFullscreen] = useState(false)
+  const [showCodeWarsImport, setShowCodeWarsImport] = useState(false)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/categories`, { credentials: "include" })
@@ -173,6 +175,32 @@ export default function CreateAssessment() {
     }))
   }
 
+  const handleImportCodeWarsQuestion = (questionData) => {
+    // Convert CodeWars question to our format
+    const importedQuestion = {
+      id: Date.now(),
+      type: questionData.type,
+      question: questionData.question,
+      points: questionData.points,
+      explanation: questionData.explanation,
+      starterCode: questionData.starter_code || "",
+      solution: questionData.solution || "",
+      testCases: questionData.test_cases ? JSON.parse(questionData.test_cases) : [],
+      difficulty: questionData.difficulty,
+      tags: questionData.tags || [],
+      codewarsId: questionData.codewars_id,
+      codewarsUrl: questionData.codewars_url
+    }
+
+    setQuestions(prev => [...prev, importedQuestion])
+    setShowCodeWarsImport(false)
+    
+    toast({
+      title: "Question imported",
+      description: "CodeWars challenge has been added to your test assessment",
+    })
+  }
+
   // Add this function to update assessmentData fields
   const handleAssessmentChange = (field, value) => {
     setAssessmentData((prev) => ({
@@ -260,8 +288,6 @@ export default function CreateAssessment() {
       toast({ title: "Error", description: err.message, variant: "destructive" })
     }
   }
-
-
 
   return (
     <div className="flex h-screen bg-background">
@@ -473,7 +499,23 @@ export default function CreateAssessment() {
 
                 {/* Add New Question */}
                 <div className="space-y-4">
-                  <h3 className="font-medium">Add New Question</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium">Add New Question</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCodeWarsImport(!showCodeWarsImport)}
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Import from CodeWars
+                    </Button>
+                  </div>
+                  
+                  {showCodeWarsImport && (
+                    <CodeWarsImport onImportQuestion={handleImportCodeWarsQuestion} />
+                  )}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Question Type</Label>
@@ -592,11 +634,11 @@ export default function CreateAssessment() {
                             <MonacoEditor
                               height="200px"
                               defaultLanguage="javascript"
-                              value={currentQuestion.starterCode || ""}
+                        value={currentQuestion.starterCode || ""}
                               onChange={v => setCurrentQuestion((prev) => ({ ...prev, starterCode: v || "" }))}
                               theme="vs-dark"
                               options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
-                            />
+                      />
                           </div>
                         )}
                       </div>
@@ -645,11 +687,11 @@ export default function CreateAssessment() {
                             <MonacoEditor
                               height="200px"
                               defaultLanguage="javascript"
-                              value={currentQuestion.solution || ""}
+                        value={currentQuestion.solution || ""}
                               onChange={v => setCurrentQuestion((prev) => ({ ...prev, solution: v || "" }))}
                               theme="vs-dark"
                               options={{ fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false }}
-                            />
+                      />
                           </div>
                         )}
                       </div>
@@ -690,8 +732,7 @@ export default function CreateAssessment() {
                       />
                     </div>
                   )}
-
-
+                  {/* Essay only needs question, points, explanation */}
                   <div className="space-y-2">
                     <Label>Explanation (Optional)</Label>
                     <Textarea
