@@ -16,9 +16,8 @@ import { Terminal, CheckCircle, XCircle, Loader2, Clock } from "lucide-react"
 import MonacoEditor from "@monaco-editor/react"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from "../../components/ui/dialog"
 import { useToast } from "../../components/ui/use-toast"
-
-
-
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export default function AssessmentPage() {
   const { id } = useParams() // Assessment ID
@@ -324,6 +323,7 @@ export default function AssessmentPage() {
           title: "Invitation Accepted",
           description: "You can now start the assessment",
         })
+        // Navigate to the assessment with the attempt - use the id from URL params
         window.location.href = `/interviewee/assessment/${id}?attempt=${data.attempt_id}`
       } else {
         const errorData = await response.json()
@@ -362,8 +362,9 @@ export default function AssessmentPage() {
       <IntervieweeSidebar />
       <div className="flex-1 flex flex-col">
         <DashboardNavbar />
-        <main className="flex-1 p-6 overflow-auto flex items-center justify-center">
-          <Card className="w-full max-w-5xl p-6 shadow-lg">
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="flex justify-center">
+            <Card className="w-full max-w-6xl p-6 shadow-lg">
             {/* Timer at the top */}
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
               <div className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -380,11 +381,45 @@ export default function AssessmentPage() {
               <Progress value={progress} className="w-full mt-2" />
             </CardHeader>
             <CardContent className="p-0 space-y-8">
-              <div className="mb-2">
-                <h2 className="text-xl font-semibold mb-2">{currentQuestion?.question}</h2>
-                {currentQuestion?.explanation && (
-                  <div className="text-muted-foreground text-sm mb-2">{currentQuestion.explanation}</div>
-                )}
+              {/* Question Content - Made more prominent */}
+              <div className="mb-8">
+                <div className="bg-card border rounded-lg p-6 shadow-sm max-h-[70vh] overflow-y-auto bg-gradient-to-br from-card to-muted/20">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Question {currentQuestionIndex + 1}</h3>
+                    <div className="w-full h-px bg-border"></div>
+                  </div>
+                  <div className="prose prose-invert max-w-none text-foreground">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 text-foreground" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-xl font-semibold mb-3 text-foreground" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-lg font-semibold mb-2 text-foreground" {...props} />,
+                        h4: ({node, ...props}) => <h4 className="text-base font-semibold mb-2 text-foreground" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-3 text-foreground leading-relaxed" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li className="mb-1 text-foreground" {...props} />,
+                        code: ({node, inline, ...props}) => 
+                          inline ? 
+                            <code className="bg-muted px-2 py-1 rounded text-sm font-mono" {...props} /> :
+                            <code className="block bg-muted p-4 rounded text-sm overflow-x-auto font-mono" {...props} />,
+                        pre: ({node, ...props}) => <pre className="bg-muted p-4 rounded text-sm overflow-x-auto mb-3 font-mono" {...props} />,
+                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary pl-4 italic mb-3 bg-muted/50 p-3 rounded" {...props} />,
+                        a: ({node, ...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} target="_blank" rel="noopener noreferrer" />,
+                        strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
+                        em: ({node, ...props}) => <em className="italic text-foreground" {...props} />
+                      }}
+                    >
+                      {currentQuestion?.question || ""}
+                    </ReactMarkdown>
+                  </div>
+                  {currentQuestion?.explanation && (
+                    <div className="text-muted-foreground text-sm mt-4 p-3 bg-muted rounded border-l-4 border-blue-500">
+                      <strong>Note:</strong> {currentQuestion.explanation}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Multiple Choice */}
@@ -427,25 +462,26 @@ export default function AssessmentPage() {
 
               {/* Coding Challenge */}
               {currentQuestion?.type === "coding" && (
-                <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Code Editor Section */}
                   <div className="flex-1 min-w-[300px]">
                     <div className="flex items-center gap-2 mb-2">
                       <Label>Code Editor</Label>
-                    <Select
+                      <Select
                         value={codeLanguage}
                         onValueChange={setCodeLanguage}
                         className="w-[120px] h-8"
                       >
                         <SelectTrigger>
-                        <SelectValue placeholder="Select Language" />
-                      </SelectTrigger>
-                      <SelectContent>
+                          <SelectValue placeholder="Select Language" />
+                        </SelectTrigger>
+                        <SelectContent>
                           <SelectItem value="javascript">JavaScript</SelectItem>
-                        <SelectItem value="python">Python</SelectItem>
-                        <SelectItem value="java">Java</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          <SelectItem value="python">Python</SelectItem>
+                          <SelectItem value="java">Java</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="rounded border overflow-hidden mb-2" style={{ minHeight: 300 }}>
                       <MonacoEditor
                         height="300px"
@@ -454,7 +490,7 @@ export default function AssessmentPage() {
                         value={answers[currentQuestion.id] || currentQuestion.starter_code || ""}
                         onChange={(value) => handleAnswerChange(currentQuestion.id, value)}
                         options={{ fontSize: 14, minimap: { enabled: false }, wordWrap: "on" }}
-                  />
+                      />
                     </div>
                     {/* Input box for Run Code only */}
                     <div className="mb-2">
@@ -474,11 +510,13 @@ export default function AssessmentPage() {
                       </Button>
                       <Button onClick={handleRunTestCases} className="flex-1" disabled={codeRunning} variant="default">
                         {codeRunning ? "Running..." : "Run Test Cases"}
-                  </Button>
+                      </Button>
                     </div>
 
 
                   </div>
+                  
+                  {/* Output Section */}
                   <div className="flex-1 min-w-[250px] flex flex-col">
                     <Label className="mb-2 flex items-center gap-2">
                       <Terminal className="h-4 w-4" />
@@ -564,6 +602,7 @@ export default function AssessmentPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
         </main>
       </div>
       

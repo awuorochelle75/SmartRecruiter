@@ -218,6 +218,9 @@ export default function Login() {
                   <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                     Forgot your password?
                   </Link>
+                  <Link to="/resend-verification" className="text-sm text-primary hover:underline">
+                    Resend verification
+                  </Link>
                 </div>
 
                 <Button type="submit" className="w-full">

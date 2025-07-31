@@ -14,6 +14,9 @@ export default function VerifyEmail() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState(null)
   const [hasAttempted, setHasAttempted] = useState(false)
+  const [showResendForm, setShowResendForm] = useState(false)
+  const [resendEmail, setResendEmail] = useState('')
+  const [isResending, setIsResending] = useState(false)
   
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -74,6 +77,54 @@ export default function VerifyEmail() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleResendVerification = async (e) => {
+    e.preventDefault()
+    if (!resendEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsResending(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resendEmail.trim() }),
+      })
+      
+      const data = await res.json()
+      
+      if (res.ok) {
+        toast({
+          title: "Success",
+          description: data.message || "Verification email sent successfully!",
+          variant: "default"
+        })
+        setShowResendForm(false)
+        setResendEmail('')
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to send verification email",
+          variant: "destructive"
+        })
+      }
+    } catch (err) {
+      console.error("Resend verification error:", err)
+      toast({
+        title: "Error",
+        description: "Failed to send verification email. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -166,12 +217,67 @@ export default function VerifyEmail() {
                           Back to Login
                         </Link>
                       </Button>
-                      <p className="text-sm text-muted-foreground">
-                        Need a new verification email?{" "}
-                        <Link to="/login" className="text-primary hover:underline">
-                          Try logging in
-                        </Link>
-                      </p>
+                      
+                      {!showResendForm ? (
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Need a new verification email?
+                          </p>
+                          <div className="space-y-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setShowResendForm(true)}
+                              className="w-full"
+                            >
+                              Resend Verification Email
+                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              Or{" "}
+                              <Link to="/resend-verification" className="text-primary hover:underline">
+                                visit our dedicated page
+                              </Link>
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleResendVerification} className="space-y-3">
+                          <div>
+                            <label htmlFor="resend-email" className="block text-sm font-medium text-foreground mb-1">
+                              Email Address
+                            </label>
+                            <input
+                              id="resend-email"
+                              type="email"
+                              value={resendEmail}
+                              onChange={(e) => setResendEmail(e.target.value)}
+                              placeholder="Enter your email address"
+                              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                              required
+                            />
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button 
+                              type="submit" 
+                              disabled={isResending}
+                              className="flex-1"
+                            >
+                              {isResending ? "Sending..." : "Send Verification Email"}
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline"
+                              onClick={() => {
+                                setShowResendForm(false)
+                                setResendEmail('')
+                              }}
+                              className="flex-1"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      )}
                     </>
                   )}
                 </div>
