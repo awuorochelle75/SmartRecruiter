@@ -29,6 +29,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from "../../components/ui/textarea"
 import { useToast } from "../../components/ui/use-toast"
 import { useAuth } from "../../contexts/AuthContext"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export default function Results() {
   const [loading, setLoading] = useState(true)
@@ -558,7 +560,30 @@ export default function Results() {
                       </div>
                     </div>
                     
-                    <div className="text-sm">{question.question}</div>
+                    <div className="text-sm prose prose-invert max-w-none text-foreground">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-2" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-base font-semibold mb-2" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-sm font-semibold mb-1" {...props} />,
+                          p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+                          li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                          code: ({node, inline, ...props}) => 
+                            inline ? 
+                              <code className="bg-muted px-1 py-0.5 rounded text-xs" {...props} /> :
+                              <code className="block bg-muted p-2 rounded text-xs overflow-x-auto" {...props} />,
+                          pre: ({node, ...props}) => <pre className="bg-muted p-2 rounded text-xs overflow-x-auto mb-2" {...props} />,
+                          a: ({node, ...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} target="_blank" rel="noopener noreferrer" />,
+                          strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                          em: ({node, ...props}) => <em className="italic" {...props} />
+                        }}
+                      >
+                        {question.question}
+                      </ReactMarkdown>
+                    </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
