@@ -13,6 +13,7 @@ import Signup from "./pages/Signup"
 import ForgotPassword from "./pages/ForgotPassword"
 import ResetPassword from "./pages/ResetPassword"
 import VerifyEmail from "./pages/VerifyEmail"
+import ResendVerification from "./pages/ResendVerification"
 import Onboarding from "./pages/Onboarding"
 import Pricing from "./pages/Pricing"
 import About from "./pages/About"
@@ -145,6 +146,16 @@ function AppRoutes() {
             <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
           ) : (
             <VerifyEmail />
+          )
+        }
+      />
+      <Route
+        path="/resend-verification"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <ResendVerification />
           )
         }
       />

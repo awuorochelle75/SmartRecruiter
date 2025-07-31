@@ -227,15 +227,21 @@ def resend_verification():
     
     user = User.query.filter_by(email=email).first()
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'message': 'If an account with this email exists, a verification email has been sent.'}), 200
     
     if user.email_verified:
         return jsonify({'error': 'Email is already verified'}), 400
     
+    if user.email_verification_token:
+        return jsonify({'error': 'A verification email was already sent. Please check your inbox or wait a few minutes before requesting another.'}), 429
+    
+    user.email_verification_token = None
+    
     if send_verification_email(user):
         return jsonify({'message': 'Verification email sent successfully'}), 200
     else:
-        return jsonify({'error': 'Failed to send verification email. Please check your email configuration.'}), 500
+        return jsonify({'error': 'Failed to send verification email. Please try again later.'}), 500
+
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
