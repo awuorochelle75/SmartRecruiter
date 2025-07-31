@@ -237,7 +237,7 @@ export default function RecruiterDashboard() {
                             </p>
                           </div>
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to="/recruiter/results">
+                            <Link to={`/recruiter/assessments/${candidate.assessment_id}/results`}>
                               <span>
                                 <Eye className="h-4 w-4" />
                               </span>

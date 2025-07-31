@@ -30,6 +30,7 @@ export default function AssessmentDetails() {
   const [codeResults, setCodeResults] = useState({})
   const [submissions, setSubmissions] = useState([])
   const [categories, setCategories] = useState([])
+  const [submissionsLoading, setSubmissionsLoading] = useState(false)
 
   useEffect(() => {
     setLoading(true);
@@ -46,10 +47,12 @@ export default function AssessmentDetails() {
         setAssessment(null);
         setLoading(false);
       });
-    fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/results`, { credentials: 'include' })
+    setSubmissionsLoading(true)
+    fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/submissions?t=${Date.now()}`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : [])
       .then(data => setSubmissions(data))
       .catch(() => setSubmissions([]))
+      .finally(() => setSubmissionsLoading(false))
     fetch(`${import.meta.env.VITE_API_URL}/categories`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setCategories(data))
@@ -338,51 +341,100 @@ export default function AssessmentDetails() {
 
             <Card className="shadow-md mb-10">
               <CardHeader>
-                <CardTitle>Candidate Submissions</CardTitle>
-                <CardDescription>
-                  Overview of candidates who have taken or been invited to this assessment.
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Candidate Submissions</CardTitle>
+                    <CardDescription>
+                      Overview of candidates who have taken or been invited to this assessment.
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setSubmissionsLoading(true);
+                      fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/submissions?t=${Date.now()}`, { credentials: 'include' })
+                        .then(res => res.ok ? res.json() : [])
+                        .then(data => setSubmissions(data))
+                        .catch(() => setSubmissions([]))
+                        .finally(() => setSubmissionsLoading(false));
+                    }}
+                    disabled={submissionsLoading}
+                  >
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {submissions.length > 0 ? (
+                {submissionsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading submissions...</p>
+                  </div>
+                ) : submissions.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Candidate</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Score</TableHead>
+                        <TableHead>Auto Score</TableHead>
+                        <TableHead>Final Score</TableHead>
+                        <TableHead>Review Status</TableHead>
                         <TableHead>Time Spent</TableHead>
                         <TableHead>Completed</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {submissions.map((candidate) => (
-                        <TableRow key={candidate.attempt_id}>
+                      {submissions.map((submission) => (
+                        <TableRow key={submission.attempt_id}>
                           <TableCell>
                             <div className="flex items-center space-x-3">
-                              <img src={candidate.avatar ? `${import.meta.env.VITE_API_URL}/uploads/avatars/${candidate.avatar}` : "/placeholder.svg"} alt={candidate.candidate_name} className="h-8 w-8 rounded-full object-cover" />
+                              <img src={submission.avatar ? `${import.meta.env.VITE_API_URL}/uploads/avatars/${submission.avatar}` : "/placeholder.svg"} alt={submission.candidate_name} className="h-8 w-8 rounded-full object-cover" />
                               <div>
-                                <div className="font-medium">{candidate.candidate_name}</div>
-                                <div className="text-sm text-muted-foreground">{candidate.email}</div>
+                                <div className="font-medium">{submission.candidate_name}</div>
+                                <div className="text-sm text-muted-foreground">{submission.candidate_email}</div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
-                              {candidate.status.replace(/_/g, " ")}
+                              {submission.status.replace(/_/g, " ")}
                             </Badge>
                           </TableCell>
-                          <TableCell>{candidate.score !== null ? Number(candidate.score).toFixed(1) : "N/A"}</TableCell>
-                          <TableCell>{candidate.time_spent > 0 ? `${Math.floor(candidate.time_spent / 60)}:${(candidate.time_spent % 60).toString().padStart(2, '0')} min` : "-"}</TableCell>
-                          <TableCell>{candidate.completed_at ? new Date(candidate.completed_at).toLocaleString() : "N/A"}</TableCell>
+                          <TableCell>
+                            <span className={submission.auto_score > 0 ? "text-green-600" : "text-red-600"}>
+                              {submission.auto_score?.toFixed(1) || 0}%
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={submission.final_score > 0 ? "text-green-600" : "text-gray-600"}>
+                              {submission.final_score?.toFixed(1) || "Pending"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                submission.review_status === 'completed' ? 'default' : 
+                                submission.review_status === 'in_review' ? 'secondary' : 'outline'
+                              }
+                            >
+                              {submission.review_status === 'completed' ? 'Reviewed' :
+                               submission.review_status === 'in_review' ? 'In Review' :
+                               submission.review_status === 'not_reviewed' ? 'Not Reviewed' : 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{submission.time_spent > 0 ? `${Math.floor(submission.time_spent / 60)}:${(submission.time_spent % 60).toString().padStart(2, '0')} min` : "-"}</TableCell>
+                          <TableCell>{submission.completed_at ? new Date(submission.completed_at).toLocaleString() : "N/A"}</TableCell>
                           <TableCell className="text-right">
-                            {(candidate.status === "completed" || candidate.status === "pending_review") && (
-                                <Button variant="outline" size="sm">
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Review Submission
-                              </Button>
-                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate(`/recruiter/review-submission/${assessment.id}/${submission.attempt_id}`)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Review Submission
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

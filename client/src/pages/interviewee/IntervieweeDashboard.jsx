@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { Trophy, Clock, BookOpen, Target, TrendingUp, Award, Calendar, Play, CheckCircle } from "lucide-react"
+import { Trophy, Clock, BookOpen, Target, TrendingUp, Award, Calendar, Play, CheckCircle, Mail } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Progress } from "../../components/ui/progress"
@@ -15,11 +15,8 @@ import { DashboardSkeleton } from "../../components/LoadingSkeleton"
 export default function IntervieweeDashboard() {
   const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState(null)
+  const [invitations, setInvitations] = useState([])
   const { toast } = useToast()
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
 
   const fetchDashboardData = async () => {
     try {
@@ -47,6 +44,57 @@ export default function IntervieweeDashboard() {
       setLoading(false)
     }
   }
+
+  const fetchInvitations = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/invitations`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setInvitations(data)
+      }
+    } catch (error) {
+      console.error("Error fetching invitations:", error)
+    }
+  }
+
+  const handleAcceptInvitation = async (invitationId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/invitations/${invitationId}/accept`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: "Invitation Accepted",
+          description: "You can now start the assessment",
+        })
+        // Navigate to the assessment
+        window.location.href = `/interviewee/assessment/${data.assessment_id}?attempt=${data.attempt_id}`
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to accept invitation",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error accepting invitation:", error)
+      toast({
+        title: "Error",
+        description: "Failed to accept invitation",
+        variant: "destructive",
+      })
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+    fetchInvitations()
+  }, [])
 
   const formatTimeAgo = (dateString) => {
     const now = new Date()
@@ -186,6 +234,44 @@ export default function IntervieweeDashboard() {
               </Card>
             </div>
 
+            {/* Assessment Invitations */}
+            {invitations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Mail className="h-5 w-5" />
+                    <span>Assessment Invitations</span>
+                  </CardTitle>
+                  <CardDescription>You have pending assessment invitations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {invitations.map((invitation) => (
+                      <div key={invitation.id} className="p-3 rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-foreground">{invitation.assessment_title}</h4>
+                          <Badge variant="outline" className="border-blue-200 text-blue-800 dark:border-blue-800 dark:text-blue-200">
+                            Invitation
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-1">{invitation.company_name}</p>
+                        <p className="text-xs text-muted-foreground mb-2">{invitation.message}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                            <span>{invitation.assessment_duration} min</span>
+                            <span>Expires: {new Date(invitation.expires_at).toLocaleDateString()}</span>
+                          </div>
+                          <Button size="sm" onClick={() => handleAcceptInvitation(invitation.id)}>
+                            Accept Invitation
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Available Tests */}
               <Card>
@@ -255,7 +341,7 @@ export default function IntervieweeDashboard() {
                             <h4 className="text-sm font-medium text-foreground">{result.assessment}</h4>
                             <div className="flex items-center space-x-2">
                               <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-600">{Math.round(result.score)}%</span>
+                              <span className="text-sm font-medium text-green-600">{Math.round(result.score ?? 0)}%</span>
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground mb-1">{result.company}</p>

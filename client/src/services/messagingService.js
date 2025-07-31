@@ -45,7 +45,11 @@ export const messagingService = {
       throw new Error(error.error || "Failed to send message")
     }
     
-    return response.json()
+    const data = await response.json()
+    return {
+      id: data.message_id,
+      message: data.message
+    }
   },
 
   

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, CheckCircle, XCircle, Info, MessageSquare, Calendar, Settings, Award, BookOpen } from "lucide-react"
+import { Bell, CheckCircle, XCircle, Info, MessageSquare, Calendar, Settings, Award, BookOpen, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Switch } from "../../components/ui/switch"
@@ -26,10 +26,12 @@ export default function IntervieweeNotifications() {
     system_updates: true,
   })
   const { toast } = useToast()
-  const { notifications, markAsRead, markAllAsRead, clearAllNotifications, loading: notificationsLoading } = useNotifications()
+  const { notifications, markAsRead, markAllAsRead, clearAllNotifications, fetchNotifications, loading: notificationsLoading } = useNotifications()
 
   useEffect(() => {
     fetchNotificationSettings()
+    // Refresh notifications when component mounts
+    fetchNotifications()
     const timer = setTimeout(() => {
       setLoading(false)
     }, 1000)
@@ -173,8 +175,18 @@ export default function IntervieweeNotifications() {
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
           <div className="flex-1 p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold">Notifications</h1>
+                  <p className="text-muted-foreground">
+                    Loading notifications...
+                  </p>
+                </div>
+              </div>
               <CardSkeleton />
             </div>
+          </div>
         </div>
       </div>
     )
@@ -196,6 +208,19 @@ export default function IntervieweeNotifications() {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    fetchNotifications()
+                    toast({
+                      title: "Refreshed",
+                      description: "Notifications have been refreshed",
+                    })
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
                 <Button variant="outline" onClick={handleMarkAllAsRead}>
                   Mark all as read
                 </Button>

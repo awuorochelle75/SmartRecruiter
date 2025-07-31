@@ -97,4 +97,24 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  
+  /* Date and Time Input Styling for Dark Mode */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    @apply bg-background text-foreground border-border;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+  }
 }

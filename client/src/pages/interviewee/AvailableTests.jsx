@@ -374,6 +374,13 @@ export default function AvailableTests() {
                       <span>{test.questions} questions</span>
                       <span>Passing: {test.passingScore}%</span>
                     </div>
+                    {test.status === "completed" && test.score !== null && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Highest Score: {test.score}%
+                        </Badge>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2 mb-2">
                       {(test.skills || []).map((skill) => (
                         <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
@@ -383,7 +390,17 @@ export default function AvailableTests() {
                       {test.status === "available" && (
                         <Button size="sm" onClick={() => handleStartTest(test.id)}>Start Test</Button>
                       )}
-                      {test.status === "completed" && (
+                      {test.status === "completed" && test.canRetake && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="bg-transparent" asChild>
+                            <Link to="/interviewee/results">View Results</Link>
+                          </Button>
+                          <Button size="sm" onClick={() => handleStartTest(test.id)}>
+                            Retake Test ({test.remainingAttempts} left)
+                          </Button>
+                        </div>
+                      )}
+                      {test.status === "completed" && test.attempts >= test.maxAttempts && (
                         <Button size="sm" variant="outline" className="bg-transparent" asChild>
                           <Link to="/interviewee/results">View Results</Link>
                         </Button>

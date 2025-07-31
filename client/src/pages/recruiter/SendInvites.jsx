@@ -93,6 +93,7 @@ export default function SendInvites() {
       body: JSON.stringify({
         email: emails,
         assessment_title: assessmentTitle,
+        assessment_id: selectedAssessment,
         message,
         subject,
       }),

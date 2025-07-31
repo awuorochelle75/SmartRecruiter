@@ -14,111 +14,19 @@ import { CardSkeleton } from "../../components/LoadingSkeleton"
 import CodingProblem from "./problemTypes/CodingProblem"
 import MultipleChoiceProblem from "./problemTypes/MultipleChoiceProblem"
 import ShortAnswerProblem from "./problemTypes/ShortAnswerProblem"
+import CategorySession from "./CategorySession"
 
-
-
-const practiceCategories = [
-  {
-    id: "algorithms",
-    name: "Algorithms",
-    icon: Target,
-    description: "Practice algorithmic problem solving",
-    problems: 150,
-    completed: 45,
-    difficulty: "Mixed",
-  },
-  {
-    id: "data-structures",
-    name: "Data Structures",
-    icon: Code,
-    description: "Master arrays, trees, graphs, and more",
-    problems: 120,
-    completed: 38,
-    difficulty: "Mixed",
-  },
-  {
-    id: "system-design",
-    name: "System Design",
-    icon: BookOpen,
-    description: "Learn to design scalable systems",
-    problems: 50,
-    completed: 12,
-    difficulty: "Advanced",
-  },
-  {
-    id: "javascript",
-    name: "JavaScript",
-    icon: Zap,
-    description: "JavaScript-specific challenges",
-    problems: 200,
-    completed: 78,
-    difficulty: "Mixed",
-  },
-]
-
-// const practiceProblems = [
-//   {
-//     id: 1,
-//     title: "Two Sum",
-//     difficulty: "Easy",
-//     category: "algorithms",
-//     description:
-//       "Given an array of integers, return indices of the two numbers such that they add up to a specific target.",
-//     timeLimit: 30,
-//     points: 100,
-//     completed: true,
-//     bestTime: 12,
-//     attempts: 3,
-//     successRate: 85,
-//   },
-//   {
-//     id: 2,
-//     title: "Binary Tree Traversal",
-//     difficulty: "Medium",
-//     category: "data-structures",
-//     description: "Implement inorder, preorder, and postorder traversal of a binary tree.",
-//     timeLimit: 45,
-//     points: 200,
-//     completed: false,
-//     bestTime: null,
-//     attempts: 0,
-//     successRate: 65,
-//   },
-//   {
-//     id: 3,
-//     title: "Design a URL Shortener",
-//     difficulty: "Hard",
-//     category: "system-design",
-//     description: "Design a URL shortening service like bit.ly with high availability and scalability.",
-//     timeLimit: 90,
-//     points: 500,
-//     completed: false,
-//     bestTime: null,
-//     attempts: 0,
-//     successRate: 35,
-//   },
-//   {
-//     id: 4,
-//     title: "Async/Await Patterns",
-//     difficulty: "Medium",
-//     category: "javascript",
-//     description: "Implement various async/await patterns and handle promise chains effectively.",
-//     timeLimit: 40,
-//     points: 250,
-//     completed: true,
-//     bestTime: 28,
-//     attempts: 2,
-//     successRate: 70,
-//   },
-// ]
 
 export default function PracticeArena() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedDifficulty, setSelectedDifficulty] = useState("all")
   const [currentProblem, setCurrentProblem] = useState(null)
+  const [currentCategorySession, setCurrentCategorySession] = useState(null)
   const [problems, setProblems] = useState([])
+  const [categories, setCategories] = useState([])
   const [userAttempts, setUserAttempts] = useState([])
+  const [categorySessionAttempts, setCategorySessionAttempts] = useState([])
   const [userStats, setUserStats] = useState({
     problems_solved: 0,
     success_rate: 0,
@@ -137,9 +45,10 @@ export default function PracticeArena() {
 
   useEffect(() => {
     setLoading(true)
-    // Fetch problems, user attempts, and statistics in parallel
+    // Fetch problems, categories, user attempts, and statistics in parallel
     Promise.all([
       fetch(`${import.meta.env.VITE_API_URL}/public/practice-problems`),
+      fetch(`${import.meta.env.VITE_API_URL}/practice-categories`),
       fetch(`${import.meta.env.VITE_API_URL}/practice-problems/attempts`, {
         credentials: "include"
       }),
@@ -148,8 +57,9 @@ export default function PracticeArena() {
       })
     ])
     .then(responses => Promise.all(responses.map(res => res.json())))
-    .then(([problemsData, attemptsData, statsData]) => {
+    .then(([problemsData, categoriesData, attemptsData, statsData]) => {
       setProblems(problemsData)
+      setCategories(categoriesData)
       setUserAttempts(attemptsData)
       setUserStats(statsData)
       setLoading(false)
@@ -177,6 +87,52 @@ export default function PracticeArena() {
     return getUserAttemptsForProblem(problemId).length > 0
   }
 
+  // Calculate category progress
+  const getCategoryProgress = (category) => {
+    const categoryProblems = problems.filter(p => p.category_id === category.id)
+    if (categoryProblems.length === 0) return { completed: 0, total: 0, percentage: 0 }
+    
+    const completed = categoryProblems.filter(problem => {
+      // Check if user has attempted this problem (either in regular problems or category sessions)
+      const regularAttempts = userAttempts.filter(attempt => attempt.problem_id === problem.id)
+      const categoryAttempts = categorySessionAttempts.filter(attempt => attempt.problem_id === problem.id)
+      return regularAttempts.length > 0 || categoryAttempts.length > 0
+    }).length
+    
+    const total = categoryProblems.length
+    const percentage = total > 0 ? (completed / total) * 100 : 0
+    
+    return { completed, total, percentage }
+  }
+
+  // Get category status and button text
+  const getCategoryStatus = (category) => {
+    const progress = getCategoryProgress(category)
+    
+    if (progress.completed === 0) {
+      return { 
+        status: 'not-started', 
+        buttonText: 'Start Challenge',
+        buttonVariant: 'default',
+        icon: <Play className="h-4 w-4 mr-2" />
+      }
+    } else if (progress.completed === progress.total) {
+      return { 
+        status: 'completed', 
+        buttonText: 'Review Challenge',
+        buttonVariant: 'outline',
+        icon: <Trophy className="h-4 w-4 mr-2" />
+      }
+    } else {
+      return { 
+        status: 'in-progress', 
+        buttonText: `Continue (${progress.completed}/${progress.total})`,
+        buttonVariant: 'default',
+        icon: <Play className="h-4 w-4 mr-2" />
+      }
+    }
+  }
+
   const filteredProblems = problems.filter((problem) => {
     const matchesCategory = selectedCategory === "all" || String(problem.category_id) === selectedCategory
     const matchesDifficulty = selectedDifficulty === "all" || (problem.difficulty && problem.difficulty.toLowerCase() === selectedDifficulty)
@@ -199,6 +155,50 @@ export default function PracticeArena() {
     setCurrentProblem(null)
     localStorage.removeItem("practice_active_problem_id")
     // Refresh attempts and statistics data to show updated progress
+    Promise.all([
+      fetch(`${import.meta.env.VITE_API_URL}/practice-problems/attempts`, {
+        credentials: "include"
+      }),
+      fetch(`${import.meta.env.VITE_API_URL}/practice-problems/statistics`, {
+        credentials: "include"
+      })
+    ])
+    .then(responses => Promise.all(responses.map(res => res.json())))
+    .then(([attemptsData, statsData]) => {
+      setUserAttempts(attemptsData)
+      setUserStats(statsData)
+    })
+    .catch(error => {
+      console.error('Error refreshing data:', error)
+    })
+  }
+
+  // Start a category session
+  const handleStartCategorySession = async (categoryId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/practice-categories/${categoryId}/start-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const sessionData = await response.json()
+        setCurrentCategorySession(sessionData)
+      } else {
+        console.error('Failed to start category session')
+      }
+    } catch (error) {
+      console.error('Error starting category session:', error)
+    }
+  }
+
+  // Exit category session
+  const handleExitCategorySession = () => {
+    setCurrentCategorySession(null)
+    // Refresh data
     Promise.all([
       fetch(`${import.meta.env.VITE_API_URL}/practice-problems/attempts`, {
         credentials: "include"
@@ -245,6 +245,16 @@ export default function PracticeArena() {
           </main>
         </div>
       </div>
+    )
+  }
+
+  // If there's a category session active, show it
+  if (currentCategorySession) {
+    return (
+      <CategorySession
+        sessionData={currentCategorySession}
+        onExit={handleExitCategorySession}
+      />
     )
   }
 
@@ -344,12 +354,16 @@ export default function PracticeArena() {
               <TabsContent value="categories" className="space-y-6">
                 {/* Practice Categories */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {practiceCategories.map((category) => {
-                    const IconComponent = category.icon
-                    const completionRate = Math.round((category.completed / category.problems) * 100)
+                  {categories.length > 0 ? (
+                    categories.map((category) => {
+                      const IconComponent = category.icon || (() => <div className="w-6 h-6 bg-primary rounded" />)
+                      const progress = getCategoryProgress(category)
+                      const status = getCategoryStatus(category)
 
                     return (
-                      <Card key={category.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                      <Card key={category.id} className={`hover:shadow-md transition-shadow cursor-pointer ${
+                        status.status === 'completed' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-950' : ''
+                      }`}>
                         <CardHeader className="pb-3">
                           <div className="flex items-center space-x-3">
                             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -357,31 +371,62 @@ export default function PracticeArena() {
                             </div>
                             <div>
                               <CardTitle className="text-lg">{category.name}</CardTitle>
-                              <Badge variant="outline">{category.difficulty}</Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline">Mixed</Badge>
+                                {status.status === 'completed' && (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    ✓ Completed
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <CardDescription>{category.description}</CardDescription>
+                            <CardDescription>{category.description || `Practice ${category.name} problems`}</CardDescription>
 
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Progress</span>
-                              <span>
-                                {category.completed}/{category.problems}
-                              </span>
+                                <span>Problems</span>
+                                <span>{category.problems_count}</span>
                             </div>
-                            <Progress value={completionRate} className="h-2" />
+                              <div className="flex justify-between text-sm">
+                                <span>Time</span>
+                                <span>{category.estimated_time}</span>
+                              </div>
                           </div>
 
-                          <Button className="w-full" onClick={() => setSelectedCategory(category.id)}>
-                            <Play className="h-4 w-4 mr-2" />
-                            Start Practice
+                          <Progress value={progress.percentage} className="h-2" />
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>{progress.completed}/{progress.total}</span>
+                            <span>{progress.percentage.toFixed(0)}%</span>
+                          </div>
+
+                          <Button 
+                            className="w-full" 
+                            variant={status.buttonVariant}
+                            onClick={() => handleStartCategorySession(category.id)}
+                          >
+                            {status.icon}
+                            {status.buttonText}
                           </Button>
                         </CardContent>
                       </Card>
                     )
-                  })}
+                    })
+                  ) : (
+                    <div className="col-span-full text-center py-12">
+                      <div className="text-muted-foreground">
+                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                          <div className="w-8 h-8 bg-muted-foreground rounded"></div>
+                        </div>
+                        <h3 className="text-lg font-medium text-foreground mb-2">No categories available</h3>
+                        <p className="text-muted-foreground">
+                          Practice problems will be organized into categories soon.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, Video, MapPin, User, Mail, FileText, Loader2 } from "lucide-react"
+import { Calendar, Clock, Video, MapPin, User, Mail, FileText, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
@@ -11,12 +11,17 @@ import IntervieweeSidebar from "../../components/IntervieweeSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { CardSkeleton } from "../../components/LoadingSkeleton"
 import { useToast } from "../../components/ui/use-toast"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog"
 
 export default function ScheduledInterviews() {
   const [interviews, setInterviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedInterview, setSelectedInterview] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [cancelInterviewId, setCancelInterviewId] = useState(null)
+  const [cancelInterviewTitle, setCancelInterviewTitle] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -103,10 +108,91 @@ export default function ScheduledInterviews() {
     return `${minutes}m`
   }
 
+  const handleCancelInterview = async (interviewId) => {
+    setCancelling(true)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}/cancel`, {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Interview Cancelled",
+          description: "Interview has been cancelled successfully",
+        })
+        fetchInterviews()
+        setShowCancelDialog(false)
+        setCancelInterviewId(null)
+        setCancelInterviewTitle("")
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to cancel interview",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error cancelling interview:", error)
+      toast({
+        title: "Error",
+        description: "Failed to cancel interview",
+        variant: "destructive",
+      })
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const openCancelDialog = (interview) => {
+    setCancelInterviewId(interview.id)
+    setCancelInterviewTitle(`${interview.position} at ${interview.recruiter.company}`)
+    setShowCancelDialog(true)
+  }
+
+  const handleCompleteInterview = async (interviewId) => {
+    setCompleting(true)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${interviewId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "completed"
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Interview Completed",
+          description: "Interview has been marked as completed",
+        })
+        fetchInterviews()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to complete interview",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error completing interview:", error)
+      toast({
+        title: "Error",
+        description: "Failed to complete interview",
+        variant: "destructive",
+      })
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   const upcomingInterviews = interviews.filter(interview => {
-    const interviewDate = new Date(interview.scheduled_at)
-    const today = new Date()
-    return interviewDate > today && interview.status !== "cancelled"
+    return (interview.status === "scheduled" || interview.status === "confirmed") && interview.status !== "cancelled"
   })
 
   const completedInterviews = interviews.filter(interview => interview.status === "completed")
@@ -232,8 +318,14 @@ export default function ScheduledInterviews() {
                           {interview.type.replace("_", " ")}
                             </Badge>
                         {isToday(interview.scheduled_at) && (
-                          <div className="text-sm text-orange-600 font-medium">
-                            ⏰ {getTimeUntilInterview(interview.scheduled_at)} until interview
+                          <div className="flex items-center gap-2 text-sm text-orange-600 font-medium">
+                            <Clock className="h-4 w-4" />
+                            <span>
+                              {getTimeUntilInterview(interview.scheduled_at) === "Now" 
+                                ? "Interview starting now" 
+                                : `${getTimeUntilInterview(interview.scheduled_at)} until interview`
+                              }
+                            </span>
                           </div>
                         )}
                         <div className="flex items-center gap-2 pt-2">
@@ -243,15 +335,27 @@ export default function ScheduledInterviews() {
                             onClick={() => setSelectedInterview(interview)}
                           >
                             View Details
-                              </Button>
-                          {interview.meeting_link && (
+                          </Button>
+                          {(interview.status === "scheduled" || interview.status === "confirmed") && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(interview.meeting_link, '_blank')}
+                              onClick={() => openCancelDialog(interview)}
+                              disabled={cancelling}
+                              className="text-orange-600 hover:text-orange-700"
                             >
-                              <Video className="h-4 w-4 mr-1" />
-                              Join
+                              Cancel
+                            </Button>
+                          )}
+                          {(interview.status === "scheduled" || interview.status === "confirmed") && new Date(interview.scheduled_at) < new Date() && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCompleteInterview(interview.id)}
+                              disabled={completing}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              {completing ? "Completing..." : "Mark Complete"}
                             </Button>
                           )}
                         </div>
@@ -487,6 +591,29 @@ export default function ScheduledInterviews() {
             )}
           </div>
               )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Cancel Interview Confirmation Dialog */}
+          <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cancel Interview?</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to cancel your interview for <b>{cancelInterviewTitle}</b>?
+                  <br />
+                  This will notify the recruiter and mark the interview as cancelled. You can request a reschedule if needed.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setShowCancelDialog(false)} disabled={cancelling}>
+                  Keep Interview
+                </Button>
+                <Button variant="outline" onClick={() => handleCancelInterview(cancelInterviewId)} disabled={cancelling} className="text-orange-600 hover:text-orange-700">
+                  {cancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {cancelling ? "Cancelling..." : "Cancel Interview"}
+                </Button>
+          </div>
             </DialogContent>
           </Dialog>
         </main>

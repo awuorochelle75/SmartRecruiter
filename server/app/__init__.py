@@ -130,14 +130,13 @@ def create_app(config=None):
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_DOMAIN'] = None
     
-    # CORS configuration for development and production
-    allowed_origins = [
+    # CORS configuration - use environment-aware origins
+    allowed_origins = app.config.get('CORS_ORIGINS', [
         "http://localhost:5173", 
         "http://127.0.0.1:5173",
         "https://smart-recruiter-mu.vercel.app",
-        "https://smart-recruiter-mu.vercel.app/",
-        "https://smartrecruiter-b6h2.onrender.com"
-    ]
+        "https://smart-recruiter-mu.vercel.app/"
+    ])
     
     
     CORS(
@@ -153,13 +152,15 @@ def create_app(config=None):
     # Additional CORS headers for better compatibility
     @app.after_request
     def after_request(response):
-        origin = request.headers.get('Origin')
-        if origin in allowed_origins:
-            response.headers.add('Access-Control-Allow-Origin', origin)
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
-            response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            response.headers.add('Access-Control-Max-Age', '86400')
+        # Only add CORS headers if they haven't been set by the CORS extension
+        if 'Access-Control-Allow-Origin' not in response.headers:
+            origin = request.headers.get('Origin')
+            if origin in allowed_origins:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+                response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+                response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+                response.headers.add('Access-Control-Allow-Credentials', 'true')
+                response.headers.add('Access-Control-Max-Age', '86400')
         return response
     
     # Handle OPTIONS requests for preflight
@@ -211,9 +212,18 @@ def create_app(config=None):
         else:
             logging.getLogger('werkzeug').setLevel(logging.INFO)
     
-    app.config['GMAIL_USER'] = 'davidwize189@gmail.com'
-    app.config['GMAIL_APP_PASSWORD'] = 'gqslabpcfzrzgvke'
+    # Email configuration - use environment variables for production
+    app.config['GMAIL_USER'] = os.environ.get('GMAIL_USER', 'davidwize189@gmail.com')
+    app.config['GMAIL_APP_PASSWORD'] = os.environ.get('GMAIL_APP_PASSWORD', 'gqslabpcfzrzgvke')
     app.config['GMAIL_SMTP_HOST'] = 'smtp.gmail.com'
     app.config['GMAIL_SMTP_PORT'] = 465
+    
+    # Frontend URL - use environment variable for production
+    if os.environ.get('FLASK_ENV') == 'production':
+        app.config['FRONTEND_URL'] = os.environ.get('FRONTEND_URL', 'https://smart-recruiter-mu.vercel.app')
+    else:
+        app.config['FRONTEND_URL'] = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    
     return app
- 
+
+  

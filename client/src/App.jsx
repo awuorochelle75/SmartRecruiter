@@ -10,6 +10,9 @@ import { ToastProvider } from "./components/ui/use-toast"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import ForgotPassword from "./pages/ForgotPassword"
+import ResetPassword from "./pages/ResetPassword"
+import VerifyEmail from "./pages/VerifyEmail"
 import Onboarding from "./pages/Onboarding"
 import Pricing from "./pages/Pricing"
 import About from "./pages/About"
@@ -38,6 +41,7 @@ import PracticeProblems from "./pages/recruiter/PracticeProblems"
 import CreatePracticeProblem from "./pages/recruiter/CreatePracticeProblem"
 import EditPracticeProblem from "./pages/recruiter/EditPracticeProblem"
 import PracticeProblemDetails from "./pages/recruiter/PracticeProblemDetails"
+import ReviewSubmission from "./pages/recruiter/ReviewSubmission"
 
 // Interviewee Pages
 import IntervieweeDashboard from "./pages/interviewee/IntervieweeDashboard"
@@ -115,6 +119,36 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/forgot-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <ForgotPassword />
+          )
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <ResetPassword />
+          )
+        }
+      />
+      <Route
+        path="/verify-email"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user.role === "recruiter" ? "/recruiter/dashboard" : "/interviewee/dashboard"} replace />
+          ) : (
+            <VerifyEmail />
+          )
+        }
+      />
+      <Route
         path="/onboarding"
         element={
           <ProtectedRoute requiredRole="interviewee">
@@ -163,6 +197,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute requiredRole="recruiter">
             <AssessmentDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruiter/review-submission/:assessmentId/:attemptId"
+        element={
+          <ProtectedRoute requiredRole="recruiter">
+            <ReviewSubmission />
           </ProtectedRoute>
         }
       />

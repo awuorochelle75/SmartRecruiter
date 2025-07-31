@@ -31,8 +31,15 @@ export function NotificationProvider({ children }) {
       if (response.ok) {
         const data = await response.json()
         setNotifications(data)
-        const unread = data.filter(n => !n.read).length
-        setUnreadCount(unread)
+        // Only update unread count if we're not on the notifications page
+        // (to avoid clearing the counter prematurely)
+        const currentPath = window.location.pathname
+        const isOnNotificationsPage = currentPath.includes('/notifications')
+        
+        if (!isOnNotificationsPage) {
+          const unread = data.filter(n => !n.read).length
+          setUnreadCount(unread)
+        }
       }
     } catch (error) {
       console.error("Error fetching notifications:", error)
@@ -108,8 +115,27 @@ export function NotificationProvider({ children }) {
     }
   }
 
-  
+  const handleNotificationsPageVisit = async () => {
+    if (!user) return
+    
+    try {
+      // Fetch fresh notifications first
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications`, {
+        credentials: "include",
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data)
+        // Clear the unread count after successfully fetching notifications
+        setUnreadCount(0)
+      }
+    } catch (error) {
+      console.error("Error fetching notifications on page visit:", error)
+    }
+  }
 
+  // Fetch notifications on mount and when user changes
   useEffect(() => {
     if (user) {
       fetchNotifications()
@@ -117,22 +143,35 @@ export function NotificationProvider({ children }) {
     }
   }, [user])
 
-  
-
+  // Poll for new notifications every 30 seconds when user is not on messages page
   useEffect(() => {
     if (!user) return
 
     const interval = setInterval(() => {
+      // Only poll if user is not on messages page
       const currentPath = window.location.pathname
       const isOnMessagesPage = currentPath.includes('/messages')
       
       if (!isOnMessagesPage) {
         fetchUnreadCount()
       }
-    }, 30000)
+    }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
   }, [user])
+
+  // Refresh notifications when visiting notifications page
+  useEffect(() => {
+    if (!user) return
+
+    const currentPath = window.location.pathname
+    const isOnNotificationsPage = currentPath.includes('/notifications')
+    
+    if (isOnNotificationsPage) {
+      // Use the dedicated function to handle notifications page visit
+      handleNotificationsPageVisit()
+    }
+  }, [user, window.location.pathname])
 
   return (
     <NotificationContext.Provider
@@ -143,6 +182,7 @@ export function NotificationProvider({ children }) {
         markAsRead,
         markAllAsRead,
         clearAllNotifications,
+        handleNotificationsPageVisit,
         loading,
       }}
     >

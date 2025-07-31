@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useLocation, useParams } from "react-router-dom"
+import { useLocation, useParams } from "react-router-dom" // Import useLocation and useParams
 import {
   Search,
   Filter,
@@ -25,8 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import RecruiterSidebar from "../../components/RecruiterSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { TableSkeleton } from "../../components/LoadingSkeleton"
-
-
+import { useToast } from "../../components/ui/use-toast"
 
 export default function Results() {
   const { id } = useParams();
@@ -36,11 +35,13 @@ export default function Results() {
   const [sortBy, setSortBy] = useState("score")
   const [results, setResults] = useState([])
   const location = useLocation()
+  const { toast } = useToast()
 
   useEffect(() => {
     async function fetchResults() {
       setLoading(true)
       try {
+        // Try to fetch attempts for this assessment
         const res = await fetch(`${import.meta.env.VITE_API_URL}/assessments/${id}/results`, { credentials: "include" })
         if (res.ok) {
           const data = await res.json()
@@ -118,8 +119,42 @@ export default function Results() {
     }
   }
 
-
-
+  const handleExportResults = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export/recruiter/results`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'candidate_results.csv'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        toast({
+          title: "Success",
+          description: "Results exported successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to export results",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export results",
+        variant: "destructive",
+      })
+    }
+  }
 
   if (loading) {
     return (
@@ -154,7 +189,7 @@ export default function Results() {
                 <h1 className="text-3xl font-bold text-foreground">Results</h1>
                 <p className="text-muted-foreground">View and analyze assessment results and candidate performance</p>
               </div>
-              <Button>
+              <Button onClick={handleExportResults}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Results
               </Button>
@@ -162,6 +197,7 @@ export default function Results() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* statsData is removed as per new_code, so this section is removed */}
             </div>
 
             {/* Filters */}

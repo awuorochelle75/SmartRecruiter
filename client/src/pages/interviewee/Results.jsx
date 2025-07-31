@@ -13,6 +13,7 @@ import {
   CheckCircle,
   XCircle,
   Star,
+  MessageSquare,
 } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
@@ -29,8 +30,6 @@ import { Textarea } from "../../components/ui/textarea"
 import { useToast } from "../../components/ui/use-toast"
 import { useAuth } from "../../contexts/AuthContext"
 
-
-
 export default function Results() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -43,6 +42,8 @@ export default function Results() {
   const [analytics, setAnalytics] = useState(null)
   const [codeResults, setCodeResults] = useState({})
   const { toast } = useToast();
+  
+  // Feedback dialog state
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [selectedFeedbackAssessment, setSelectedFeedbackAssessment] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -51,6 +52,11 @@ export default function Results() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const { user } = useAuth();
   const [feedbackStatus, setFeedbackStatus] = useState({});
+  
+  // Review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedReviewAttempt, setSelectedReviewAttempt] = useState(null);
+  const [reviewData, setReviewData] = useState(null);
 
   // Star rating handler
   const handleStarClick = (star) => {
@@ -88,7 +94,7 @@ export default function Results() {
     async function fetchResults() {
       setLoading(true)
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/attempts/summary`, { credentials: "include" })
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/attempts/summary?t=${Date.now()}`, { credentials: "include" })
         if (res.ok) {
           const data = await res.json()
           setResults(data)
@@ -96,84 +102,32 @@ export default function Results() {
           setResults([])
         }
       } catch (err) {
+        console.error('Error fetching results:', err)
         setResults([])
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
-    fetchResults()
-  }, [])
 
-  useEffect(() => {
     async function fetchAnalytics() {
+      try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/analytics/interviewee/summary`, { credentials: "include" })
       if (res.ok) {
-        setAnalytics(await res.json())
+          const data = await res.json()
+          setAnalytics(data)
+        }
+      } catch (err) {
+        console.error("Error fetching analytics:", err)
       }
     }
+
+  
+
+
+    fetchResults()
     fetchAnalytics()
+
   }, [])
-
-  useEffect(() => {
-    async function fetchCodeResults() {
-      if (!detailedOpen || !detailedQuestions.length) return
-      const resultsObj = {}
-      for (const q of detailedQuestions) {
-        if (q.type === "coding" && detailedAttempt?.answers?.[q.id]) {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/code-eval/${detailedAttempt.answers[q.id]}`, { credentials: "include" })
-          if (res.ok) {
-            resultsObj[q.id] = await res.json()
-          }
-        }
-      }
-      setCodeResults(resultsObj)
-    }
-    fetchCodeResults()
-  }, [detailedOpen, detailedQuestions, detailedAttempt])
-
-  useEffect(() => {
-    async function fetchFeedbackStatus() {
-      if (!user || !results.length) return;
-      const status = {};
-      for (const result of results) {
-        if (result.status === "completed" || result.passed) {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/feedback/assessment/${result.assessment_id}`, { credentials: "include" });
-          if (res.ok) {
-            const feedbacks = await res.json();
-            const myFeedback = feedbacks.find(fb => String(fb.user_id) === String(user.id));
-            if (myFeedback) {
-              status[result.assessment_id] = { submitted: true, feedback: myFeedback.feedback, rating: myFeedback.rating };
-            } else {
-              status[result.assessment_id] = { submitted: false };
-            }
-          } else {
-            status[result.assessment_id] = { submitted: false };
-          }
-        }
-      }
-      setFeedbackStatus(status);
-    }
-    fetchFeedbackStatus();
-  }, [user, results]);
-
-  const filteredResults = results
-    .filter((result) => {
-      const matchesSearch =
-        (result.assessment_title || "").toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesFilter = filterStatus === "all" || (result.status || (result.passed ? "completed" : "failed")) === filterStatus
-      return matchesSearch && matchesFilter
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "score":
-          return (b.score || 0) - (a.score || 0)
-        case "name":
-          return (a.assessment_title || "").localeCompare(b.assessment_title || "")
-        case "date":
-          return new Date(b.completed_at || 0) - new Date(a.completed_at || 0)
-        default:
-          return 0
-      }
-    })
 
   const getScoreColor = (score) => {
     if (score >= 80) return "text-green-600"
@@ -182,35 +136,14 @@ export default function Results() {
   }
 
   const getStatusBadge = (result) => {
-    const status = result.status || (result.passed === true ? "completed" : result.passed === false ? "failed" : "in-progress")
-    switch (status) {
-      case "completed":
-        return (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Completed
-          </Badge>
-        )
-      case "in-progress":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-            <Clock className="h-3 w-3 mr-1" />
-            In Progress
-          </Badge>
-        )
-      case "failed":
-        return (
-          <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-            <XCircle className="h-3 w-3 mr-1" />
-            Failed
-          </Badge>
-        )
-      default:
-        return <Badge variant="secondary">{status}</Badge>
+    if (result.status === "completed") {
+      return <Badge variant="default" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" />Completed</Badge>
+    } else if (result.status === "in_progress") {
+      return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="h-3 w-3" />In Progress</Badge>
+    } else {
+      return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" />Failed</Badge>
     }
   }
-
-
 
   const handleViewDetails = async (assessmentId) => {
     try {
@@ -236,6 +169,86 @@ export default function Results() {
     }
   }
 
+  const handleViewReview = async (attemptId) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/attempts/${attemptId}/review`, { credentials: "include" })
+      if (res.ok) {
+        const data = await res.json()
+        setReviewData(data)
+        setSelectedReviewAttempt(attemptId)
+        setReviewDialogOpen(true)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load review details",
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to load review details",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleExportResults = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export/interviewee/results`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'assessment_results.csv'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        toast({
+          title: "Success",
+          description: "Results exported successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to export results",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export results",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const filteredResults = results.filter(result => {
+    const matchesSearch = result.assessment_title?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = filterStatus === "all" || result.status === filterStatus
+    return matchesSearch && matchesStatus
+  })
+
+  const sortedResults = [...filteredResults].sort((a, b) => {
+    switch (sortBy) {
+      case "score":
+        return (b.score || 0) - (a.score || 0)
+      case "date":
+        return new Date(b.completed_at || 0) - new Date(a.completed_at || 0)
+      case "name":
+        return (a.assessment_title || "").localeCompare(b.assessment_title || "")
+      default:
+        return 0
+    }
+  })
+
   if (loading) {
     return (
       <div className="flex h-screen bg-background">
@@ -257,6 +270,7 @@ export default function Results() {
         <DashboardNavbar />
         <main className="flex-1 p-6 overflow-auto">
           <div className="space-y-6">
+            {/* Analytics Cards */}
             {analytics && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <Card>
@@ -293,30 +307,35 @@ export default function Results() {
                 </Card>
               </div>
             )}
+            
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">My Results</h1>
                 <p className="text-muted-foreground">View and analyze your assessment results and performance</p>
               </div>
-              <Button>
+              <Button onClick={handleExportResults}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Results
               </Button>
             </div>
 
+
+
+            {/* Results Table */}
             <Card>
               <CardHeader>
                 <CardTitle>My Assessment Results</CardTitle>
                 <CardDescription>Detailed results for your completed assessments</CardDescription>
               </CardHeader>
               <CardContent>
-                
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Assessment</TableHead>
                       <TableHead>Score</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Review</TableHead>
                       <TableHead>Time Spent</TableHead>
                       <TableHead>Completed</TableHead>
                       <TableHead>Actions</TableHead>
@@ -324,25 +343,42 @@ export default function Results() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredResults.map((result) => (
+                    {sortedResults.map((result) => (
                       <TableRow key={result.attempt_id}>
                         <TableCell>
                           <div className="font-medium">{result.assessment_title}</div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <span className={`font-bold ${getScoreColor(result.score)}`}>
+                            <span className={`font-bold ${getScoreColor(result.score ?? 0)}`}>
                               {result.status === "completed" || result.passed ? `${(result.score ?? 0).toFixed(1)}%` : "-"}
                             </span>
-                            {(result.status === "completed" || result.passed) && <Progress value={result.score} className="w-16 h-2" />}
+                            {(result.status === "completed" || result.passed) && <Progress value={result.score ?? 0} className="w-16 h-2" />}
                           </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(result)}</TableCell>
+                        <TableCell>
+                          {result.has_review ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant={result.review_status === 'completed' ? 'default' : 'secondary'}>
+                                {result.review_status === 'completed' ? 'Reviewed' : 'In Review'}
+                              </Badge>
+                              {result.final_score && (
+                                <span className="text-sm text-muted-foreground">
+                                  {result.final_score.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Not reviewed</span>
+                          )}
+                        </TableCell>
                         <TableCell>{result.time_spent > 0 ? `${Math.round(result.time_spent / 60)} min` : "-"}</TableCell>
                         <TableCell>
                           {result.completed_at ? new Date(result.completed_at).toLocaleDateString() : "-"}
                         </TableCell>
                         <TableCell>
+                          <div className="flex items-center gap-2">
                           <Dialog open={detailedOpen && detailedAttempt?.assessment_id === result.assessment_id} onOpenChange={setDetailedOpen}>
                             <DialogTrigger asChild>
                               <Button variant="ghost" size="sm" onClick={() => handleViewDetails(result.assessment_id)}>
@@ -354,7 +390,7 @@ export default function Results() {
                                 <DialogTitle>Assessment Details</DialogTitle>
                                 <DialogDescription>
                                   <div className="font-bold mb-2">{result.assessment_title}</div>
-                                  <div>Score: {result.score.toFixed(1)}%</div>
+                                  <div>Score: {(result.score ?? 0).toFixed(1)}%</div>
                                   <div>Status: {getStatusBadge(result)}</div>
                                   <div>Completed: {result.completed_at ? new Date(result.completed_at).toLocaleDateString() : "-"}</div>
                                 </DialogDescription>
@@ -374,11 +410,11 @@ export default function Results() {
                                     {q.type === "coding" && (
                                       <div className="text-xs mt-2">
                                         <div className="font-semibold">Code Submitted:</div>
-                                        <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40 mb-2">{detailedAttempt?.answers?.[q.id]}</pre>
+                                          <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40 mb-2">{detailedAttempt?.answers?.[q.id]}</pre>
                                         {codeResults[q.id] && (
                                           <>
                                             <div className="font-semibold">Test Case Results:</div>
-                                            <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40 mb-2">{JSON.stringify(codeResults[q.id].test_case_results, null, 2)}</pre>
+                                              <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40 mb-2">{JSON.stringify(codeResults[q.id].test_case_results, null, 2)}</pre>
                                             <div>Score: {codeResults[q.id].score}</div>
                                             <div>Feedback: {codeResults[q.id].feedback}</div>
                                           </>
@@ -399,8 +435,16 @@ export default function Results() {
                               </div>
                             </DialogContent>
                           </Dialog>
-
-
+                            {result.has_review && result.review_status === 'completed' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleViewReview(result.attempt_id)}
+                              >
+                                View Review
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {(result.status === "completed" || result.passed) && (
@@ -470,6 +514,94 @@ export default function Results() {
           </div>
         </main>
       </div>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Feedback</DialogTitle>
+            <DialogDescription>
+              {reviewData && (
+                <div className="space-y-2">
+                  <div className="font-bold">{reviewData.assessment_title}</div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>Auto Score: {reviewData.auto_score?.toFixed(1)}%</div>
+                    <div>Final Score: {reviewData.final_score?.toFixed(1)}%</div>
+                    <div>Review Status: {reviewData.review_status}</div>
+                    <div>Reviewed: {reviewData.reviewed_at ? new Date(reviewData.reviewed_at).toLocaleDateString() : "Pending"}</div>
+                  </div>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {reviewData && (
+            <div className="space-y-6">
+              {/* Overall Feedback */}
+              {reviewData.overall_feedback && (
+                <div className="bg-muted p-4 rounded-lg">
+                  <h3 className="font-semibold mb-2">Overall Feedback</h3>
+                  <p className="text-sm">{reviewData.overall_feedback}</p>
+                </div>
+              )}
+              
+              {/* Question Reviews */}
+              <div className="space-y-4">
+                <h3 className="font-semibold">Question-by-Question Review</h3>
+                {reviewData.questions?.map((question, idx) => (
+                  <div key={question.question_id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Question {idx + 1}</h4>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{question.type}</Badge>
+                        <Badge variant="secondary">{question.points} points</Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm">{question.question}</div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-semibold">Your Answer:</span>
+                        <div className="mt-1">
+                          {question.type === 'coding' ? (
+                            <pre className="bg-background p-2 rounded text-xs overflow-x-auto">
+                              {question.answer || "No code submitted"}
+                            </pre>
+                          ) : (
+                            <span>{question.answer || "No answer submitted"}</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <span className="font-semibold">Scoring:</span>
+                        <div className="mt-1 space-y-1">
+                          <div>Auto Score: {question.auto_score}/{question.points}</div>
+                          <div>Final Score: {question.final_score}/{question.points}</div>
+                          <div>
+                            Status: 
+                            <Badge variant={question.final_is_correct ? "default" : "destructive"} className="ml-1">
+                              {question.final_is_correct ? "Correct" : "Incorrect"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {question.feedback && (
+                      <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded">
+                        <span className="font-semibold text-sm">Feedback:</span>
+                        <p className="text-sm mt-1">{question.feedback}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

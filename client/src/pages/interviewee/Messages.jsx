@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Send, Search, Paperclip, MoreVertical, Phone, Video, MessageSquare, Trash2 } from "lucide-react"
+import { Send, Search, Paperclip, MoreVertical, Phone, Video, MessageSquare, Trash2, Download, X } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Card, CardContent, CardHeader } from "../../components/ui/card"
@@ -15,6 +15,20 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import { useToast } from "../../components/ui/use-toast"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../../components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
+
 import IntervieweeSidebar from "../../components/IntervieweeSidebar"
 import DashboardNavbar from "../../components/DashboardNavbar"
 import { CardSkeleton } from "../../components/LoadingSkeleton"
@@ -28,11 +42,170 @@ export default function Messages() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivedConversations, setArchivedConversations] = useState([])
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false)
+  const [showUnarchiveDialog, setShowUnarchiveDialog] = useState(false)
+  const [conversationToArchive, setConversationToArchive] = useState(null)
   const { toast } = useToast()
 
   useEffect(() => {
     fetchConversations()
   }, [])
+
+  const fetchArchivedConversations = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/conversations/archived`, {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setArchivedConversations(data.conversations || [])
+      }
+    } catch (error) {
+      console.error("Error fetching archived conversations:", error)
+    }
+  }
+
+  const handleArchiveConversation = async (conversationId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/conversations/${conversationId}/archive`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Conversation archived successfully",
+        })
+        fetchConversations()
+        fetchArchivedConversations()
+        setShowArchiveDialog(false)
+        setConversationToArchive(null)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to archive conversation",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleUnarchiveConversation = async (conversationId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/conversations/${conversationId}/unarchive`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Conversation unarchived successfully",
+        })
+        fetchConversations()
+        fetchArchivedConversations()
+        setShowUnarchiveDialog(false)
+        setConversationToArchive(null)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to unarchive conversation",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const handleUploadAttachment = async (messageId) => {
+    if (!selectedFile) return
+
+    const formData = new FormData()
+    formData.append('file', selectedFile)
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/${messageId}/attachments`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Attachment uploaded successfully",
+        })
+        setSelectedFile(null)
+        // Refresh messages to show the new attachment
+        if (selectedConversation) {
+          await fetchMessages(selectedConversation.conversation_id)
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload attachment",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteAttachment = async (attachmentId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Attachment deleted successfully",
+        })
+        // Refresh messages to update the attachment list
+        if (selectedConversation) {
+          await fetchMessages(selectedConversation.conversation_id)
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete attachment",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDownloadAttachment = async (attachmentId, originalFilename) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/attachments/${attachmentId}`, {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = originalFilename
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download attachment",
+        variant: "destructive",
+      })
+    }
+  }
 
   const fetchConversations = async () => {
     try {
@@ -51,6 +224,7 @@ export default function Messages() {
     }
   }
 
+  // Filter conversations based on search query
   const filteredConversations = conversations.filter(conversation => {
     if (!searchQuery.trim()) return true
     
@@ -82,6 +256,7 @@ export default function Messages() {
     setSelectedConversation(conversation)
     await fetchMessages(conversation.conversation_id)
     
+    // Mark unread messages as read when conversation is opened
     if (conversation.unread_count > 0) {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/messages/${conversation.conversation_id}/mark-read`, {
@@ -89,6 +264,7 @@ export default function Messages() {
           credentials: 'include',
         })
         if (response.ok) {
+          // Refresh conversations to update unread count
           await fetchConversations()
         }
       } catch (error) {
@@ -102,9 +278,18 @@ export default function Messages() {
 
     try {
       setSending(true)
-      await messagingService.sendMessage(selectedConversation.other_user.id, newMessage)
+      const messageResponse = await messagingService.sendMessage(selectedConversation.other_user.id, newMessage)
+      
+      // If there's a file selected, upload it as an attachment
+      if (selectedFile && messageResponse && messageResponse.id) {
+        await handleUploadAttachment(messageResponse.id)
+      }
+      
       setNewMessage("")
+      setSelectedFile(null)
+      // Refresh messages immediately
       await fetchMessages(selectedConversation.conversation_id)
+      // Refresh conversations to update last message and timestamp
       await fetchConversations()
     } catch (error) {
       console.error("Error sending message:", error)
@@ -121,6 +306,7 @@ export default function Messages() {
   const handleDeleteMessage = async (messageId) => {
     try {
       await messagingService.deleteMessage(messageId)
+      // Refresh messages and conversations
       if (selectedConversation) {
         await fetchMessages(selectedConversation.conversation_id)
         await fetchConversations()
@@ -139,13 +325,13 @@ export default function Messages() {
     }
   }
 
-
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "Just now"
     
     const date = new Date(timestamp)
     const now = new Date()
     
+    // Check if the date is valid
     if (isNaN(date.getTime())) {
       return "Just now"
     }
@@ -196,30 +382,45 @@ export default function Messages() {
       <div className="flex-1 flex flex-col">
         <DashboardNavbar />
         <div className="flex-1 flex">
+          {/* Conversations List */}
           <div className="w-1/3 border-r bg-background">
             <div className="p-4 border-b">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Messages</h2>
+              </div>
+              
+              {/* Tabs for Active/Archived */}
+              <Tabs value={showArchived ? "archived" : "active"} onValueChange={(value) => {
+                setShowArchived(value === "archived")
+                if (value === "archived") {
+                  fetchArchivedConversations()
+                }
+              }}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="active">Active</TabsTrigger>
+                  <TabsTrigger value="archived">Archived</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search conversations..."
-                      className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
+            
+            <div className="relative p-4 border-b">
+              <Search className="absolute left-7 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search conversations..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <div className="overflow-y-auto h-[calc(100vh-200px)]">
-              {conversations.length === 0 ? (
+              {(showArchived ? archivedConversations : filteredConversations).length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                  <p>No messages yet</p>
+                  <p>No {showArchived ? 'archived' : ''} messages yet</p>
                   <p className="text-sm">Recruiters will message you when they're interested</p>
                 </div>
               ) : (
-                filteredConversations.map((conversation) => (
+                (showArchived ? archivedConversations : filteredConversations).map((conversation) => (
                   <div
                     key={conversation.conversation_id}
                     className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
@@ -274,11 +475,12 @@ export default function Messages() {
               )}
             </div>
           </div>
-          
 
+          {/* Messages Area */}
           <div className="flex-1 flex flex-col">
             {selectedConversation ? (
               <>
+                {/* Header */}
                 <div className="p-4 border-b bg-background">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -315,8 +517,21 @@ export default function Messages() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Profile</DropdownMenuItem>
-                          <DropdownMenuItem>Archive Conversation</DropdownMenuItem>
+                          {showArchived ? (
+                            <DropdownMenuItem onClick={() => {
+                              setConversationToArchive(selectedConversation)
+                              setShowUnarchiveDialog(true)
+                            }}>
+                              Unarchive Conversation
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => {
+                              setConversationToArchive(selectedConversation)
+                              setShowArchiveDialog(true)
+                            }}>
+                              Archive Conversation
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -340,6 +555,39 @@ export default function Messages() {
                           }`}
                         >
                           <p className="text-sm">{message.content}</p>
+                          
+                          {/* Attachments */}
+                          {message.attachments && message.attachments.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {message.attachments.map((attachment) => (
+                                <div key={attachment.id} className="flex items-center space-x-2 p-2 bg-background/50 rounded">
+                                  <Paperclip className="h-4 w-4" />
+                                  <span className="text-xs truncate flex-1">{attachment.original_filename}</span>
+                                  <div className="flex items-center space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => handleDownloadAttachment(attachment.id, attachment.original_filename)}
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                    {isOwnMessage && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-destructive"
+                                        onClick={() => handleDeleteAttachment(attachment.id)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-xs text-muted-foreground">
                               {formatTimestamp(message.created_at)}
@@ -373,11 +621,36 @@ export default function Messages() {
                   })}
                   </div>
 
+                {/* Message Input */}
                 <div className="p-4 border-t bg-background">
+                  {selectedFile && (
+                    <div className="mb-2 p-2 bg-muted rounded flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Paperclip className="h-4 w-4" />
+                        <span className="text-sm">{selectedFile.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedFile(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="icon">
+                    <input
+                      type="file"
+                      id="file-upload"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      accept="*/*"
+                    />
+                    <label htmlFor="file-upload">
+                      <Button variant="ghost" size="icon" asChild>
                       <Paperclip className="h-4 w-4" />
                     </Button>
+                    </label>
                     <div className="flex-1">
                     <Textarea
                       value={newMessage}
@@ -416,6 +689,46 @@ export default function Messages() {
           </div>
         </div>
       </div>
+
+      {/* Archive Confirmation Dialog */}
+      <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive Conversation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive this conversation? You can unarchive it later from the Archived tab.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button variant="outline" onClick={() => setShowArchiveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleArchiveConversation(conversationToArchive?.conversation_id)}>
+              Archive
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unarchive Confirmation Dialog */}
+      <Dialog open={showUnarchiveDialog} onOpenChange={setShowUnarchiveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unarchive Conversation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to unarchive this conversation? It will appear in your Active conversations.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button variant="outline" onClick={() => setShowUnarchiveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleUnarchiveConversation(conversationToArchive?.conversation_id)}>
+              Unarchive
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -13,6 +13,10 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False)
+    email_verified = db.Column(db.Boolean, default=False)
+    email_verification_token = db.Column(db.String(255), unique=True)
+    password_reset_token = db.Column(db.String(255), unique=True)
+    password_reset_expires = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def set_password(self, password):
@@ -20,6 +24,18 @@ class User(db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_verification_token(self):
+        import secrets
+        self.email_verification_token = secrets.token_urlsafe(32)
+        return self.email_verification_token
+    
+    def generate_password_reset_token(self):
+        import secrets
+        from datetime import datetime, timedelta
+        self.password_reset_token = secrets.token_urlsafe(32)
+        self.password_reset_expires = datetime.utcnow() + timedelta(hours=24)
+        return self.password_reset_token
 
 # Profile table specific to interviewees
 class IntervieweeProfile(db.Model):
@@ -233,6 +249,47 @@ class CodeEvaluationResult(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     attempt_answer = db.relationship('AssessmentAttemptAnswer', backref=db.backref('code_evaluation_result', uselist=False))
 
+class AssessmentReview(db.Model):
+    __tablename__ = 'assessment_review'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt.id'), nullable=False)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    overall_score = db.Column(db.Float)
+    overall_feedback = db.Column(db.Text)
+    reviewed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    attempt = db.relationship('AssessmentAttempt', backref=db.backref('reviews', lazy='dynamic'))
+    recruiter = db.relationship('User', backref=db.backref('assessment_reviews', lazy='dynamic'))
+
+class AssessmentReviewAnswer(db.Model):
+    __tablename__ = 'assessment_review_answer'
+    id = db.Column(db.Integer, primary_key=True)
+    review_id = db.Column(db.Integer, db.ForeignKey('assessment_review.id'), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('assessment_question.id'), nullable=False)
+    attempt_answer_id = db.Column(db.Integer, db.ForeignKey('assessment_attempt_answer.id'), nullable=False)
+    
+    # Manual scoring fields
+    manual_score = db.Column(db.Float)
+    max_points = db.Column(db.Float)
+    is_correct = db.Column(db.Boolean)
+    feedback = db.Column(db.Text)
+    review_notes = db.Column(db.Text)
+    
+    auto_score = db.Column(db.Float)
+    auto_is_correct = db.Column(db.Boolean)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    review = db.relationship('AssessmentReview', backref=db.backref('review_answers', lazy='dynamic'))
+    question = db.relationship('AssessmentQuestion')
+    attempt_answer = db.relationship('AssessmentAttemptAnswer')
+
 
 class PracticeProblem(db.Model):
     __tablename__ = 'practice_problem'
@@ -276,21 +333,68 @@ class PracticeProblemAttempt(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     problem_id = db.Column(db.Integer, db.ForeignKey('practice_problem.id'), nullable=False)
     problem_type = db.Column(db.String(50), nullable=False)
-    answer = db.Column(db.Text)  # For short answer
-    selected_option = db.Column(db.Integer)  # For multiple choice
-    code_submission = db.Column(db.Text)  # For coding
-    test_case_results = db.Column(db.Text)  # JSON: [{input, expected, output, passed}]
+    answer = db.Column(db.Text)
+    selected_option = db.Column(db.Integer)
+    code_submission = db.Column(db.Text)
+    test_case_results = db.Column(db.Text)
     score = db.Column(db.Float, nullable=False, default=0)
     max_score = db.Column(db.Float, nullable=False, default=0)
     passed = db.Column(db.Boolean, default=False)
     time_taken = db.Column(db.Integer)  # seconds
     attempt_number = db.Column(db.Integer, nullable=False, default=1)
     points_earned = db.Column(db.Integer, nullable=False, default=0)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     streak = db.Column(db.Integer, nullable=False, default=1)
     # Relationships
     user = db.relationship('User', backref=db.backref('practice_problem_attempts', lazy='dynamic'))
     problem = db.relationship('PracticeProblem', backref=db.backref('attempts', lazy='dynamic'))
+    
+
+class PracticeCategorySession(db.Model):
+    __tablename__ = 'practice_category_session'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    total_problems = db.Column(db.Integer, nullable=False, default=0)
+    problems_completed = db.Column(db.Integer, nullable=False, default=0)
+    total_score = db.Column(db.Float, nullable=False, default=0)
+    max_score = db.Column(db.Float, nullable=False, default=0)
+    time_limit = db.Column(db.Integer)
+    time_spent = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(20), default='in_progress')
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('practice_category_sessions', lazy='dynamic'))
+    category = db.relationship('Category', backref=db.backref('practice_sessions', lazy='dynamic'))
+    problem_attempts = db.relationship('PracticeCategorySessionAttempt', backref='session', cascade='all, delete-orphan')
+
+
+class PracticeCategorySessionAttempt(db.Model):
+    __tablename__ = 'practice_category_session_attempt'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('practice_category_session.id'), nullable=False)
+    problem_id = db.Column(db.Integer, db.ForeignKey('practice_problem.id'), nullable=False)
+    problem_type = db.Column(db.String(50), nullable=False)
+    answer = db.Column(db.Text)
+    selected_option = db.Column(db.Integer)
+    code_submission = db.Column(db.Text)
+    test_case_results = db.Column(db.Text)
+    score = db.Column(db.Float, nullable=False, default=0)
+    max_score = db.Column(db.Float, nullable=False, default=0)
+    passed = db.Column(db.Boolean, default=False)
+    time_taken = db.Column(db.Integer)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    problem = db.relationship('PracticeProblem')
     
 class Message(db.Model):
     __tablename__ = 'message'
@@ -298,11 +402,38 @@ class Message(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     read = db.Column(db.Boolean, default=False)
-    conversation_id = db.Column(db.String(64), nullable=False)  # e.g., "recruiterId-intervieweeId"
+    conversation_id = db.Column(db.String(64), nullable=False)
+    attachments = db.relationship('MessageAttachment', backref='message', cascade='all, delete-orphan')
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+    
+class MessageAttachment(db.Model):
+    __tablename__ = 'message_attachment'
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)  # in bytes
+    mime_type = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+class Conversation(db.Model):
+    __tablename__ = 'conversation'
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.String(64), unique=True, nullable=False)
+    user1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    archived_by_user1 = db.Column(db.Boolean, default=False)
+    archived_by_user2 = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationships
+    user1 = db.relationship('User', foreign_keys=[user1_id], backref='conversations_as_user1')
+    user2 = db.relationship('User', foreign_keys=[user2_id], backref='conversations_as_user2')
 
 class Notification(db.Model):
     __tablename__ = 'notification'
@@ -357,3 +488,24 @@ class Feedback(db.Model):
     interviewee = db.relationship('User', backref='feedback_submitted')
 
 
+
+class AssessmentInvitation(db.Model):
+    __tablename__ = 'assessment_invitation'
+    id = db.Column(db.Integer, primary_key=True)
+    assessment_id = db.Column(db.Integer, db.ForeignKey('assessment.id'), nullable=False)
+    recruiter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    interviewee_email = db.Column(db.String(255), nullable=False)
+    interviewee_name = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(50), default='sent')
+    invitation_token = db.Column(db.String(255), unique=True, nullable=False)
+    message = db.Column(db.Text)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    assessment = db.relationship('Assessment', backref='invitations')
+    recruiter = db.relationship('User', foreign_keys=[recruiter_id])
+    
+    def __repr__(self):
+        return f'<AssessmentInvitation {self.id}>'

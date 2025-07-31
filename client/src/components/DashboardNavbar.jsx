@@ -1,6 +1,5 @@
 "use client"
 
-
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Bell, Search } from "lucide-react"
@@ -16,13 +15,13 @@ import {
 } from "./ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import ThemeToggle from "./ThemeToggle"
+import SearchModal from "./SearchModal"
 import { useAuth } from "../contexts/AuthContext"
 import { useNotifications } from "../contexts/NotificationContext"
 
-
-
 export default function DashboardNavbar() {
   const [profile, setProfile] = useState(null)
+  const [searchOpen, setSearchOpen] = useState(false)
   const { user: authUser, logout } = useAuth()
   const { unreadCount } = useNotifications()
 
@@ -37,26 +36,50 @@ export default function DashboardNavbar() {
       .catch((error) => console.error("Error fetching profile:", error))
   }, [])
 
+  // Keyboard shortcut for search (Ctrl/Cmd + K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+      if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [searchOpen])
+
   const userRole = authUser?.role
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-6">
-
-        {/* <Link to={`/${userRole}/dashboard`} className="flex items-center space-x-2">
-          <img src="/logo.svg" alt="SmartRecruiter Logo" className="h-8 w-8" />
-          <span className="text-xl font-bold text-foreground">SmartRecruiter</span>
-        </Link> */}
+        {/* Search */}
         <div className="flex items-center space-x-4 flex-1 max-w-md">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-10 bg-muted/50" />
+            <Input 
+              placeholder="Search..." 
+              className="pl-10 bg-muted/50 cursor-pointer" 
+              onClick={() => setSearchOpen(true)}
+              readOnly
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </div>
           </div>
         </div>
 
+        {/* Right side */}
         <div className="flex items-center space-x-4">
           <ThemeToggle />
 
+          {/* Notifications */}
           <Button asChild variant="ghost" size="icon" className="relative">
             <Link to={`/${userRole}/notifications`}>
               <Bell className="h-5 w-5" />
@@ -68,6 +91,7 @@ export default function DashboardNavbar() {
             </Link>
           </Button>
 
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -109,9 +133,12 @@ export default function DashboardNavbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          
+
         </div>
       </div>
+      
+      {/* Search Modal */}
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   )
 }

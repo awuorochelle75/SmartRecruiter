@@ -21,7 +21,7 @@ import { useToast } from "../../components/ui/use-toast"
 
 
 export default function AssessmentPage() {
-  const { id } = useParams()
+  const { id } = useParams() // Assessment ID
   const navigate = useNavigate()
   const location = useLocation()
   const query = new URLSearchParams(location.search)
@@ -44,11 +44,14 @@ export default function AssessmentPage() {
   const { toast } = useToast()
   const [timeLeft, setTimeLeft] = useState(null)
   const timerRef = useRef(null)
+  const [invitationToken, setInvitationToken] = useState(null)
+  const [invitationId, setInvitationId] = useState(null)
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false)
 
-  
+  // Timer logic: calculate time left from started_at and duration
   useEffect(() => {
     if (!attempt || !assessment) return
-    const duration = assessment.duration || 30
+    const duration = assessment.duration || 30 // in minutes
     const startedAt = attempt.started_at ? new Date(attempt.started_at) : null
     if (!startedAt) return
     const endTime = new Date(startedAt.getTime() + duration * 60000)
@@ -58,6 +61,7 @@ export default function AssessmentPage() {
       setTimeLeft(diff)
       if (diff <= 0) {
         clearInterval(timerRef.current)
+        // Auto-submit if not already submitted
         if (attempt.status === 'in_progress') confirmSubmitAssessment()
       }
     }
@@ -66,39 +70,90 @@ export default function AssessmentPage() {
     return () => clearInterval(timerRef.current)
   }, [attempt, assessment])
 
-
+  // Format time left as mm:ss
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
-
-
+  // Fetch assessment data
   useEffect(() => {
-    async function fetchData() {
+    async function fetchAssessmentData() {
       setLoading(true)
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/public/test-assessments`, { credentials: "include" })
-        const tests = await res.json()
-        const test = tests.find((t) => String(t.id) === String(id))
-        setAssessment(test)
-        if (attemptId) {
-          const res2 = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/assessments/${id}/attempt`, { credentials: "include" })
-          if (res2.ok) {
-            const att = await res2.json()
+        const invitationToken = query.get("invitation")
+        
+        if (invitationToken) {
+          // Handle invitation link
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/assessment/${id}?invitation=${invitationToken}`, { 
+            credentials: "include" 
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setAssessment(data)
+            setInvitationToken(invitationToken)
+            setInvitationId(data.invitation_id)
+            setShowInvitationDialog(true)
+            // Don't set attempt yet - user needs to accept invitation first
+          } else {
+            const errorData = await res.json()
+            toast({
+              title: "Error",
+              description: errorData.error || "Invalid invitation",
+              variant: "destructive",
+            })
+            navigate("/interviewee/dashboard")
+            return
+          }
+        } else {
+          // Handle regular test assessment or invitation that was already accepted
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/public/test-assessments`, { credentials: "include" })
+          const tests = await res.json()
+          const test = tests.find((t) => String(t.id) === String(id))
+          
+          if (test) {
+            setAssessment(test)
+          } else {
+            // If not found in test assessments, try to get it directly (for invitation assessments)
+            const res2 = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/assessment/${id}`, { credentials: "include" })
+            if (res2.ok) {
+              const assessmentData = await res2.json()
+              setAssessment(assessmentData)
+            } else {
+              console.error("Assessment not found")
+              setAssessment(null)
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching assessment data:", err)
+        setAssessment(null)
+      }
+      setLoading(false)
+    }
+    fetchAssessmentData()
+  }, [id])
+
+  // Fetch attempt data separately
+  useEffect(() => {
+    async function fetchAttemptData() {
+      if (attemptId && attemptId !== "undefined") {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/assessments/${id}/attempt`, { credentials: "include" })
+          if (res.ok) {
+            const att = await res.json()
             setAttempt(att)
             setAnswers(att.answers || {})
             setCurrentQuestionIndex(att.current_question || 0)
           }
+        } catch (err) {
+          console.error("Error fetching attempt data:", err)
+          setAttempt(null)
         }
-      } catch (err) {
-        setAssessment(null)
-        setAttempt(null)
       }
-      setLoading(false)
     }
-    fetchData()
+    fetchAttemptData()
   }, [id, attemptId])
 
   if (loading || !assessment) {
@@ -112,14 +167,23 @@ export default function AssessmentPage() {
 
   const handleAnswerChange = async (questionId, value) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }))
-    
+    // Save answer to backend
     if (attemptId) {
-      await fetch(`${import.meta.env.VITE_API_URL}/interviewee/attempts/${attemptId}/answer`, {
+      const requestBody = { 
+        question_id: questionId, 
+        answer: value, 
+        next_question: currentQuestionIndex + 1 
+      }
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/interviewee/attempts/${attemptId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ question_id: questionId, answer: value, next_question: currentQuestionIndex }),
+        body: JSON.stringify(requestBody),
       })
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Answer submission failed:", errorData)
+      }
     }
   }
 
@@ -135,7 +199,7 @@ export default function AssessmentPage() {
     }
   }
 
-  
+  // Run code only (no test cases)
   const handleRunCodeOnly = async () => {
     setInputError("")
     setTimeoutError("")
@@ -173,8 +237,7 @@ export default function AssessmentPage() {
     setCodeRunning(false)
   }
 
-  
-
+  // Run all test cases
   const handleRunTestCases = async () => {
     setCodeRunning(true)
     setTestCaseResults([])
@@ -198,8 +261,7 @@ export default function AssessmentPage() {
         setTestCaseResults([])
         setCodeOnlyOutput("")
       } else if (data.test_case_results && data.test_case_results.length > 0) {
-        
-
+        // Check if the first test case result is a compile/runtime error for all cases
         const allError = data.test_case_results.every(r => r.error && !r.output)
         if (allError) {
           setTimeoutError(data.test_case_results[0].error || "Error running code.")
@@ -220,9 +282,7 @@ export default function AssessmentPage() {
     setCodeRunning(false)
   }
 
-  
-
-
+  // Show confirmation dialog before submit
   const handleSubmitAssessment = async () => {
     setShowSubmitDialog(true)
   }
@@ -251,8 +311,39 @@ export default function AssessmentPage() {
     }
   }
 
-  
+  const handleAcceptInvitation = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/invitations/${invitationId}/accept`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setShowInvitationDialog(false)
+        toast({
+          title: "Invitation Accepted",
+          description: "You can now start the assessment",
+        })
+        window.location.href = `/interviewee/assessment/${id}?attempt=${data.attempt_id}`
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to accept invitation",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error accepting invitation:", error)
+      toast({
+        title: "Error",
+        description: "Failed to accept invitation",
+        variant: "destructive",
+      })
+    }
+  }
 
+  // Helper to get parsed test cases for the current question
   const getParsedTestCases = (q) => {
     if (!q) return [];
     if (Array.isArray(q.test_cases)) return q.test_cases;
@@ -273,8 +364,7 @@ export default function AssessmentPage() {
         <DashboardNavbar />
         <main className="flex-1 p-6 overflow-auto flex items-center justify-center">
           <Card className="w-full max-w-5xl p-6 shadow-lg">
-
-
+            {/* Timer at the top */}
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
               <div className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Clock className="h-5 w-5 text-muted-foreground" />
@@ -297,6 +387,7 @@ export default function AssessmentPage() {
                 )}
               </div>
 
+              {/* Multiple Choice */}
               {currentQuestion?.type === "multiple-choice" && (
                 <RadioGroup
                   value={answers[currentQuestion.id] || ""}
@@ -365,9 +456,7 @@ export default function AssessmentPage() {
                         options={{ fontSize: 14, minimap: { enabled: false }, wordWrap: "on" }}
                   />
                     </div>
-                    
-
-
+                    {/* Input box for Run Code only */}
                     <div className="mb-2">
                       <input
                         type="text"
@@ -477,6 +566,45 @@ export default function AssessmentPage() {
           </Card>
         </main>
       </div>
+      
+      {/* Invitation Dialog */}
+      <Dialog open={showInvitationDialog} onOpenChange={setShowInvitationDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assessment Invitation</DialogTitle>
+            <DialogDescription>
+              You have been invited to take this assessment. Please review the details below and accept the invitation to begin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold">{assessment?.title}</h3>
+              <p className="text-sm text-muted-foreground">{assessment?.description}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Duration:</span> {assessment?.duration} minutes
+              </div>
+              <div>
+                <span className="font-medium">Difficulty:</span> {assessment?.difficulty}
+              </div>
+            </div>
+            {assessment?.message && (
+              <div className="p-3 bg-muted rounded-md">
+                <p className="text-sm">{assessment.message}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => navigate("/interviewee/dashboard")}>
+              Decline
+            </Button>
+            <Button onClick={handleAcceptInvitation}>
+              Accept Invitation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -18,13 +18,12 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "interviewee",
   })
   const { login } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault()
     // Improved validation
     if (!formData.email || !formData.password) {
@@ -41,14 +40,34 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-      email: formData.email,
+          email: formData.email,
           password: formData.password,
         }),
       })
       const data = await res.json()
       if (!res.ok) {
         console.error("Login error response:", data)
-        toast({ title: "Error", description: data.error || "Login failed", variant: "destructive" })
+        
+        // Handle specific error cases
+        if (data.error && data.error.includes('verify your email')) {
+          toast({ 
+            title: "Email Not Verified", 
+            description: data.error, 
+            variant: "destructive",
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleResendVerification(formData.email)}
+                className="ml-2"
+              >
+                Resend Verification
+              </Button>
+            )
+          })
+        } else {
+          toast({ title: "Error", description: data.error || "Login failed", variant: "destructive" })
+        }
         return
       }
       
@@ -101,6 +120,38 @@ export default function Login() {
     })
   }
 
+  const handleResendVerification = async (email) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      
+      if (res.ok) {
+        toast({ 
+          title: "Success", 
+          description: "Verification email sent successfully. Please check your inbox.", 
+          variant: "default" 
+        })
+      } else {
+        toast({ 
+          title: "Error", 
+          description: data.error || "Failed to send verification email", 
+          variant: "destructive" 
+        })
+      }
+    } catch (err) {
+      console.error("Resend verification error:", err)
+      toast({ 
+        title: "Error", 
+        description: "Failed to send verification email: " + err.message, 
+        variant: "destructive" 
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background-alt">
       <Navbar />
@@ -122,19 +173,6 @@ export default function Login() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="role">I am a...</Label>
-                  <Select value={formData.role} onValueChange={handleRoleChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="recruiter">Recruiter</SelectItem>
-                      <SelectItem value="interviewee">Interviewee</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input
@@ -183,7 +221,7 @@ export default function Login() {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  Sign In as {formData.role === "recruiter" ? "Recruiter" : "Interviewee"}
+                  Sign In
                 </Button>
 
                 <div className="text-center">
